@@ -1,0 +1,15 @@
+name: wakelock_plus
+description: >-
+  MegaChat's stand-in for wakelock_plus (used by media_kit_video): the same
+  API without the win32 package, which made test builds exceed 1 GB. Keeps
+  the screen on through a method channel of the app (Android).
+version: 1.7.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter

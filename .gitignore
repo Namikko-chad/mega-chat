@@ -1,0 +1,5 @@
+/builds/
+*.test
+*.out
+/app/android/app/libs/megachat.aar
+/app/android/app/libs/megachat-sources.jar
