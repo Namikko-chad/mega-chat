@@ -26,7 +26,7 @@ Future<bool> forwardMessages(BuildContext context, List<pb.Message> parts, {Stri
   final src = live.first;
   final caps = m.account(src.accountId)?.capabilities ?? const [];
   final inside = native && fragment == null && to.account == src.accountId && caps.contains(pb.Capability.CAPABILITY_FORWARD);
-  final title = m.chats[to]?.title ?? '';
+  final title = m.chats[to] == null ? '' : chatTitle(m.chats[to]!);
   try {
     if (inside) {
       await core.api.forward(pb.ForwardRequest(accountId: src.accountId, chatId: src.chatId, messageIds: [for (final p in live) p.id], toChatId: to.chat));
@@ -68,7 +68,7 @@ Future<ChatKey?> _pickChat(BuildContext context, MessengerState m) {
   return pickOption<ChatKey>(
     context,
     title: tr('Forward to', 'Переслать в'),
-    options: {for (final e in keys.entries) e.key: e.value.title},
+    options: {for (final e in keys.entries) e.key: chatTitle(e.value)},
     describe: (k) => where(keys[k]!),
   );
 }

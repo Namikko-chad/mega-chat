@@ -3,8 +3,11 @@ package slack
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -69,6 +72,13 @@ func (s *sink) wait(t *testing.T, kind model.EventKind) model.Event {
 }
 
 // fakeSlack answers the Web API and an RTM websocket.
+// uploads is what fakeSlack got for a file upload.
+var uploads struct {
+	sync.Mutex
+	body, mime string
+	complete   url.Values
+}
+
 func fakeSlack(t *testing.T) *httptest.Server {
 	var srv *httptest.Server
 	mux := http.NewServeMux()
@@ -87,7 +97,19 @@ func fakeSlack(t *testing.T) *httptest.Server {
 			reply(w, map[string]any{"ok": true, "team": "Acme", "user": "me", "team_id": "T1", "user_id": "U0"})
 		case "users.info":
 			names := map[string]string{"U0": "Me Myself", "U1": "Ann"}
-			reply(w, map[string]any{"ok": true, "user": map[string]any{"id": r.Form.Get("user"), "profile": map[string]any{"display_name": names[r.Form.Get("user")]}}})
+			reply(w, map[string]any{"ok": true, "user": map[string]any{"id": r.Form.Get("user"), "name": "ann", "profile": map[string]any{
+				"display_name": names[r.Form.Get("user")], "title": "Engineer", "email": "ann@acme.test", "status_text": "On holiday",
+			}}})
+		case "users.getPresence":
+			reply(w, map[string]any{"ok": true, "presence": "active"})
+		case "conversations.info":
+			chans := map[string]map[string]any{
+				"D1": {"id": "D1", "is_im": true, "user": "U1"},
+				"C1": {"id": "C1", "name": "general", "purpose": map[string]any{"value": "Talk <https://acme.test|here>"}, "topic": map[string]any{"value": "Q4"}, "num_members": 2},
+			}
+			reply(w, map[string]any{"ok": true, "channel": chans[r.Form.Get("channel")]})
+		case "conversations.members":
+			reply(w, map[string]any{"ok": true, "members": []string{"U0", "U1"}})
 		case "users.conversations":
 			reply(w, map[string]any{"ok": true, "channels": []map[string]any{
 				{"id": "D1", "is_im": true, "user": "U1"}, {"id": "C1", "name": "general"},
@@ -96,6 +118,10 @@ func fakeSlack(t *testing.T) *httptest.Server {
 			reply(w, map[string]any{"ok": true, "ims": []map[string]any{{"id": "D1", "latest": "1700000100.000000", "has_unreads": true, "mention_count": 2}},
 				"channels": []map[string]any{{"id": "C1", "latest": "1700000000.000000"}}})
 		case "conversations.history":
+			if r.Form.Get("channel") == "C9" {
+				w.Write([]byte(appHistory))
+				return
+			}
 			msgs := []map[string]any{
 				{"type": "message", "ts": "1700000100.000000", "user": "U1", "text": "hello <@U0>"},
 				{"type": "message", "ts": "1700000090.000000", "user": "U1", "text": "in thread", "thread_ts": "1700000050.000000"},
@@ -109,13 +135,32 @@ func fakeSlack(t *testing.T) *httptest.Server {
 			reply(w, map[string]any{"ok": true, "ts": "1700000200.000000", "message": map[string]any{"ts": "1700000200.000000", "user": "U0", "text": r.Form.Get("text")}})
 		case "chat.getPermalink":
 			reply(w, map[string]any{"ok": true, "permalink": "https://acme.slack.com/archives/" + r.Form.Get("channel") + "/p" + strings.ReplaceAll(r.Form.Get("message_ts"), ".", "")})
+		case "chat.update":
+			ok := r.Form.Get("ts") == "1700000200.000000" && r.Form.Get("text") == "a &lt;b&gt;"
+			reply(w, map[string]any{"ok": ok, "ts": r.Form.Get("ts"), "error": "cant_update_message"})
+		case "chat.delete":
+			reply(w, map[string]any{"ok": r.Form.Get("ts") == "1700000200.000000" && r.Form.Get("channel") != "", "error": "message_not_found"})
 		case "conversations.mark":
 			reply(w, map[string]any{"ok": r.Form.Get("ts") != ""})
+		case "files.getUploadURLExternal":
+			reply(w, map[string]any{"ok": true, "upload_url": srv.URL + "/upload/F1?len=" + r.Form.Get("length"), "file_id": "F1"})
+		case "files.completeUploadExternal":
+			uploads.Lock()
+			uploads.complete = r.Form
+			uploads.Unlock()
+			reply(w, map[string]any{"ok": true, "files": []map[string]any{{"id": "F1"}}})
 		case "rtm.connect":
 			reply(w, map[string]any{"ok": true, "url": "ws" + strings.TrimPrefix(srv.URL, "http") + "/rtm"})
 		default:
 			reply(w, map[string]any{"ok": false, "error": "unknown_method"})
 		}
+	})
+	mux.HandleFunc("/upload/", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		uploads.Lock()
+		uploads.body, uploads.mime = string(body), r.Header.Get("Content-Type")
+		uploads.Unlock()
+		w.Write([]byte("OK"))
 	})
 	mux.HandleFunc("/rtm", func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Cookie"), "d=xoxd-1") {
@@ -188,13 +233,23 @@ func TestSessionMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	quoted, err := m.Send(ctx, "D1", model.Outgoing{Text: "yes", ReplyTo: "1700000100.000000", Quote: "hello"})
-	if err != nil || quoted.Text != "> hello\nyes" {
+	if err != nil || quoted.Text != "yes" || quoted.Quote != "hello" || len(quoted.Format) != 0 {
 		t.Fatalf("quote: %+v %v", quoted, err)
 	}
 	fwd, err := sess.(provider.Forwarder).Forward(ctx, "D1", []string{"1700000100.000000"}, "C1")
 	if err != nil || len(fwd) != 1 || !fwd[0].Forwarded || fwd[0].Text != "https://acme.slack.com/archives/D1/p1700000100000000" {
 		t.Fatalf("forward: %+v %v", fwd, err)
 	}
+
+	files, err := sess.(provider.FileSender).SendFiles(ctx, "C1", model.Outgoing{Text: "see <this>", Thread: "1700000050.000000",
+		Files: []model.OutFile{{Name: "a.txt", MIME: "text/plain", Data: []byte("hello")}}})
+	uploads.Lock()
+	if err != nil || len(files) != 0 || uploads.body != "hello" || uploads.mime != "text/plain" ||
+		uploads.complete.Get("channel_id") != "C1" || uploads.complete.Get("thread_ts") != "1700000050.000000" ||
+		uploads.complete.Get("initial_comment") != "see &lt;this&gt;" || uploads.complete.Get("files") != `[{"id":"F1","title":"a.txt"}]` {
+		t.Fatalf("files: %v %v %+v", files, err, uploads.complete)
+	}
+	uploads.Unlock()
 
 	k := &sink{connected: make(chan model.User, 1)}
 	rctx, cancel := context.WithCancel(ctx)
@@ -260,5 +315,146 @@ func TestSharedMessage(t *testing.T) {
 	}})
 	if !m.Forwarded || m.ForwardedFrom != "Ann" || m.Text != "the original" || len(m.Attachments) != 1 {
 		t.Fatalf("shared: %+v", m)
+	}
+}
+
+func TestProfile(t *testing.T) {
+	srv := fakeSlack(t)
+	params := map[string]string{"method": methodSession, "workspace_url": srv.URL + "/", "token": "xoxc-1", "cookie": "xoxd-1", "user_id": "U0"}
+	sess, err := New().Open(provider.Account{ID: "a", Params: params}, provider.Env{State: provider.NewMemKV(), HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pr := sess.(provider.Profiles)
+	ctx := context.Background()
+	p, err := pr.Profile(ctx, "D1")
+	if err != nil || p.Title != "Ann" || p.Username != "ann" || p.Position != "Engineer" || p.Email != "ann@acme.test" || p.About != "On holiday" || p.Link != srv.URL+"/team/U1" {
+		t.Fatalf("direct: %+v %v", p, err)
+	}
+	p, err = pr.Profile(ctx, "C1")
+	if err != nil || p.Title != "#general" || p.Members != 2 || len(p.MemberList) != 2 || p.MemberList[1].Name != "Ann" || p.Link != srv.URL+"/archives/C1" {
+		t.Fatalf("channel: %+v %v", p, err)
+	}
+	if !strings.Contains(p.About, "https://acme.test") || !strings.Contains(p.About, "Q4") {
+		t.Fatalf("about: %q", p.About)
+	}
+}
+
+func TestEdit(t *testing.T) {
+	srv := fakeSlack(t)
+	params := map[string]string{"method": methodSession, "workspace_url": srv.URL + "/", "token": "xoxc-1", "cookie": "xoxd-1", "user_id": "U0"}
+	sess, err := New().Open(provider.Account{ID: "a", Params: params}, provider.Env{State: provider.NewMemKV(), HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ed := sess.(provider.Editor)
+	m, err := ed.Edit(context.Background(), "D1", "1700000200.000000", "a <b>")
+	if err != nil || m.ID != "1700000200.000000" || m.Text != "a <b>" || m.Edited.IsZero() {
+		t.Fatalf("edit: %+v %v", m, err)
+	}
+	if _, err := ed.Edit(context.Background(), "D1", "1700000100.000000", "x"); err == nil {
+		t.Fatal("no error from Slack")
+	}
+}
+
+func TestDelete(t *testing.T) {
+	srv := fakeSlack(t)
+	params := map[string]string{"method": methodSession, "workspace_url": srv.URL + "/", "token": "xoxc-1", "cookie": "xoxd-1", "user_id": "U0"}
+	sess, err := New().Open(provider.Account{ID: "a", Params: params}, provider.Env{State: provider.NewMemKV(), HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := sess.(provider.Deleter)
+	if d.DeletesForMe() {
+		t.Fatal("Slack deletes for everyone only")
+	}
+	if err := d.Delete(context.Background(), "D1", []string{"1700000200.000000"}, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Delete(context.Background(), "D1", []string{"1700000200.000000"}, false); !errors.Is(err, provider.ErrUnsupported) {
+		t.Fatalf("for me: %v", err)
+	}
+	if err := d.Delete(context.Background(), "D1", []string{"1700000100.000000"}, true); err == nil {
+		t.Fatal("no error from Slack")
+	}
+}
+
+// appHistory is a channel with an app's Block Kit message, a webhook's
+// legacy attachment and a user's ordinary rich text message.
+const appHistory = `{"ok":true,"has_more":false,"messages":[
+{"type":"message","ts":"1700000300.000000","bot_id":"B1","username":"SwitchCase","text":"New Website Form Submission","blocks":[
+ {"type":"header","text":{"type":"plain_text","text":"New Website Form Submission","emoji":true}},
+ {"type":"section","fields":[{"type":"mrkdwn","text":"*Name:*\nJohn Doe"},{"type":"mrkdwn","text":"*Email:*\n<mailto:john@x.io|john@x.io>"}]},
+ {"type":"divider"},
+ {"type":"section","text":{"type":"mrkdwn","text":"*Comment:*\nCall me &amp; <@U1>"},"accessory":{"type":"image","image_url":"https://x.io/a.png","alt_text":"a"}},
+ {"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Reply"},"style":"primary","value":"r"}]},
+ {"type":"context","elements":[{"type":"image","image_url":"https://x.io/i.png","alt_text":"i"},{"type":"mrkdwn","text":"via *site*"}]}
+]},
+{"type":"message","subtype":"bot_message","ts":"1700000200.000000","bot_id":"B2","username":"hook","text":"","attachments":[
+ {"fallback":"Form: Jane","pretext":"New lead","title":"Jane Roe","title_link":"https://crm.test/1","fields":[{"title":"Specialty","value":"Cardiology","short":true},{"title":"Phone","value":"123","short":true}]},
+ {"fallback":"only fallback"}
+]},
+{"type":"message","ts":"1700000100.000000","user":"U1","text":"hi <@U0>, see <https://x.io|docs> *now*","blocks":[
+ {"type":"rich_text","elements":[{"type":"rich_text_section","elements":[{"type":"text","text":"hi "},{"type":"user","user_id":"U0"},{"type":"text","text":", see "},{"type":"link","url":"https://x.io","text":"docs"},{"type":"text","text":" "},{"type":"text","text":"now","style":{"bold":true}}]}]}
+]}
+]}`
+
+func TestAppMessages(t *testing.T) {
+	srv := fakeSlack(t)
+	params := map[string]string{"method": methodSession, "workspace_url": srv.URL + "/", "token": "xoxc-1", "cookie": "xoxd-1", "user_id": "U0"}
+	sess, err := New().Open(provider.Account{ID: "a", Params: params}, provider.Env{State: provider.NewMemKV(), HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	msgs, _, err := sess.(provider.Messenger).History(context.Background(), "C9", "", 50)
+	if err != nil || len(msgs) != 3 {
+		t.Fatalf("history: %+v %v", msgs, err)
+	}
+	want := "New Website Form Submission\nName:\nJohn Doe\nEmail:\njohn@x.io (mailto:john@x.io)\n\nComment:\nCall me & @Ann\nvia site"
+	bold := 0
+	for _, f := range msgs[0].Format {
+		if f.Kind == model.SpanBold {
+			bold++
+		}
+	}
+	if m := msgs[0]; m.Text != want || m.Sender.Name != "SwitchCase" || bold != 4 {
+		t.Fatalf("blocks: %q", m.Text)
+	}
+	want = "New lead\nJane Roe (https://crm.test/1)\nSpecialty: Cardiology\nPhone: 123\nonly fallback"
+	if m := msgs[1]; m.Text != want {
+		t.Fatalf("attachments: %q", m.Text)
+	}
+	if m := msgs[2]; m.Text != "hi @Me Myself, see docs (https://x.io) now" || !m.Mentioned || len(m.Format) != 1 || m.Format[0].Kind != model.SpanBold {
+		t.Fatalf("user message: %+v", m)
+	}
+	// The rich text itself renders the same way when there is no text.
+	bs := parseBlocks(json.RawMessage(`[{"type":"rich_text","elements":[{"type":"rich_text_section","elements":[{"type":"text","text":"a "},{"type":"text","text":"b","style":{"bold":true}}]},{"type":"rich_text_list","style":"ordered","elements":[{"type":"rich_text_section","elements":[{"type":"text","text":"one"}]},{"type":"rich_text_section","elements":[{"type":"emoji","name":"+1"}]}]},{"type":"rich_text_quote","elements":[{"type":"text","text":"q"}]},{"type":"rich_text_preformatted","elements":[{"type":"text","text":"x := 1"}]}]}]`))
+	if got := blocksText(bs, func(string) string { return "" }); got != "a *b*\n1. one\n2. 👍\n> q\n```\nx := 1\n```" {
+		t.Fatalf("rich text: %q", got)
+	}
+}
+
+func TestMentionMembers(t *testing.T) {
+	o := model.Outgoing{Text: "hi @Ann <3", Quote: "a<b", Mentions: []model.Mention{{Offset: 3, Length: 4, User: model.User{ID: "U1"}}}}
+	if got := outText(o); got != "&gt; a&lt;b\nhi <@U1> &lt;3" {
+		t.Fatalf("%q", got)
+	}
+	srv := fakeSlack(t)
+	params := map[string]string{"method": methodSession, "workspace_url": srv.URL + "/", "token": "xoxc-1", "cookie": "xoxd-1", "user_id": "U0"}
+	sess, err := New().Open(provider.Account{ID: "a", Params: params}, provider.Env{State: provider.NewMemKV(), HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	us, err := sess.(provider.Mentioner).Members(context.Background(), "C1", "an", 10)
+	if err != nil || len(us) != 1 || us[0].ID != "U1" || !us[0].Online {
+		t.Fatalf("members: %+v %v", us, err)
+	}
+	// What RTM reports wins over the answer kept from users.getPresence.
+	sess.(*session).setPresence([]string{"U1"}, false)
+	if us, _ = sess.(provider.Mentioner).Members(context.Background(), "C1", "an", 10); len(us) != 1 || us[0].Online {
+		t.Fatalf("went away: %+v", us)
+	}
+	if us, _ = sess.(provider.Mentioner).Members(context.Background(), "C1", "zz", 10); len(us) != 0 {
+		t.Fatalf("no match: %+v", us)
 	}
 }

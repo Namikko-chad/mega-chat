@@ -16,7 +16,9 @@ import (
 func Registry(demo bool) *provider.Registry {
 	r := provider.NewRegistry(telegram.New(), slack.New(), vkteams.New(), google.New(), mailru.New())
 	if demo {
-		r.Register(fake.New())
+		f := fake.New()
+		f.Special = true
+		r.Register(f)
 	}
 	return r
 }

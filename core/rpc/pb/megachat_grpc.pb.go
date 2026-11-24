@@ -28,6 +28,7 @@ const (
 	MegaChat_RememberPassword_FullMethodName  = "/megachat.v1.MegaChat/RememberPassword"
 	MegaChat_ForgetPassword_FullMethodName    = "/megachat.v1.MegaChat/ForgetPassword"
 	MegaChat_UnlockRemembered_FullMethodName  = "/megachat.v1.MegaChat/UnlockRemembered"
+	MegaChat_SetVaultPath_FullMethodName      = "/megachat.v1.MegaChat/SetVaultPath"
 	MegaChat_Providers_FullMethodName         = "/megachat.v1.MegaChat/Providers"
 	MegaChat_StartLogin_FullMethodName        = "/megachat.v1.MegaChat/StartLogin"
 	MegaChat_LoginStep_FullMethodName         = "/megachat.v1.MegaChat/LoginStep"
@@ -37,6 +38,7 @@ const (
 	MegaChat_RenameAccount_FullMethodName     = "/megachat.v1.MegaChat/RenameAccount"
 	MegaChat_SetAccountEnabled_FullMethodName = "/megachat.v1.MegaChat/SetAccountEnabled"
 	MegaChat_RemoveAccount_FullMethodName     = "/megachat.v1.MegaChat/RemoveAccount"
+	MegaChat_ReorderAccounts_FullMethodName   = "/megachat.v1.MegaChat/ReorderAccounts"
 	MegaChat_Chats_FullMethodName             = "/megachat.v1.MegaChat/Chats"
 	MegaChat_RefreshChats_FullMethodName      = "/megachat.v1.MegaChat/RefreshChats"
 	MegaChat_History_FullMethodName           = "/megachat.v1.MegaChat/History"
@@ -46,7 +48,14 @@ const (
 	MegaChat_Thread_FullMethodName            = "/megachat.v1.MegaChat/Thread"
 	MegaChat_Topics_FullMethodName            = "/megachat.v1.MegaChat/Topics"
 	MegaChat_React_FullMethodName             = "/megachat.v1.MegaChat/React"
+	MegaChat_Edit_FullMethodName              = "/megachat.v1.MegaChat/Edit"
+	MegaChat_Delete_FullMethodName            = "/megachat.v1.MegaChat/Delete"
+	MegaChat_LinkPreview_FullMethodName       = "/megachat.v1.MegaChat/LinkPreview"
+	MegaChat_Members_FullMethodName           = "/megachat.v1.MegaChat/Members"
 	MegaChat_Media_FullMethodName             = "/megachat.v1.MegaChat/Media"
+	MegaChat_Profile_FullMethodName           = "/megachat.v1.MegaChat/Profile"
+	MegaChat_ManageChat_FullMethodName        = "/megachat.v1.MegaChat/ManageChat"
+	MegaChat_ChatFolders_FullMethodName       = "/megachat.v1.MegaChat/ChatFolders"
 	MegaChat_StartCall_FullMethodName         = "/megachat.v1.MegaChat/StartCall"
 	MegaChat_AcceptCall_FullMethodName        = "/megachat.v1.MegaChat/AcceptCall"
 	MegaChat_EndCall_FullMethodName           = "/megachat.v1.MegaChat/EndCall"
@@ -59,6 +68,7 @@ const (
 	MegaChat_GetMail_FullMethodName           = "/megachat.v1.MegaChat/GetMail"
 	MegaChat_SendMail_FullMethodName          = "/megachat.v1.MegaChat/SendMail"
 	MegaChat_UpdateMail_FullMethodName        = "/megachat.v1.MegaChat/UpdateMail"
+	MegaChat_MoveMail_FullMethodName          = "/megachat.v1.MegaChat/MoveMail"
 	MegaChat_Calendars_FullMethodName         = "/megachat.v1.MegaChat/Calendars"
 	MegaChat_Events_FullMethodName            = "/megachat.v1.MegaChat/Events"
 	MegaChat_SaveEvent_FullMethodName         = "/megachat.v1.MegaChat/SaveEvent"
@@ -101,6 +111,12 @@ type MegaChatClient interface {
 	RememberPassword(ctx context.Context, in *PasswordRequest, opts ...grpc.CallOption) (*State, error)
 	ForgetPassword(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*State, error)
 	UnlockRemembered(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*State, error)
+	// Where the vault file lives (desktops; kept across runs). move: the open
+	// vault goes to path (FailedPrecondition while locked, AlreadyExists if a
+	// file is there), a remembered password follows it. Otherwise path is an
+	// existing vault to use from now on (FailedPrecondition while unlocked,
+	// NotFound if there is no file). A directory means "vault.mc" in it.
+	SetVaultPath(ctx context.Context, in *VaultPathRequest, opts ...grpc.CallOption) (*State, error)
 	// Providers and accounts.
 	Providers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProvidersReply, error)
 	// Sign-in is a short dialog driven by the core: StartLogin returns the
@@ -118,6 +134,8 @@ type MegaChatClient interface {
 	SetAccountEnabled(ctx context.Context, in *SetEnabledRequest, opts ...grpc.CallOption) (*Account, error)
 	// Signs out and forgets the account and its cached messages.
 	RemoveAccount(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Puts the accounts in this order; accounts not listed follow, as they were.
+	ReorderAccounts(ctx context.Context, in *ReorderAccountsRequest, opts ...grpc.CallOption) (*AccountsReply, error)
 	// Chats and messages.
 	// All chats of the given accounts (all accounts when empty), newest
 	// activity first. Served from the local cache; Refresh asks providers.
@@ -140,9 +158,33 @@ type MegaChatClient interface {
 	// Adds or takes back the account's reaction; returns the message with
 	// its new reactions (a KIND_MESSAGE_EDIT follows).
 	React(ctx context.Context, in *ReactRequest, opts ...grpc.CallOption) (*Message, error)
+	// Replaces the text of one of the account's own messages; returns the
+	// message as it is now (a KIND_MESSAGE_EDIT follows). CAPABILITY_EDIT.
+	Edit(ctx context.Context, in *EditRequest, opts ...grpc.CallOption) (*Message, error)
+	// Deletes the account's own messages of one chat for everyone
+	// (CAPABILITY_DELETE) or only for this account (for_all false,
+	// CAPABILITY_DELETE_FOR_ME); KIND_MESSAGE_DELETE (KIND_THREAD_MESSAGE
+	// with deleted for thread replies) follows.
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*Empty, error)
+	// A link's preview from its page's Open Graph tags, fetched by the core
+	// (public addresses only; cached in memory). NotFound: nothing to show.
+	LinkPreview(ctx context.Context, in *LinkPreviewRequest, opts ...grpc.CallOption) (*LinkPreviewReply, error)
+	// People of a chat to mention, for the composer's "@" (CAPABILITY_MENTIONS).
+	Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersReply, error)
 	// Content of a media ref: an avatar (User/Chat.avatar_url) or an
 	// attachment (Attachment.ref, .thumb). Cached in the core.
 	Media(ctx context.Context, in *MediaRequest, opts ...grpc.CallOption) (*MediaReply, error)
+	// What a chat is: the person of a direct chat, a group or a channel
+	// (CAPABILITY_PROFILES). Not cached.
+	Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*ChatProfile, error)
+	// Mutes, pins, archives or leaves a chat (Account.chat_actions,
+	// CAPABILITY_MANAGE_CHATS) and returns it as it is now; a KIND_CHAT (or,
+	// after leaving, KIND_CHAT_REMOVED) follows. Leaving: groups and
+	// channels only.
+	ManageChat(ctx context.Context, in *ManageChatRequest, opts ...grpc.CallOption) (*Chat, error)
+	// Chat folders of the accounts (CAPABILITY_CHAT_FOLDERS: Telegram).
+	// KIND_CHAT_FOLDERS tells they changed.
+	ChatFolders(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*ChatFoldersReply, error)
 	// 1:1 calls (CAPABILITY_CALLS). Media runs in the app as a standard
 	// WebRTC peer connection: the core passes its offer, answer, candidates
 	// and data-channel messages to the messenger (CallSignal) and back
@@ -169,6 +211,8 @@ type MegaChatClient interface {
 	GetMail(ctx context.Context, in *GetMailRequest, opts ...grpc.CallOption) (*Mail, error)
 	SendMail(ctx context.Context, in *SendMailRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateMail(ctx context.Context, in *UpdateMailRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Moves messages of one account between its folders.
+	MoveMail(ctx context.Context, in *MoveMailRequest, opts ...grpc.CallOption) (*Empty, error)
 	// Calendars (CAPABILITY_CALENDAR): all calendars of all accounts, and
 	// their events of a time range merged by start.
 	Calendars(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*CalendarsReply, error)
@@ -279,6 +323,16 @@ func (c *megaChatClient) UnlockRemembered(ctx context.Context, in *Empty, opts .
 	return out, nil
 }
 
+func (c *megaChatClient) SetVaultPath(ctx context.Context, in *VaultPathRequest, opts ...grpc.CallOption) (*State, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(State)
+	err := c.cc.Invoke(ctx, MegaChat_SetVaultPath_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *megaChatClient) Providers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProvidersReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProvidersReply)
@@ -363,6 +417,16 @@ func (c *megaChatClient) RemoveAccount(ctx context.Context, in *IdRequest, opts 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, MegaChat_RemoveAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) ReorderAccounts(ctx context.Context, in *ReorderAccountsRequest, opts ...grpc.CallOption) (*AccountsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountsReply)
+	err := c.cc.Invoke(ctx, MegaChat_ReorderAccounts_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -459,10 +523,80 @@ func (c *megaChatClient) React(ctx context.Context, in *ReactRequest, opts ...gr
 	return out, nil
 }
 
+func (c *megaChatClient) Edit(ctx context.Context, in *EditRequest, opts ...grpc.CallOption) (*Message, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Message)
+	err := c.cc.Invoke(ctx, MegaChat_Edit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, MegaChat_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) LinkPreview(ctx context.Context, in *LinkPreviewRequest, opts ...grpc.CallOption) (*LinkPreviewReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LinkPreviewReply)
+	err := c.cc.Invoke(ctx, MegaChat_LinkPreview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MembersReply)
+	err := c.cc.Invoke(ctx, MegaChat_Members_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *megaChatClient) Media(ctx context.Context, in *MediaRequest, opts ...grpc.CallOption) (*MediaReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MediaReply)
 	err := c.cc.Invoke(ctx, MegaChat_Media_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*ChatProfile, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatProfile)
+	err := c.cc.Invoke(ctx, MegaChat_Profile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) ManageChat(ctx context.Context, in *ManageChatRequest, opts ...grpc.CallOption) (*Chat, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Chat)
+	err := c.cc.Invoke(ctx, MegaChat_ManageChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) ChatFolders(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*ChatFoldersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatFoldersReply)
+	err := c.cc.Invoke(ctx, MegaChat_ChatFolders_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -589,6 +723,16 @@ func (c *megaChatClient) UpdateMail(ctx context.Context, in *UpdateMailRequest, 
 	return out, nil
 }
 
+func (c *megaChatClient) MoveMail(ctx context.Context, in *MoveMailRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, MegaChat_MoveMail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *megaChatClient) Calendars(ctx context.Context, in *AccountsRequest, opts ...grpc.CallOption) (*CalendarsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CalendarsReply)
@@ -701,6 +845,12 @@ type MegaChatServer interface {
 	RememberPassword(context.Context, *PasswordRequest) (*State, error)
 	ForgetPassword(context.Context, *Empty) (*State, error)
 	UnlockRemembered(context.Context, *Empty) (*State, error)
+	// Where the vault file lives (desktops; kept across runs). move: the open
+	// vault goes to path (FailedPrecondition while locked, AlreadyExists if a
+	// file is there), a remembered password follows it. Otherwise path is an
+	// existing vault to use from now on (FailedPrecondition while unlocked,
+	// NotFound if there is no file). A directory means "vault.mc" in it.
+	SetVaultPath(context.Context, *VaultPathRequest) (*State, error)
 	// Providers and accounts.
 	Providers(context.Context, *Empty) (*ProvidersReply, error)
 	// Sign-in is a short dialog driven by the core: StartLogin returns the
@@ -718,6 +868,8 @@ type MegaChatServer interface {
 	SetAccountEnabled(context.Context, *SetEnabledRequest) (*Account, error)
 	// Signs out and forgets the account and its cached messages.
 	RemoveAccount(context.Context, *IdRequest) (*Empty, error)
+	// Puts the accounts in this order; accounts not listed follow, as they were.
+	ReorderAccounts(context.Context, *ReorderAccountsRequest) (*AccountsReply, error)
 	// Chats and messages.
 	// All chats of the given accounts (all accounts when empty), newest
 	// activity first. Served from the local cache; Refresh asks providers.
@@ -740,9 +892,33 @@ type MegaChatServer interface {
 	// Adds or takes back the account's reaction; returns the message with
 	// its new reactions (a KIND_MESSAGE_EDIT follows).
 	React(context.Context, *ReactRequest) (*Message, error)
+	// Replaces the text of one of the account's own messages; returns the
+	// message as it is now (a KIND_MESSAGE_EDIT follows). CAPABILITY_EDIT.
+	Edit(context.Context, *EditRequest) (*Message, error)
+	// Deletes the account's own messages of one chat for everyone
+	// (CAPABILITY_DELETE) or only for this account (for_all false,
+	// CAPABILITY_DELETE_FOR_ME); KIND_MESSAGE_DELETE (KIND_THREAD_MESSAGE
+	// with deleted for thread replies) follows.
+	Delete(context.Context, *DeleteRequest) (*Empty, error)
+	// A link's preview from its page's Open Graph tags, fetched by the core
+	// (public addresses only; cached in memory). NotFound: nothing to show.
+	LinkPreview(context.Context, *LinkPreviewRequest) (*LinkPreviewReply, error)
+	// People of a chat to mention, for the composer's "@" (CAPABILITY_MENTIONS).
+	Members(context.Context, *MembersRequest) (*MembersReply, error)
 	// Content of a media ref: an avatar (User/Chat.avatar_url) or an
 	// attachment (Attachment.ref, .thumb). Cached in the core.
 	Media(context.Context, *MediaRequest) (*MediaReply, error)
+	// What a chat is: the person of a direct chat, a group or a channel
+	// (CAPABILITY_PROFILES). Not cached.
+	Profile(context.Context, *ProfileRequest) (*ChatProfile, error)
+	// Mutes, pins, archives or leaves a chat (Account.chat_actions,
+	// CAPABILITY_MANAGE_CHATS) and returns it as it is now; a KIND_CHAT (or,
+	// after leaving, KIND_CHAT_REMOVED) follows. Leaving: groups and
+	// channels only.
+	ManageChat(context.Context, *ManageChatRequest) (*Chat, error)
+	// Chat folders of the accounts (CAPABILITY_CHAT_FOLDERS: Telegram).
+	// KIND_CHAT_FOLDERS tells they changed.
+	ChatFolders(context.Context, *AccountsRequest) (*ChatFoldersReply, error)
 	// 1:1 calls (CAPABILITY_CALLS). Media runs in the app as a standard
 	// WebRTC peer connection: the core passes its offer, answer, candidates
 	// and data-channel messages to the messenger (CallSignal) and back
@@ -769,6 +945,8 @@ type MegaChatServer interface {
 	GetMail(context.Context, *GetMailRequest) (*Mail, error)
 	SendMail(context.Context, *SendMailRequest) (*Empty, error)
 	UpdateMail(context.Context, *UpdateMailRequest) (*Empty, error)
+	// Moves messages of one account between its folders.
+	MoveMail(context.Context, *MoveMailRequest) (*Empty, error)
 	// Calendars (CAPABILITY_CALENDAR): all calendars of all accounts, and
 	// their events of a time range merged by start.
 	Calendars(context.Context, *AccountsRequest) (*CalendarsReply, error)
@@ -816,6 +994,9 @@ func (UnimplementedMegaChatServer) ForgetPassword(context.Context, *Empty) (*Sta
 func (UnimplementedMegaChatServer) UnlockRemembered(context.Context, *Empty) (*State, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnlockRemembered not implemented")
 }
+func (UnimplementedMegaChatServer) SetVaultPath(context.Context, *VaultPathRequest) (*State, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetVaultPath not implemented")
+}
 func (UnimplementedMegaChatServer) Providers(context.Context, *Empty) (*ProvidersReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Providers not implemented")
 }
@@ -842,6 +1023,9 @@ func (UnimplementedMegaChatServer) SetAccountEnabled(context.Context, *SetEnable
 }
 func (UnimplementedMegaChatServer) RemoveAccount(context.Context, *IdRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveAccount not implemented")
+}
+func (UnimplementedMegaChatServer) ReorderAccounts(context.Context, *ReorderAccountsRequest) (*AccountsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReorderAccounts not implemented")
 }
 func (UnimplementedMegaChatServer) Chats(context.Context, *ChatsRequest) (*ChatsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Chats not implemented")
@@ -870,8 +1054,29 @@ func (UnimplementedMegaChatServer) Topics(context.Context, *TopicsRequest) (*Top
 func (UnimplementedMegaChatServer) React(context.Context, *ReactRequest) (*Message, error) {
 	return nil, status.Error(codes.Unimplemented, "method React not implemented")
 }
+func (UnimplementedMegaChatServer) Edit(context.Context, *EditRequest) (*Message, error) {
+	return nil, status.Error(codes.Unimplemented, "method Edit not implemented")
+}
+func (UnimplementedMegaChatServer) Delete(context.Context, *DeleteRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedMegaChatServer) LinkPreview(context.Context, *LinkPreviewRequest) (*LinkPreviewReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method LinkPreview not implemented")
+}
+func (UnimplementedMegaChatServer) Members(context.Context, *MembersRequest) (*MembersReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Members not implemented")
+}
 func (UnimplementedMegaChatServer) Media(context.Context, *MediaRequest) (*MediaReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Media not implemented")
+}
+func (UnimplementedMegaChatServer) Profile(context.Context, *ProfileRequest) (*ChatProfile, error) {
+	return nil, status.Error(codes.Unimplemented, "method Profile not implemented")
+}
+func (UnimplementedMegaChatServer) ManageChat(context.Context, *ManageChatRequest) (*Chat, error) {
+	return nil, status.Error(codes.Unimplemented, "method ManageChat not implemented")
+}
+func (UnimplementedMegaChatServer) ChatFolders(context.Context, *AccountsRequest) (*ChatFoldersReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ChatFolders not implemented")
 }
 func (UnimplementedMegaChatServer) StartCall(context.Context, *StartCallRequest) (*Call, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartCall not implemented")
@@ -908,6 +1113,9 @@ func (UnimplementedMegaChatServer) SendMail(context.Context, *SendMailRequest) (
 }
 func (UnimplementedMegaChatServer) UpdateMail(context.Context, *UpdateMailRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateMail not implemented")
+}
+func (UnimplementedMegaChatServer) MoveMail(context.Context, *MoveMailRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method MoveMail not implemented")
 }
 func (UnimplementedMegaChatServer) Calendars(context.Context, *AccountsRequest) (*CalendarsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Calendars not implemented")
@@ -1113,6 +1321,24 @@ func _MegaChat_UnlockRemembered_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MegaChat_SetVaultPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VaultPathRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).SetVaultPath(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_SetVaultPath_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).SetVaultPath(ctx, req.(*VaultPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MegaChat_Providers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -1271,6 +1497,24 @@ func _MegaChat_RemoveAccount_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MegaChatServer).RemoveAccount(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_ReorderAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReorderAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).ReorderAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_ReorderAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).ReorderAccounts(ctx, req.(*ReorderAccountsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1437,6 +1681,78 @@ func _MegaChat_React_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MegaChat_Edit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EditRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).Edit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_Edit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).Edit(ctx, req.(*EditRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_LinkPreview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LinkPreviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).LinkPreview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_LinkPreview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).LinkPreview(ctx, req.(*LinkPreviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_Members_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).Members(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_Members_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).Members(ctx, req.(*MembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MegaChat_Media_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MediaRequest)
 	if err := dec(in); err != nil {
@@ -1451,6 +1767,60 @@ func _MegaChat_Media_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MegaChatServer).Media(ctx, req.(*MediaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_Profile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).Profile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_Profile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).Profile(ctx, req.(*ProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_ManageChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ManageChatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).ManageChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_ManageChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).ManageChat(ctx, req.(*ManageChatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_ChatFolders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).ChatFolders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_ChatFolders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).ChatFolders(ctx, req.(*AccountsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1671,6 +2041,24 @@ func _MegaChat_UpdateMail_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MegaChat_MoveMail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MoveMailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).MoveMail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_MoveMail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).MoveMail(ctx, req.(*MoveMailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MegaChat_Calendars_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AccountsRequest)
 	if err := dec(in); err != nil {
@@ -1834,6 +2222,10 @@ var MegaChat_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MegaChat_UnlockRemembered_Handler,
 		},
 		{
+			MethodName: "SetVaultPath",
+			Handler:    _MegaChat_SetVaultPath_Handler,
+		},
+		{
 			MethodName: "Providers",
 			Handler:    _MegaChat_Providers_Handler,
 		},
@@ -1868,6 +2260,10 @@ var MegaChat_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveAccount",
 			Handler:    _MegaChat_RemoveAccount_Handler,
+		},
+		{
+			MethodName: "ReorderAccounts",
+			Handler:    _MegaChat_ReorderAccounts_Handler,
 		},
 		{
 			MethodName: "Chats",
@@ -1906,8 +2302,36 @@ var MegaChat_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MegaChat_React_Handler,
 		},
 		{
+			MethodName: "Edit",
+			Handler:    _MegaChat_Edit_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _MegaChat_Delete_Handler,
+		},
+		{
+			MethodName: "LinkPreview",
+			Handler:    _MegaChat_LinkPreview_Handler,
+		},
+		{
+			MethodName: "Members",
+			Handler:    _MegaChat_Members_Handler,
+		},
+		{
 			MethodName: "Media",
 			Handler:    _MegaChat_Media_Handler,
+		},
+		{
+			MethodName: "Profile",
+			Handler:    _MegaChat_Profile_Handler,
+		},
+		{
+			MethodName: "ManageChat",
+			Handler:    _MegaChat_ManageChat_Handler,
+		},
+		{
+			MethodName: "ChatFolders",
+			Handler:    _MegaChat_ChatFolders_Handler,
 		},
 		{
 			MethodName: "StartCall",
@@ -1956,6 +2380,10 @@ var MegaChat_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateMail",
 			Handler:    _MegaChat_UpdateMail_Handler,
+		},
+		{
+			MethodName: "MoveMail",
+			Handler:    _MegaChat_MoveMail_Handler,
 		},
 		{
 			MethodName: "Calendars",

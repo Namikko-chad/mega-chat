@@ -37,6 +37,7 @@ class AppSettings extends ChangeNotifier {
   bool _autoPhotos = true;
   VideoAuto _autoVideo = VideoAuto.preview;
   bool _autoAudio = false;
+  bool _linkPreviews = true;
   NotifyMode _notify = NotifyMode.all;
 
   static AppSettings? _instance;
@@ -53,6 +54,10 @@ class AppSettings extends ChangeNotifier {
 
   /// Pictures in chats load as they are shown (off: on a tap).
   bool get autoPhotos => _autoPhotos;
+
+  /// Links in messages show their page's preview (the core fetches the
+  /// page, so the site sees this machine's address).
+  bool get linkPreviews => _linkPreviews;
 
   /// What of a video in a chat loads as it is shown.
   VideoAuto get autoVideo => _autoVideo;
@@ -90,6 +95,7 @@ class AppSettings extends ChangeNotifier {
         s._autoPhotos = j['auto_photos'] != false;
         s._autoVideo = VideoAuto.values.firstWhere((v) => v.name == j['auto_video'], orElse: () => VideoAuto.preview);
         s._autoAudio = j['auto_audio'] == true;
+        s._linkPreviews = j['link_previews'] != false;
         s._notify = NotifyMode.values.firstWhere((v) => v.name == j['notify'], orElse: () => NotifyMode.all);
         lang.value = Lang.values.firstWhere((l) => l.name == j['language'], orElse: () => Lang.en);
       }
@@ -155,6 +161,12 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
+  Future<void> setLinkPreviews(bool v) async {
+    _linkPreviews = v;
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> setAutoAudio(bool v) async {
     _autoAudio = v;
     notifyListeners();
@@ -176,6 +188,7 @@ class AppSettings extends ChangeNotifier {
           'auto_photos': _autoPhotos,
           'auto_video': _autoVideo.name,
           'auto_audio': _autoAudio,
+          'link_previews': _linkPreviews,
           'notify': _notify.name,
         }),
       );

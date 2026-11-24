@@ -8,9 +8,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"megachat/core/eventlog"
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/richtext"
 	"megachat/core/store"
 	"megachat/core/vault"
 )
@@ -50,6 +54,8 @@ type AccountInfo struct {
 	Caps      []provider.Capability
 	// MailUnread: unread messages in the inbox (mail accounts).
 	MailUnread int
+	// ChatActions: what ManageChat does for this account.
+	ChatActions []model.ChatAction
 }
 
 // EventKind says what an Event is about.
@@ -137,6 +143,10 @@ type run struct {
 	// online: direct chats whose peer is online (EvPresence); dropped
 	// when the session goes down.
 	online map[string]bool
+	// folders: the chat folders (provider.ChatFolders), loaded with the
+	// chat list (chats.go).
+	folders       []model.ChatFolder
+	foldersLoaded bool
 }
 
 // New returns a hub; Start runs the accounts.
@@ -459,6 +469,7 @@ func (h *Hub) refreshRun(r *run) {
 	if err := h.refresh(h.ctx, r.acct.ID); err != nil && h.ctx.Err() == nil {
 		h.logf(eventlog.Warn, r.acct.Provider, r.acct.ID, "chat list: %v", err)
 	}
+	h.loadChatFolders(h.ctx, r.acct.ID)
 }
 
 func (h *Hub) refresh(ctx context.Context, acct string) error {
@@ -563,6 +574,14 @@ func (h *Hub) apply(acct string, ev model.Event) {
 		if ev.Chat != nil && ev.Chat.ID != "" {
 			h.applyPresence(acct, ev.Chat.ID, ev.Online)
 		}
+	case model.EvChatFlags:
+		if ev.Chat != nil && ev.Chat.ID != "" && ev.Flags != nil {
+			if _, err = h.applyChatFlags(acct, ev.Chat.ID, *ev.Flags); err == nil && ev.Flags.Muted != nil {
+				h.emitAccount(acct) // the account's unread count leaves muted chats out
+			}
+		}
+	case model.EvChatFolders:
+		h.foldersChanged(acct)
 	case model.EvThreadMessage:
 		if ev.Message != nil && ev.Message.InThread != "" {
 			ev.Message.AccountID = acct
@@ -607,7 +626,7 @@ func (h *Hub) notifyThread(m model.Message) bool {
 }
 
 func sameMessage(a, b model.Message) bool {
-	return a.Text == b.Text && a.Edited.Equal(b.Edited) && a.Deleted == b.Deleted &&
+	return a.Text == b.Text && slices.Equal(a.Format, b.Format) && a.Edited.Equal(b.Edited) && a.Deleted == b.Deleted &&
 		len(a.Attachments) == len(b.Attachments) && sameReactions(a.Reactions, b.Reactions) && sameThread(a.Thread, b.Thread)
 }
 
@@ -665,7 +684,7 @@ func (h *Hub) applyMessage(acct string, ev model.Event) error {
 	}
 	if prev != nil {
 		// A repeat (sent here, then echoed by the server) or an edit.
-		if sameMessage(*prev, m) {
+		if store.Blank(m) || sameMessage(*prev, m) {
 			return nil
 		}
 		h.emit(Event{Kind: EvMessageEdit, AccountID: acct, Message: &m})
@@ -722,7 +741,7 @@ func (h *Hub) applyMessage(acct string, ev model.Event) error {
 
 func (h *Hub) applyDelete(acct string, m model.Message) error {
 	_, _, err := h.st.UpdateMessage(acct, m.ChatID, m.ID, func(s *model.Message) {
-		s.Deleted, s.Text, s.Attachments = true, "", nil
+		s.Deleted, s.Text, s.Format, s.Attachments = true, "", nil, nil
 	})
 	if err != nil {
 		return err
@@ -733,7 +752,7 @@ func (h *Hub) applyDelete(acct string, m model.Message) error {
 		if !ok || c.Last == nil || c.Last.ID != m.ID {
 			return false
 		}
-		c.Last.Deleted, c.Last.Text, c.Last.Attachments = true, "", nil
+		c.Last.Deleted, c.Last.Text, c.Last.Format, c.Last.Attachments = true, "", nil, nil
 		return true
 	})
 	if err == nil && c.Last != nil && c.Last.ID == m.ID {
@@ -755,8 +774,11 @@ func (h *Hub) mergeChat(in model.Chat, flags bool) (model.Chat, error) {
 	return h.st.UpdateChat(in.AccountID, in.ID, func(c *model.Chat, ok bool) bool {
 		if in.Kind != model.ChatUnknown {
 			// Only a provider that knows the chat tells its kind, and
-			// with it whether it is a forum.
-			c.Kind, c.Forum = in.Kind, in.Forum
+			// with it whether it is a forum or the saved chat.
+			c.Kind, c.Forum, c.Saved = in.Kind, in.Forum, in.Saved
+		}
+		if in.Folders != nil {
+			c.Folders = in.Folders
 		}
 		if in.Title != "" {
 			c.Title = in.Title
@@ -768,7 +790,7 @@ func (h *Hub) mergeChat(in model.Chat, flags bool) (model.Chat, error) {
 			c.Unread = in.Unread
 		}
 		if flags {
-			c.Muted, c.Pinned = in.Muted, in.Pinned
+			c.Muted, c.Pinned, c.Archived = in.Muted, in.Pinned, in.Archived
 		}
 		if in.Access != model.AccessUnknown {
 			c.Access = in.Access
@@ -830,6 +852,31 @@ func (h *Hub) Account(id string) (AccountInfo, bool) {
 			}
 			if _, ok := r.sess.(provider.Forwarder); ok {
 				info.Caps = append(info.Caps, provider.CapForward)
+			}
+			if _, ok := r.sess.(provider.FileSender); ok {
+				info.Caps = append(info.Caps, provider.CapFiles)
+			}
+			if _, ok := r.sess.(provider.Editor); ok {
+				info.Caps = append(info.Caps, provider.CapEdit)
+			}
+			if _, ok := r.sess.(provider.Mentioner); ok {
+				info.Caps = append(info.Caps, provider.CapMentions)
+			}
+			if d, ok := r.sess.(provider.Deleter); ok {
+				info.Caps = append(info.Caps, provider.CapDelete)
+				if d.DeletesForMe() {
+					info.Caps = append(info.Caps, provider.CapDeleteForMe)
+				}
+			}
+			if _, ok := r.sess.(provider.Profiles); ok {
+				info.Caps = append(info.Caps, provider.CapProfiles)
+			}
+			if _, ok := r.sess.(provider.ChatFolders); ok {
+				info.Caps = append(info.Caps, provider.CapChatFolders)
+			}
+			if cm, ok := r.sess.(provider.ChatManager); ok {
+				info.Caps = append(info.Caps, provider.CapManageChats)
+				info.ChatActions = cm.ChatActions()
 			}
 			if _, ok := r.sess.(provider.Mailer); ok && !slices.Contains(info.Caps, provider.CapMail) {
 				info.Caps = append(info.Caps, provider.CapMail)
@@ -1036,21 +1083,111 @@ func (h *Hub) Send(ctx context.Context, acct, chat string, out model.Outgoing) (
 			return model.Message{}, provider.ErrUnsupported
 		}
 	}
+	if len(out.Files) > 0 {
+		return h.sendFiles(ctx, acct, chat, m, out)
+	}
 	msg, err := m.Send(ctx, chat, out)
 	if err != nil {
 		return model.Message{}, err
 	}
+	h.recordSent(acct, chat, out, &msg)
+	return msg, nil
+}
+
+// MaxUpload caps what one Send may carry in files, all of them together.
+const MaxUpload = 100 << 20
+
+// sendFiles sends a message with files and returns the last message that
+// appeared (a zero Message when the messenger does not echo them).
+func (h *Hub) sendFiles(ctx context.Context, acct, chat string, m provider.Messenger, out model.Outgoing) (model.Message, error) {
+	fs, ok := m.(provider.FileSender)
+	if !ok {
+		return model.Message{}, provider.ErrUnsupported
+	}
+	var total int
+	files := make([]model.OutFile, len(out.Files))
+	for i, f := range out.Files {
+		if len(f.Data) == 0 {
+			return model.Message{}, errors.New("an empty file")
+		}
+		total += len(f.Data)
+		files[i] = normalizeFile(f)
+	}
+	if total > MaxUpload {
+		return model.Message{}, provider.ErrTooLarge
+	}
+	out.Files = files
+	msgs, err := fs.SendFiles(ctx, chat, out)
+	if err != nil {
+		return model.Message{}, err
+	}
+	h.logf(eventlog.Info, "chat", acct, "sent %d file(s)", len(files))
+	var last model.Message
+	for i := range msgs {
+		h.recordSent(acct, chat, out, &msgs[i])
+		last = msgs[i]
+	}
+	return last, nil
+}
+
+// recordSent stores and announces a message the account has just sent.
+func (h *Hub) recordSent(acct, chat string, out model.Outgoing, msg *model.Message) {
 	msg.AccountID, msg.ChatID, msg.Outgoing = acct, chat, true
 	if out.Thread != "" && msg.InThread == "" {
 		msg.InThread = out.Thread
 	}
 	if msg.InThread != "" {
 		// A reply inside a thread is not part of the chat's history.
-		h.apply(acct, model.Event{Kind: model.EvThreadMessage, Message: &msg})
-		return msg, nil
+		h.apply(acct, model.Event{Kind: model.EvThreadMessage, Message: msg})
+		return
 	}
-	h.apply(acct, model.Event{Kind: model.EvMessageNew, Message: &msg})
-	return msg, nil
+	h.apply(acct, model.Event{Kind: model.EvMessageNew, Message: msg})
+}
+
+// normalizeFile gives a file to send a plain base name and a MIME type.
+func normalizeFile(f model.OutFile) model.OutFile {
+	name := strings.TrimSpace(filepath.Base(strings.ReplaceAll(f.Name, "\\", "/")))
+	name = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, name)
+	if name == "" || name == "." || name == "/" {
+		name = "file"
+	}
+	typ := strings.ToLower(strings.TrimSpace(f.MIME))
+	if typ == "" || typ == "application/octet-stream" {
+		if t := mime.TypeByExtension(strings.ToLower(filepath.Ext(name))); t != "" {
+			typ = t
+		} else {
+			typ = http.DetectContentType(f.Data)
+		}
+	}
+	if i := strings.IndexByte(typ, ';'); i >= 0 && !strings.HasPrefix(typ, "text/") {
+		typ = strings.TrimSpace(typ[:i])
+	}
+	if filepath.Ext(name) == "" {
+		if exts, _ := mime.ExtensionsByType(typ); len(exts) > 0 {
+			name += preferredExt(typ, exts)
+		}
+	}
+	f.Name, f.MIME = name, typ
+	return f
+}
+
+// preferredExt picks the usual extension of a MIME type (Go's table lists
+// ".jfif" before ".jpg").
+func preferredExt(typ string, exts []string) string {
+	switch typ {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "text/plain":
+		return ".txt"
+	}
+	return exts[0]
 }
 
 // Forward forwards messages of a chat to another chat of the same account
@@ -1167,6 +1304,27 @@ func (h *Hub) Topics(ctx context.Context, acct, chat string) ([]model.Topic, err
 	return topics, err
 }
 
+// Profile describes a chat (not cached). Online comes from the hub's live
+// presence when the session does not say.
+func (h *Hub) Profile(ctx context.Context, acct, chat string) (model.Profile, error) {
+	m, _, err := h.messenger(acct)
+	if err != nil {
+		return model.Profile{}, err
+	}
+	p, ok := m.(provider.Profiles)
+	if !ok {
+		return model.Profile{}, provider.ErrUnsupported
+	}
+	out, err := p.Profile(ctx, chat)
+	if err != nil {
+		return model.Profile{}, err
+	}
+	if !out.Online {
+		out.Online = h.online(acct, chat)
+	}
+	return out, nil
+}
+
 // ReadTopic marks a topic of a forum chat read up to msgID (the latest
 // when empty). The chat's unread count follows with the provider's event.
 func (h *Hub) ReadTopic(ctx context.Context, acct, chat, topic, msgID string) error {
@@ -1207,6 +1365,124 @@ func (h *Hub) React(ctx context.Context, acct, chat, msgID, emoji string, on boo
 	}
 	msg.Reactions = rs
 	return msg, nil
+}
+
+// Edit replaces the text of one of the account's own messages and applies
+// the change like an edit event (a thread reply, not cached, only goes out
+// to the app).
+func (h *Hub) Edit(ctx context.Context, acct, chat, thread, msgID, text string) (model.Message, error) {
+	m, _, err := h.messenger(acct)
+	if err != nil {
+		return model.Message{}, err
+	}
+	e, ok := m.(provider.Editor)
+	if !ok {
+		return model.Message{}, provider.ErrUnsupported
+	}
+	if strings.TrimSpace(text) == "" {
+		return model.Message{}, errors.New("the text is empty")
+	}
+	got, err := e.Edit(ctx, chat, msgID, text)
+	if err != nil {
+		return model.Message{}, err
+	}
+	if got.Text == "" {
+		d := richtext.Parse(text, richtext.Markdown)
+		got.Text, got.Format = d.Text, d.Spans
+	}
+	if got.Edited.IsZero() {
+		got.Edited = time.Now()
+	}
+	msg, cached, err := h.st.Message(acct, chat, msgID)
+	if err != nil {
+		return model.Message{}, err
+	}
+	if cached {
+		// The cached message with the new text (a topic's message is in
+		// the chat's history too).
+		msg.Text, msg.Format, msg.Edited = got.Text, got.Format, got.Edited
+		if len(got.Attachments) > 0 {
+			msg.Attachments = got.Attachments
+		}
+	} else {
+		msg = got
+	}
+	msg.AccountID, msg.ChatID, msg.ID, msg.Outgoing = acct, chat, msgID, true
+	switch {
+	case cached:
+		h.apply(acct, model.Event{Kind: model.EvMessageEdit, Message: &msg})
+	case msg.Time.IsZero():
+		// Only the new text came back: the messenger's own edit event
+		// brings the whole message; the app patches its copy meanwhile.
+	case thread != "":
+		t := msg
+		t.InThread = thread
+		h.apply(acct, model.Event{Kind: model.EvThreadMessage, Message: &t})
+	default:
+		h.apply(acct, model.Event{Kind: model.EvMessageEdit, Message: &msg})
+	}
+	if thread != "" {
+		msg.InThread = thread
+	}
+	return msg, nil
+}
+
+// Delete deletes the account's own messages of a chat, for everyone or
+// only for this account, and applies it like the messenger's delete event
+// (thread replies, not cached, go to the app as deleted thread messages).
+func (h *Hub) Delete(ctx context.Context, acct, chat, thread string, msgIDs []string, forAll bool) error {
+	m, _, err := h.messenger(acct)
+	if err != nil {
+		return err
+	}
+	d, ok := m.(provider.Deleter)
+	if !ok || !forAll && !d.DeletesForMe() {
+		return provider.ErrUnsupported
+	}
+	if len(msgIDs) == 0 {
+		return errors.New("no messages to delete")
+	}
+	if err := d.Delete(ctx, chat, msgIDs, forAll); err != nil {
+		return err
+	}
+	for _, id := range msgIDs {
+		msg := model.Message{ChatID: chat, ID: id, Deleted: true, Outgoing: true}
+		if thread != "" {
+			msg.InThread = thread
+			h.apply(acct, model.Event{Kind: model.EvThreadMessage, Message: &msg})
+			continue
+		}
+		h.apply(acct, model.Event{Kind: model.EvMessageDelete, Message: &msg})
+	}
+	return nil
+}
+
+// Members returns people of a chat to mention (after "@" in the composer).
+func (h *Hub) Members(ctx context.Context, acct, chat, query string, limit int) ([]model.User, error) {
+	m, _, err := h.messenger(acct)
+	if err != nil {
+		return nil, err
+	}
+	mn, ok := m.(provider.Mentioner)
+	if !ok {
+		return nil, provider.ErrUnsupported
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	us, err := mn.Members(ctx, chat, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	// A person whose id is their direct chat's id: the presence known here.
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if r := h.runs[acct]; r != nil {
+		for i := range us {
+			us[i].Online = us[i].Online || r.online[us[i].ID]
+		}
+	}
+	return us, nil
 }
 
 // MarkRead marks a chat read up to msgID (latest when empty).
@@ -1276,6 +1552,27 @@ func (h *Hub) SetEnabled(id string, enabled bool) (AccountInfo, error) {
 	h.emitAccount(id)
 	info, _ := h.Account(id)
 	return info, nil
+}
+
+// Reorder puts the accounts in the given order. Unknown ids are ignored;
+// accounts not listed (one added meanwhile) follow in their order.
+func (h *Hub) Reorder(ids []string) error {
+	return h.v.Update(func(c *vault.Config) error {
+		rank := make(map[string]int, len(ids))
+		for i, id := range ids {
+			if _, seen := rank[id]; !seen {
+				rank[id] = i
+			}
+		}
+		at := func(a vault.Account) int {
+			if r, ok := rank[a.ID]; ok {
+				return r
+			}
+			return len(ids)
+		}
+		slices.SortStableFunc(c.Accounts, func(x, y vault.Account) int { return at(x) - at(y) })
+		return nil
+	})
 }
 
 // Remove signs an account out (best effort) and forgets it.

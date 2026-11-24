@@ -114,6 +114,18 @@ class MegaChatClient extends $grpc.Client {
     return $createUnaryCall(_$unlockRemembered, request, options: options);
   }
 
+  /// Where the vault file lives (desktops; kept across runs). move: the open
+  /// vault goes to path (FailedPrecondition while locked, AlreadyExists if a
+  /// file is there), a remembered password follows it. Otherwise path is an
+  /// existing vault to use from now on (FailedPrecondition while unlocked,
+  /// NotFound if there is no file). A directory means "vault.mc" in it.
+  $grpc.ResponseFuture<$0.State> setVaultPath(
+    $0.VaultPathRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setVaultPath, request, options: options);
+  }
+
   /// Providers and accounts.
   $grpc.ResponseFuture<$0.ProvidersReply> providers(
     $0.Empty request, {
@@ -183,6 +195,14 @@ class MegaChatClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$removeAccount, request, options: options);
+  }
+
+  /// Puts the accounts in this order; accounts not listed follow, as they were.
+  $grpc.ResponseFuture<$0.AccountsReply> reorderAccounts(
+    $0.ReorderAccountsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$reorderAccounts, request, options: options);
   }
 
   /// Chats and messages.
@@ -261,6 +281,43 @@ class MegaChatClient extends $grpc.Client {
     return $createUnaryCall(_$react, request, options: options);
   }
 
+  /// Replaces the text of one of the account's own messages; returns the
+  /// message as it is now (a KIND_MESSAGE_EDIT follows). CAPABILITY_EDIT.
+  $grpc.ResponseFuture<$0.Message> edit(
+    $0.EditRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$edit, request, options: options);
+  }
+
+  /// Deletes the account's own messages of one chat for everyone
+  /// (CAPABILITY_DELETE) or only for this account (for_all false,
+  /// CAPABILITY_DELETE_FOR_ME); KIND_MESSAGE_DELETE (KIND_THREAD_MESSAGE
+  /// with deleted for thread replies) follows.
+  $grpc.ResponseFuture<$0.Empty> delete(
+    $0.DeleteRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$delete, request, options: options);
+  }
+
+  /// A link's preview from its page's Open Graph tags, fetched by the core
+  /// (public addresses only; cached in memory). NotFound: nothing to show.
+  $grpc.ResponseFuture<$0.LinkPreviewReply> linkPreview(
+    $0.LinkPreviewRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$linkPreview, request, options: options);
+  }
+
+  /// People of a chat to mention, for the composer's "@" (CAPABILITY_MENTIONS).
+  $grpc.ResponseFuture<$0.MembersReply> members(
+    $0.MembersRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$members, request, options: options);
+  }
+
   /// Content of a media ref: an avatar (User/Chat.avatar_url) or an
   /// attachment (Attachment.ref, .thumb). Cached in the core.
   $grpc.ResponseFuture<$0.MediaReply> media(
@@ -268,6 +325,35 @@ class MegaChatClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$media, request, options: options);
+  }
+
+  /// What a chat is: the person of a direct chat, a group or a channel
+  /// (CAPABILITY_PROFILES). Not cached.
+  $grpc.ResponseFuture<$0.ChatProfile> profile(
+    $0.ProfileRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$profile, request, options: options);
+  }
+
+  /// Mutes, pins, archives or leaves a chat (Account.chat_actions,
+  /// CAPABILITY_MANAGE_CHATS) and returns it as it is now; a KIND_CHAT (or,
+  /// after leaving, KIND_CHAT_REMOVED) follows. Leaving: groups and
+  /// channels only.
+  $grpc.ResponseFuture<$0.Chat> manageChat(
+    $0.ManageChatRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$manageChat, request, options: options);
+  }
+
+  /// Chat folders of the accounts (CAPABILITY_CHAT_FOLDERS: Telegram).
+  /// KIND_CHAT_FOLDERS tells they changed.
+  $grpc.ResponseFuture<$0.ChatFoldersReply> chatFolders(
+    $0.AccountsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$chatFolders, request, options: options);
   }
 
   /// 1:1 calls (CAPABILITY_CALLS). Media runs in the app as a standard
@@ -368,6 +454,14 @@ class MegaChatClient extends $grpc.Client {
     return $createUnaryCall(_$updateMail, request, options: options);
   }
 
+  /// Moves messages of one account between its folders.
+  $grpc.ResponseFuture<$0.Empty> moveMail(
+    $0.MoveMailRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$moveMail, request, options: options);
+  }
+
   /// Calendars (CAPABILITY_CALENDAR): all calendars of all accounts, and
   /// their events of a time range merged by start.
   $grpc.ResponseFuture<$0.CalendarsReply> calendars(
@@ -462,6 +556,11 @@ class MegaChatClient extends $grpc.Client {
       '/megachat.v1.MegaChat/UnlockRemembered',
       ($0.Empty value) => value.writeToBuffer(),
       $0.State.fromBuffer);
+  static final _$setVaultPath =
+      $grpc.ClientMethod<$0.VaultPathRequest, $0.State>(
+          '/megachat.v1.MegaChat/SetVaultPath',
+          ($0.VaultPathRequest value) => value.writeToBuffer(),
+          $0.State.fromBuffer);
   static final _$providers = $grpc.ClientMethod<$0.Empty, $0.ProvidersReply>(
       '/megachat.v1.MegaChat/Providers',
       ($0.Empty value) => value.writeToBuffer(),
@@ -502,6 +601,11 @@ class MegaChatClient extends $grpc.Client {
       '/megachat.v1.MegaChat/RemoveAccount',
       ($0.IdRequest value) => value.writeToBuffer(),
       $0.Empty.fromBuffer);
+  static final _$reorderAccounts =
+      $grpc.ClientMethod<$0.ReorderAccountsRequest, $0.AccountsReply>(
+          '/megachat.v1.MegaChat/ReorderAccounts',
+          ($0.ReorderAccountsRequest value) => value.writeToBuffer(),
+          $0.AccountsReply.fromBuffer);
   static final _$chats = $grpc.ClientMethod<$0.ChatsRequest, $0.ChatsReply>(
       '/megachat.v1.MegaChat/Chats',
       ($0.ChatsRequest value) => value.writeToBuffer(),
@@ -540,10 +644,42 @@ class MegaChatClient extends $grpc.Client {
       '/megachat.v1.MegaChat/React',
       ($0.ReactRequest value) => value.writeToBuffer(),
       $0.Message.fromBuffer);
+  static final _$edit = $grpc.ClientMethod<$0.EditRequest, $0.Message>(
+      '/megachat.v1.MegaChat/Edit',
+      ($0.EditRequest value) => value.writeToBuffer(),
+      $0.Message.fromBuffer);
+  static final _$delete = $grpc.ClientMethod<$0.DeleteRequest, $0.Empty>(
+      '/megachat.v1.MegaChat/Delete',
+      ($0.DeleteRequest value) => value.writeToBuffer(),
+      $0.Empty.fromBuffer);
+  static final _$linkPreview =
+      $grpc.ClientMethod<$0.LinkPreviewRequest, $0.LinkPreviewReply>(
+          '/megachat.v1.MegaChat/LinkPreview',
+          ($0.LinkPreviewRequest value) => value.writeToBuffer(),
+          $0.LinkPreviewReply.fromBuffer);
+  static final _$members =
+      $grpc.ClientMethod<$0.MembersRequest, $0.MembersReply>(
+          '/megachat.v1.MegaChat/Members',
+          ($0.MembersRequest value) => value.writeToBuffer(),
+          $0.MembersReply.fromBuffer);
   static final _$media = $grpc.ClientMethod<$0.MediaRequest, $0.MediaReply>(
       '/megachat.v1.MegaChat/Media',
       ($0.MediaRequest value) => value.writeToBuffer(),
       $0.MediaReply.fromBuffer);
+  static final _$profile =
+      $grpc.ClientMethod<$0.ProfileRequest, $0.ChatProfile>(
+          '/megachat.v1.MegaChat/Profile',
+          ($0.ProfileRequest value) => value.writeToBuffer(),
+          $0.ChatProfile.fromBuffer);
+  static final _$manageChat = $grpc.ClientMethod<$0.ManageChatRequest, $0.Chat>(
+      '/megachat.v1.MegaChat/ManageChat',
+      ($0.ManageChatRequest value) => value.writeToBuffer(),
+      $0.Chat.fromBuffer);
+  static final _$chatFolders =
+      $grpc.ClientMethod<$0.AccountsRequest, $0.ChatFoldersReply>(
+          '/megachat.v1.MegaChat/ChatFolders',
+          ($0.AccountsRequest value) => value.writeToBuffer(),
+          $0.ChatFoldersReply.fromBuffer);
   static final _$startCall = $grpc.ClientMethod<$0.StartCallRequest, $0.Call>(
       '/megachat.v1.MegaChat/StartCall',
       ($0.StartCallRequest value) => value.writeToBuffer(),
@@ -598,6 +734,10 @@ class MegaChatClient extends $grpc.Client {
           '/megachat.v1.MegaChat/UpdateMail',
           ($0.UpdateMailRequest value) => value.writeToBuffer(),
           $0.Empty.fromBuffer);
+  static final _$moveMail = $grpc.ClientMethod<$0.MoveMailRequest, $0.Empty>(
+      '/megachat.v1.MegaChat/MoveMail',
+      ($0.MoveMailRequest value) => value.writeToBuffer(),
+      $0.Empty.fromBuffer);
   static final _$calendars =
       $grpc.ClientMethod<$0.AccountsRequest, $0.CalendarsReply>(
           '/megachat.v1.MegaChat/Calendars',
@@ -700,6 +840,13 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.State value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.VaultPathRequest, $0.State>(
+        'SetVaultPath',
+        setVaultPath_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.VaultPathRequest.fromBuffer(value),
+        ($0.State value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.ProvidersReply>(
         'Providers',
         providers_Pre,
@@ -763,6 +910,14 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.IdRequest.fromBuffer(value),
         ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ReorderAccountsRequest, $0.AccountsReply>(
+        'ReorderAccounts',
+        reorderAccounts_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ReorderAccountsRequest.fromBuffer(value),
+        ($0.AccountsReply value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ChatsRequest, $0.ChatsReply>(
         'Chats',
         chats_Pre,
@@ -826,6 +981,35 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.ReactRequest.fromBuffer(value),
         ($0.Message value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.EditRequest, $0.Message>(
+        'Edit',
+        edit_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.EditRequest.fromBuffer(value),
+        ($0.Message value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteRequest, $0.Empty>(
+        'Delete',
+        delete_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.DeleteRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.LinkPreviewRequest, $0.LinkPreviewReply>(
+        'LinkPreview',
+        linkPreview_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.LinkPreviewRequest.fromBuffer(value),
+        ($0.LinkPreviewReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.MembersRequest, $0.MembersReply>(
+        'Members',
+        members_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.MembersRequest.fromBuffer(value),
+        ($0.MembersReply value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.MediaRequest, $0.MediaReply>(
         'Media',
         media_Pre,
@@ -833,6 +1017,27 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.MediaRequest.fromBuffer(value),
         ($0.MediaReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ProfileRequest, $0.ChatProfile>(
+        'Profile',
+        profile_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.ProfileRequest.fromBuffer(value),
+        ($0.ChatProfile value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ManageChatRequest, $0.Chat>(
+        'ManageChat',
+        manageChat_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.ManageChatRequest.fromBuffer(value),
+        ($0.Chat value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AccountsRequest, $0.ChatFoldersReply>(
+        'ChatFolders',
+        chatFolders_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.AccountsRequest.fromBuffer(value),
+        ($0.ChatFoldersReply value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.StartCallRequest, $0.Call>(
         'StartCall',
         startCall_Pre,
@@ -917,6 +1122,13 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.UpdateMailRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.MoveMailRequest, $0.Empty>(
+        'MoveMail',
+        moveMail_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.MoveMailRequest.fromBuffer(value),
         ($0.Empty value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.AccountsRequest, $0.CalendarsReply>(
         'Calendars',
@@ -1040,6 +1252,14 @@ abstract class MegaChatServiceBase extends $grpc.Service {
   $async.Future<$0.State> unlockRemembered(
       $grpc.ServiceCall call, $0.Empty request);
 
+  $async.Future<$0.State> setVaultPath_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.VaultPathRequest> $request) async {
+    return setVaultPath($call, await $request);
+  }
+
+  $async.Future<$0.State> setVaultPath(
+      $grpc.ServiceCall call, $0.VaultPathRequest request);
+
   $async.Future<$0.ProvidersReply> providers_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
     return providers($call, await $request);
@@ -1111,6 +1331,14 @@ abstract class MegaChatServiceBase extends $grpc.Service {
 
   $async.Future<$0.Empty> removeAccount(
       $grpc.ServiceCall call, $0.IdRequest request);
+
+  $async.Future<$0.AccountsReply> reorderAccounts_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ReorderAccountsRequest> $request) async {
+    return reorderAccounts($call, await $request);
+  }
+
+  $async.Future<$0.AccountsReply> reorderAccounts(
+      $grpc.ServiceCall call, $0.ReorderAccountsRequest request);
 
   $async.Future<$0.ChatsReply> chats_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.ChatsRequest> $request) async {
@@ -1184,6 +1412,38 @@ abstract class MegaChatServiceBase extends $grpc.Service {
   $async.Future<$0.Message> react(
       $grpc.ServiceCall call, $0.ReactRequest request);
 
+  $async.Future<$0.Message> edit_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.EditRequest> $request) async {
+    return edit($call, await $request);
+  }
+
+  $async.Future<$0.Message> edit(
+      $grpc.ServiceCall call, $0.EditRequest request);
+
+  $async.Future<$0.Empty> delete_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.DeleteRequest> $request) async {
+    return delete($call, await $request);
+  }
+
+  $async.Future<$0.Empty> delete(
+      $grpc.ServiceCall call, $0.DeleteRequest request);
+
+  $async.Future<$0.LinkPreviewReply> linkPreview_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.LinkPreviewRequest> $request) async {
+    return linkPreview($call, await $request);
+  }
+
+  $async.Future<$0.LinkPreviewReply> linkPreview(
+      $grpc.ServiceCall call, $0.LinkPreviewRequest request);
+
+  $async.Future<$0.MembersReply> members_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.MembersRequest> $request) async {
+    return members($call, await $request);
+  }
+
+  $async.Future<$0.MembersReply> members(
+      $grpc.ServiceCall call, $0.MembersRequest request);
+
   $async.Future<$0.MediaReply> media_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.MediaRequest> $request) async {
     return media($call, await $request);
@@ -1191,6 +1451,30 @@ abstract class MegaChatServiceBase extends $grpc.Service {
 
   $async.Future<$0.MediaReply> media(
       $grpc.ServiceCall call, $0.MediaRequest request);
+
+  $async.Future<$0.ChatProfile> profile_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ProfileRequest> $request) async {
+    return profile($call, await $request);
+  }
+
+  $async.Future<$0.ChatProfile> profile(
+      $grpc.ServiceCall call, $0.ProfileRequest request);
+
+  $async.Future<$0.Chat> manageChat_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ManageChatRequest> $request) async {
+    return manageChat($call, await $request);
+  }
+
+  $async.Future<$0.Chat> manageChat(
+      $grpc.ServiceCall call, $0.ManageChatRequest request);
+
+  $async.Future<$0.ChatFoldersReply> chatFolders_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.AccountsRequest> $request) async {
+    return chatFolders($call, await $request);
+  }
+
+  $async.Future<$0.ChatFoldersReply> chatFolders(
+      $grpc.ServiceCall call, $0.AccountsRequest request);
 
   $async.Future<$0.Call> startCall_Pre($grpc.ServiceCall $call,
       $async.Future<$0.StartCallRequest> $request) async {
@@ -1286,6 +1570,14 @@ abstract class MegaChatServiceBase extends $grpc.Service {
 
   $async.Future<$0.Empty> updateMail(
       $grpc.ServiceCall call, $0.UpdateMailRequest request);
+
+  $async.Future<$0.Empty> moveMail_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.MoveMailRequest> $request) async {
+    return moveMail($call, await $request);
+  }
+
+  $async.Future<$0.Empty> moveMail(
+      $grpc.ServiceCall call, $0.MoveMailRequest request);
 
   $async.Future<$0.CalendarsReply> calendars_Pre($grpc.ServiceCall $call,
       $async.Future<$0.AccountsRequest> $request) async {

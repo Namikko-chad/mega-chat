@@ -119,6 +119,11 @@ class CoreCubit extends Cubit<CoreState> {
 
   Future<void> lockVault() async => adopt(await api.lockVault(pb.Empty()));
 
+  /// Moves the open vault to [path] (move), or opens the vault file at
+  /// [path] from now on (locked only). Throws the core's error.
+  Future<void> setVaultPath(String path, {bool move = false}) async =>
+      adopt(await api.setVaultPath(pb.VaultPathRequest(path: path, move: move)));
+
   @override
   Future<void> close() async {
     _retry?.cancel();

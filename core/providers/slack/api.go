@@ -190,14 +190,16 @@ type wMessage struct {
 	} `json:"edited"`
 	Hidden bool `json:"hidden"`
 
-	ReplyCount  int           `json:"reply_count"`
-	ReplyUsers  []string      `json:"reply_users"`
-	LatestRepl  string        `json:"latest_reply"`
-	Reactions   []wReaction   `json:"reactions"`
-	Attachments []wAttachment `json:"attachments"`
+	ReplyCount  int             `json:"reply_count"`
+	ReplyUsers  []string        `json:"reply_users"`
+	LatestRepl  string          `json:"latest_reply"`
+	Reactions   []wReaction     `json:"reactions"`
+	Attachments []wAttachment   `json:"attachments"`
+	Blocks      json.RawMessage `json:"blocks"`
 }
 
-// wAttachment is a legacy attachment; only shared messages are used.
+// wAttachment is a legacy attachment: a shared message, a link unfurl or
+// an app's message body.
 type wAttachment struct {
 	IsShare       bool    `json:"is_share"`
 	IsMsgUnfurl   bool    `json:"is_msg_unfurl"`
@@ -207,6 +209,14 @@ type wAttachment struct {
 	FromURL       string  `json:"from_url"`
 	OriginalURL   string  `json:"original_url"`
 	Files         []wFile `json:"files"`
+
+	Fallback  string          `json:"fallback"`
+	Pretext   string          `json:"pretext"`
+	Title     string          `json:"title"`
+	TitleLink string          `json:"title_link"`
+	Footer    string          `json:"footer"`
+	Fields    []wAttField     `json:"fields"`
+	Blocks    json.RawMessage `json:"blocks"`
 }
 
 type wChannel struct {

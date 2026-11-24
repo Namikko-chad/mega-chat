@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/gif"
+	_ "image/jpeg"
 	"image/png"
 	"math"
 	"slices"
@@ -20,6 +22,7 @@ import (
 
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/richtext"
 )
 
 // Type is the provider type.
@@ -32,8 +35,18 @@ type Server struct {
 	seq   int64
 	// FailAuth makes sessions of these logins fail with ErrAuth.
 	FailAuth map[string]bool
+	// Special: a new login also gets the saved chat, an archived and a
+	// pinned chat (SeedSpecial; the demo).
+	Special bool
 
 	calls calls
+	// Files sent by the accounts, by media ref ("up:<n>").
+	files map[string]sentFile
+}
+
+type sentFile struct {
+	data []byte
+	mime string
 }
 
 type user struct {
@@ -56,7 +69,9 @@ type chat struct {
 var demoTopics = []string{"General", "Design", "Releases", "Off-topic"}
 
 // New returns a provider with an empty server.
-func New() *Server { return &Server{users: map[string]*user{}, FailAuth: map[string]bool{}} }
+func New() *Server {
+	return &Server{users: map[string]*user{}, FailAuth: map[string]bool{}, files: map[string]sentFile{}}
+}
 
 func (s *Server) Info() provider.Info {
 	return provider.Info{
@@ -259,6 +274,9 @@ func (l *login) Next(_ context.Context, values map[string]string) (provider.Step
 	l.s.mu.Unlock()
 	if !exists {
 		l.s.Seed(name, 10, 30)
+		if l.s.Special {
+			l.s.SeedSpecial(name)
+		}
 	}
 	return provider.Step{Done: true, Result: &provider.Credentials{
 		Login: name, Name: "Demo " + name,
@@ -314,6 +332,7 @@ func (c *session) Chats(_ context.Context, limit int) ([]model.Chat, error) {
 	var out []model.Chat
 	for _, ch := range c.s.user(c.login).chats {
 		x := ch.Chat
+		x.Folders = folderIDs(x)
 		if n := len(ch.msgs); n > 0 {
 			last := ch.msgs[n-1]
 			x.Last, x.Updated = &last, last.Time
@@ -374,6 +393,10 @@ func (c *session) Send(_ context.Context, chatID string, o model.Outgoing) (mode
 	} else {
 		m.Text = o.QuotedText()
 	}
+	if o.Quote == "" {
+		d := richtext.Parse(m.Text, richtext.Markdown)
+		m.Text, m.Format = d.Text, d.Spans
+	}
 	if o.Thread != "" && ch.Forum {
 		if !slices.ContainsFunc(ch.topics, func(t model.Topic) bool { return t.ID == o.Thread }) {
 			return model.Message{}, fmt.Errorf("fake: no topic %s", o.Thread)
@@ -410,6 +433,53 @@ func (c *session) Send(_ context.Context, chatID string, o model.Outgoing) (mode
 		go c.later(chatID, "@"+c.login, " look at this")
 	}
 	return m, nil
+}
+
+// SendFiles sends one message per file, like Telegram: several make an
+// album, the caption goes with the first one. Thread replies are not
+// supported (the composer of a thread has no files here).
+func (c *session) SendFiles(_ context.Context, chatID string, o model.Outgoing) ([]model.Message, error) {
+	c.s.mu.Lock()
+	defer c.s.mu.Unlock()
+	ch := c.s.user(c.login).chats[chatID]
+	if ch == nil {
+		return nil, fmt.Errorf("fake: no chat %s", chatID)
+	}
+	if o.Thread != "" {
+		return nil, provider.ErrUnsupported
+	}
+	var out []model.Message
+	group := ""
+	if len(o.Files) > 1 {
+		group = "up" + strconv.FormatInt(c.s.seq+1, 10)
+	}
+	for i, f := range o.Files {
+		c.s.seq++
+		ref := "up:" + strconv.FormatInt(c.s.seq, 10)
+		c.s.files[ref] = sentFile{data: slices.Clone(f.Data), mime: f.MIME}
+		a := model.Attachment{Kind: f.Kind(), Name: f.Name, MIME: f.MIME, Size: int64(len(f.Data)), Ref: ref}
+		if a.Kind == model.AttachImage {
+			if cfg, _, err := image.DecodeConfig(bytes.NewReader(f.Data)); err == nil {
+				a.Width, a.Height, a.Thumb = cfg.Width, cfg.Height, ref
+			}
+		}
+		m := model.Message{
+			ChatID: chatID, ID: strconv.FormatInt(c.s.seq, 10), Seq: c.s.seq,
+			Sender: model.User{ID: "me", Name: c.login}, Attachments: []model.Attachment{a},
+			Time: time.Now(), Outgoing: true, Group: group,
+		}
+		if i == 0 {
+			m.Text, m.ReplyTo = o.Text, o.ReplyTo
+			if o.ReplyTo != "" {
+				m.Quote = o.Quote
+			} else {
+				m.Text = o.QuotedText()
+			}
+		}
+		ch.msgs = append(ch.msgs, m)
+		out = append(out, m)
+	}
+	return out, nil
 }
 
 // Forward copies messages of a chat into another one, attachments
@@ -520,6 +590,124 @@ func (c *session) Topics(_ context.Context, chatID string) ([]model.Topic, error
 	return out, nil
 }
 
+// Delete marks the user's own messages deleted (for everyone or not, the
+// demo has one reader).
+func (c *session) Delete(_ context.Context, chatID string, msgIDs []string, _ bool) error {
+	c.s.mu.Lock()
+	defer c.s.mu.Unlock()
+	ch := c.s.user(c.login).chats[chatID]
+	if ch == nil {
+		return fmt.Errorf("fake: no chat %s", chatID)
+	}
+	del := func(list []model.Message, id string) bool {
+		i := slices.IndexFunc(list, func(x model.Message) bool { return x.ID == id })
+		if i < 0 || !list[i].Outgoing {
+			return false
+		}
+		list[i].Deleted, list[i].Text, list[i].Attachments = true, "", nil
+		return true
+	}
+next:
+	for _, id := range msgIDs {
+		if del(ch.msgs, id) {
+			continue
+		}
+		for _, replies := range ch.threads {
+			if del(replies, id) {
+				continue next
+			}
+		}
+		return fmt.Errorf("fake: no message of yours %s", id)
+	}
+	return nil
+}
+
+// Members: a direct chat's contact, or a few colleagues of a group.
+func (c *session) Members(_ context.Context, chatID, query string, limit int) ([]model.User, error) {
+	c.s.mu.Lock()
+	ch := c.s.user(c.login).chats[chatID]
+	online := ch != nil && ch.online
+	c.s.mu.Unlock()
+	if ch == nil {
+		return nil, fmt.Errorf("fake: no chat %s", chatID)
+	}
+	var all []model.User
+	if ch.Kind == model.ChatDirect {
+		all = []model.User{{ID: chatID, Name: ch.Title, Username: strings.ToLower(strings.ReplaceAll(ch.Title, " ", "_")), Avatar: ch.Avatar, Online: online}}
+	} else {
+		for k, n := range []string{"Alice Cooper", "Bob Stone", "Carol King", "Dave Grohl", "Eve Moneypenny"} {
+			all = append(all, model.User{ID: fmt.Sprintf("q%d", k), Name: n, Username: strings.ToLower(strings.Fields(n)[0]), Online: k%2 == 0})
+		}
+	}
+	var out []model.User
+	for _, u := range all {
+		if model.MatchUser(u, query) && len(out) < limit {
+			out = append(out, u)
+		}
+	}
+	return out, nil
+}
+
+// DeletesForMe: the demo can.
+func (c *session) DeletesForMe() bool { return true }
+
+func (c *session) Edit(_ context.Context, chatID, msgID, text string) (model.Message, error) {
+	c.s.mu.Lock()
+	defer c.s.mu.Unlock()
+	ch := c.s.user(c.login).chats[chatID]
+	if ch == nil {
+		return model.Message{}, fmt.Errorf("fake: no chat %s", chatID)
+	}
+	edit := func(list []model.Message) (model.Message, bool) {
+		i := slices.IndexFunc(list, func(x model.Message) bool { return x.ID == msgID })
+		if i < 0 || !list[i].Outgoing || list[i].Deleted {
+			return model.Message{}, false
+		}
+		d := richtext.Parse(text, richtext.Markdown)
+		list[i].Text, list[i].Format, list[i].Edited = d.Text, d.Spans, time.Now()
+		return list[i], true
+	}
+	if m, ok := edit(ch.msgs); ok {
+		return m, nil
+	}
+	for _, replies := range ch.threads {
+		if m, ok := edit(replies); ok {
+			return m, nil
+		}
+	}
+	return model.Message{}, fmt.Errorf("fake: no message of yours %s", msgID)
+}
+
+func (c *session) Profile(_ context.Context, chatID string) (model.Profile, error) {
+	c.s.mu.Lock()
+	defer c.s.mu.Unlock()
+	ch := c.s.user(c.login).chats[chatID]
+	if ch == nil {
+		return model.Profile{}, fmt.Errorf("fake: no chat %s", chatID)
+	}
+	p := model.Profile{Title: ch.Title, Avatar: ch.Avatar, Online: ch.online}
+	slug := strings.ToLower(strings.ReplaceAll(ch.Title, " ", "_"))
+	switch ch.Kind {
+	case model.ChatDirect:
+		p.Username, p.Phone, p.Email = slug, "+1 555 0100", slug+"@example.org"
+		p.Position = "Demo contact"
+		p.About = "A contact of the demo messenger. Docs: https://example.org/demo"
+		if !ch.online {
+			p.LastSeen = time.Now().Add(-42 * time.Minute)
+		}
+	default:
+		p.Username, p.Link = slug, "https://example.org/"+slug
+		p.About = "A " + map[model.ChatKind]string{model.ChatGroup: "group", model.ChatChannel: "channel"}[ch.Kind] + " of the demo messenger.\nRules: https://example.org/rules"
+		p.Members = 3 + len(ch.Title)
+		if ch.Kind == model.ChatGroup {
+			for k := range 3 {
+				p.MemberList = append(p.MemberList, model.User{ID: fmt.Sprintf("q%d", k), Name: fmt.Sprintf("Colleague %d", k+1)})
+			}
+		}
+	}
+	return p, nil
+}
+
 func (c *session) ReadTopic(context.Context, string, string, string) error { return nil }
 
 func (c *session) React(_ context.Context, chatID, msgID, emoji string, on bool) ([]model.Reaction, error) {
@@ -557,6 +745,17 @@ func (c *session) React(_ context.Context, chatID, msgID, emoji string, on bool)
 func (c *session) Media(_ context.Context, ref string, limit int64) ([]byte, string, error) {
 	var img image.Image
 	switch {
+	case strings.HasPrefix(ref, "up:"):
+		c.s.mu.Lock()
+		f, ok := c.s.files[ref]
+		c.s.mu.Unlock()
+		if !ok {
+			return nil, "", fmt.Errorf("fake: no file %q", ref)
+		}
+		if int64(len(f.data)) > limit {
+			return nil, "", provider.ErrTooLarge
+		}
+		return f.data, f.mime, nil
 	case strings.HasPrefix(ref, "wav:"):
 		parts := strings.Split(ref, ":")
 		if len(parts) != 3 {

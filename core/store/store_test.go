@@ -173,3 +173,29 @@ func TestDeleteMessageUnlinksNext(t *testing.T) {
 		t.Fatalf("missing: %v %v", ok, err)
 	}
 }
+
+func TestBlankKeepsStoredText(t *testing.T) {
+	s, _ := open(t)
+	if err := s.PutHistory("a", "c", "", page(1, 3), false); err != nil {
+		t.Fatal(err)
+	}
+	blank := func(i int) model.Message { m := msg(i); m.Text = ""; return m }
+	if err := s.PutHistory("a", "c", "", []model.Message{blank(2), blank(1)}, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutMessage(blank(2)); err != nil {
+		t.Fatal(err)
+	}
+	got, _, _ := s.History("a", "c", "", 10)
+	if len(got) != 2 || got[0].Text != msg(2).Text || got[1].Text != msg(1).Text {
+		t.Fatalf("stored text lost: %+v", got)
+	}
+	gone := msg(2)
+	gone.Text, gone.Deleted = "", true
+	if _, err := s.PutMessage(gone); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, _ = s.History("a", "c", "", 10); !got[0].Deleted || got[0].Text != "" {
+		t.Fatalf("a deletion must still apply: %+v", got[0])
+	}
+}

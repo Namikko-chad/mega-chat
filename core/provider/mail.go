@@ -24,6 +24,14 @@ type Mailer interface {
 	UpdateMail(ctx context.Context, ids []string, action model.MailAction) error
 }
 
+// MailMover is implemented by mailers that can move messages between
+// folders (Gmail: change their labels).
+type MailMover interface {
+	// MoveMail moves ids, listed in folder from, to folder to. Moving to
+	// the trash is MailTrash's business, but works too.
+	MoveMail(ctx context.Context, ids []string, from, to string) error
+}
+
 // Calendars is implemented by sessions with calendars (CapCalendar). Live
 // changes come as model.EvCalendarChanged.
 type Calendars interface {

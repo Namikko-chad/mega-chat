@@ -172,6 +172,75 @@ class PasswordRequest extends $pb.GeneratedMessage {
   void clearPassword() => $_clearField(1);
 }
 
+class VaultPathRequest extends $pb.GeneratedMessage {
+  factory VaultPathRequest({
+    $core.String? path,
+    $core.bool? move,
+  }) {
+    final result = VaultPathRequest._();
+    if (path != null) result.path = path;
+    if (move != null) result.move = move;
+    return result;
+  }
+
+  VaultPathRequest._();
+
+  factory VaultPathRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VaultPathRequest()..mergeFromBuffer(data, registry);
+  factory VaultPathRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      VaultPathRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'VaultPathRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: VaultPathRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOB(2, _omitFieldNames ? '' : 'move')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VaultPathRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VaultPathRequest copyWith(void Function(VaultPathRequest) updates) =>
+      super.copyWith((message) => updates(message as VaultPathRequest))
+          as VaultPathRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use VaultPathRequest() / VaultPathRequest.new instead')
+  static VaultPathRequest create() => VaultPathRequest._();
+  static $pb.GeneratedMessage $_createMessage() => VaultPathRequest._();
+  @$core.override
+  VaultPathRequest createEmptyInstance() => VaultPathRequest._();
+  @$core.pragma('dart2js:noInline')
+  static VaultPathRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VaultPathRequest>(
+          VaultPathRequest.$_createMessage);
+  static VaultPathRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get move => $_getBF(1);
+  @$pb.TagNumber(2)
+  set move($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMove() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMove() => $_clearField(2);
+}
+
 class ChangePasswordRequest extends $pb.GeneratedMessage {
   factory ChangePasswordRequest({
     $core.String? oldPassword,
@@ -1055,6 +1124,7 @@ class Account extends $pb.GeneratedMessage {
     $core.int? unread,
     $core.Iterable<Capability>? capabilities,
     $core.int? mailUnread,
+    $core.Iterable<ChatAction>? chatActions,
   }) {
     final result = Account._();
     if (id != null) result.id = id;
@@ -1068,6 +1138,7 @@ class Account extends $pb.GeneratedMessage {
     if (unread != null) result.unread = unread;
     if (capabilities != null) result.capabilities.addAll(capabilities);
     if (mailUnread != null) result.mailUnread = mailUnread;
+    if (chatActions != null) result.chatActions.addAll(chatActions);
     return result;
   }
 
@@ -1101,6 +1172,11 @@ class Account extends $pb.GeneratedMessage {
         enumValues: Capability.values,
         defaultEnumValue: Capability.CAPABILITY_UNSPECIFIED)
     ..aI(11, _omitFieldNames ? '' : 'mailUnread')
+    ..pc<ChatAction>(
+        12, _omitFieldNames ? '' : 'chatActions', $pb.PbFieldType.KE,
+        valueOf: ChatAction.valueOf,
+        enumValues: ChatAction.values,
+        defaultEnumValue: ChatAction.CHAT_ACTION_UNSPECIFIED)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1217,6 +1293,9 @@ class Account extends $pb.GeneratedMessage {
   $core.bool hasMailUnread() => $_has(10);
   @$pb.TagNumber(11)
   void clearMailUnread() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $pb.PbList<ChatAction> get chatActions => $_getList(11);
 }
 
 class AccountsReply extends $pb.GeneratedMessage {
@@ -1269,6 +1348,59 @@ class AccountsReply extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<Account> get accounts => $_getList(0);
+}
+
+class ReorderAccountsRequest extends $pb.GeneratedMessage {
+  factory ReorderAccountsRequest({
+    $core.Iterable<$core.String>? ids,
+  }) {
+    final result = ReorderAccountsRequest._();
+    if (ids != null) result.ids.addAll(ids);
+    return result;
+  }
+
+  ReorderAccountsRequest._();
+
+  factory ReorderAccountsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ReorderAccountsRequest()..mergeFromBuffer(data, registry);
+  factory ReorderAccountsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ReorderAccountsRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReorderAccountsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ReorderAccountsRequest.$_createMessage)
+    ..pPS(1, _omitFieldNames ? '' : 'ids')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReorderAccountsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReorderAccountsRequest copyWith(
+          void Function(ReorderAccountsRequest) updates) =>
+      super.copyWith((message) => updates(message as ReorderAccountsRequest))
+          as ReorderAccountsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use ReorderAccountsRequest() / ReorderAccountsRequest.new instead')
+  static ReorderAccountsRequest create() => ReorderAccountsRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ReorderAccountsRequest._();
+  @$core.override
+  ReorderAccountsRequest createEmptyInstance() => ReorderAccountsRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ReorderAccountsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReorderAccountsRequest>(
+          ReorderAccountsRequest.$_createMessage);
+  static ReorderAccountsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get ids => $_getList(0);
 }
 
 class RenameRequest extends $pb.GeneratedMessage {
@@ -1415,12 +1547,14 @@ class User extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? username,
     $core.String? avatarUrl,
+    $core.bool? online,
   }) {
     final result = User._();
     if (id != null) result.id = id;
     if (name != null) result.name = name;
     if (username != null) result.username = username;
     if (avatarUrl != null) result.avatarUrl = avatarUrl;
+    if (online != null) result.online = online;
     return result;
   }
 
@@ -1441,6 +1575,7 @@ class User extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..aOS(3, _omitFieldNames ? '' : 'username')
     ..aOS(4, _omitFieldNames ? '' : 'avatarUrl')
+    ..aOB(5, _omitFieldNames ? '' : 'online')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1498,6 +1633,15 @@ class User extends $pb.GeneratedMessage {
   $core.bool hasAvatarUrl() => $_has(3);
   @$pb.TagNumber(4)
   void clearAvatarUrl() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get online => $_getBF(4);
+  @$pb.TagNumber(5)
+  set online($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOnline() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOnline() => $_clearField(5);
 }
 
 class Chat extends $pb.GeneratedMessage {
@@ -1515,6 +1659,9 @@ class Chat extends $pb.GeneratedMessage {
     $core.bool? readOnly,
     $core.bool? forum,
     $core.bool? online,
+    $core.bool? saved,
+    $core.bool? archived,
+    $core.Iterable<$core.String>? folders,
   }) {
     final result = Chat._();
     if (accountId != null) result.accountId = accountId;
@@ -1530,6 +1677,9 @@ class Chat extends $pb.GeneratedMessage {
     if (readOnly != null) result.readOnly = readOnly;
     if (forum != null) result.forum = forum;
     if (online != null) result.online = online;
+    if (saved != null) result.saved = saved;
+    if (archived != null) result.archived = archived;
+    if (folders != null) result.folders.addAll(folders);
     return result;
   }
 
@@ -1561,6 +1711,9 @@ class Chat extends $pb.GeneratedMessage {
     ..aOB(11, _omitFieldNames ? '' : 'readOnly')
     ..aOB(12, _omitFieldNames ? '' : 'forum')
     ..aOB(13, _omitFieldNames ? '' : 'online')
+    ..aOB(14, _omitFieldNames ? '' : 'saved')
+    ..aOB(15, _omitFieldNames ? '' : 'archived')
+    ..pPS(16, _omitFieldNames ? '' : 'folders')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1706,6 +1859,315 @@ class Chat extends $pb.GeneratedMessage {
   $core.bool hasOnline() => $_has(12);
   @$pb.TagNumber(13)
   void clearOnline() => $_clearField(13);
+
+  /// The account's own notes (Telegram's Saved Messages, the chat with
+  /// oneself): the app names it.
+  @$pb.TagNumber(14)
+  $core.bool get saved => $_getBF(13);
+  @$pb.TagNumber(14)
+  set saved($core.bool value) => $_setBool(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasSaved() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearSaved() => $_clearField(14);
+
+  /// In the messenger's archive: listed apart from the other chats.
+  @$pb.TagNumber(15)
+  $core.bool get archived => $_getBF(14);
+  @$pb.TagNumber(15)
+  set archived($core.bool value) => $_setBool(14, value);
+  @$pb.TagNumber(15)
+  $core.bool hasArchived() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearArchived() => $_clearField(15);
+
+  /// Ids of the account's chat folders the chat is in by their rules
+  /// (see ChatFolder).
+  @$pb.TagNumber(16)
+  $pb.PbList<$core.String> get folders => $_getList(15);
+}
+
+class ManageChatRequest extends $pb.GeneratedMessage {
+  factory ManageChatRequest({
+    $core.String? accountId,
+    $core.String? chatId,
+    ChatAction? action,
+  }) {
+    final result = ManageChatRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (chatId != null) result.chatId = chatId;
+    if (action != null) result.action = action;
+    return result;
+  }
+
+  ManageChatRequest._();
+
+  factory ManageChatRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ManageChatRequest()..mergeFromBuffer(data, registry);
+  factory ManageChatRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ManageChatRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManageChatRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ManageChatRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'chatId')
+    ..aE<ChatAction>(3, _omitFieldNames ? '' : 'action',
+        enumValues: ChatAction.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManageChatRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManageChatRequest copyWith(void Function(ManageChatRequest) updates) =>
+      super.copyWith((message) => updates(message as ManageChatRequest))
+          as ManageChatRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ManageChatRequest() / ManageChatRequest.new instead')
+  static ManageChatRequest create() => ManageChatRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ManageChatRequest._();
+  @$core.override
+  ManageChatRequest createEmptyInstance() => ManageChatRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ManageChatRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ManageChatRequest>(
+          ManageChatRequest.$_createMessage);
+  static ManageChatRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get chatId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set chatId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ChatAction get action => $_getN(2);
+  @$pb.TagNumber(3)
+  set action(ChatAction value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAction() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAction() => $_clearField(3);
+}
+
+/// A folder of an account's chat list. A chat of the account is in it when
+/// its id is in always, or Chat.folders names the folder and no exclude_*
+/// applies to it.
+class ChatFolder extends $pb.GeneratedMessage {
+  factory ChatFolder({
+    $core.String? accountId,
+    $core.String? id,
+    $core.String? title,
+    $core.String? emoji,
+    $core.Iterable<$core.String>? always,
+    $core.Iterable<$core.String>? pinned,
+    $core.bool? excludeMuted,
+    $core.bool? excludeRead,
+    $core.bool? excludeArchived,
+  }) {
+    final result = ChatFolder._();
+    if (accountId != null) result.accountId = accountId;
+    if (id != null) result.id = id;
+    if (title != null) result.title = title;
+    if (emoji != null) result.emoji = emoji;
+    if (always != null) result.always.addAll(always);
+    if (pinned != null) result.pinned.addAll(pinned);
+    if (excludeMuted != null) result.excludeMuted = excludeMuted;
+    if (excludeRead != null) result.excludeRead = excludeRead;
+    if (excludeArchived != null) result.excludeArchived = excludeArchived;
+    return result;
+  }
+
+  ChatFolder._();
+
+  factory ChatFolder.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatFolder()..mergeFromBuffer(data, registry);
+  factory ChatFolder.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatFolder()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ChatFolder',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ChatFolder.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'id')
+    ..aOS(3, _omitFieldNames ? '' : 'title')
+    ..aOS(4, _omitFieldNames ? '' : 'emoji')
+    ..pPS(5, _omitFieldNames ? '' : 'always')
+    ..pPS(6, _omitFieldNames ? '' : 'pinned')
+    ..aOB(7, _omitFieldNames ? '' : 'excludeMuted')
+    ..aOB(8, _omitFieldNames ? '' : 'excludeRead')
+    ..aOB(9, _omitFieldNames ? '' : 'excludeArchived')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatFolder clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatFolder copyWith(void Function(ChatFolder) updates) =>
+      super.copyWith((message) => updates(message as ChatFolder)) as ChatFolder;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ChatFolder() / ChatFolder.new instead')
+  static ChatFolder create() => ChatFolder._();
+  static $pb.GeneratedMessage $_createMessage() => ChatFolder._();
+  @$core.override
+  ChatFolder createEmptyInstance() => ChatFolder._();
+  @$core.pragma('dart2js:noInline')
+  static ChatFolder getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ChatFolder>(ChatFolder.$_createMessage);
+  static ChatFolder? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get id => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set id($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get title => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set title($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTitle() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTitle() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get emoji => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set emoji($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasEmoji() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEmoji() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<$core.String> get always => $_getList(4);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<$core.String> get pinned => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.bool get excludeMuted => $_getBF(6);
+  @$pb.TagNumber(7)
+  set excludeMuted($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasExcludeMuted() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearExcludeMuted() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get excludeRead => $_getBF(7);
+  @$pb.TagNumber(8)
+  set excludeRead($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasExcludeRead() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearExcludeRead() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get excludeArchived => $_getBF(8);
+  @$pb.TagNumber(9)
+  set excludeArchived($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasExcludeArchived() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearExcludeArchived() => $_clearField(9);
+}
+
+class ChatFoldersReply extends $pb.GeneratedMessage {
+  factory ChatFoldersReply({
+    $core.Iterable<ChatFolder>? folders,
+    $core.Iterable<AccountError>? failed,
+  }) {
+    final result = ChatFoldersReply._();
+    if (folders != null) result.folders.addAll(folders);
+    if (failed != null) result.failed.addAll(failed);
+    return result;
+  }
+
+  ChatFoldersReply._();
+
+  factory ChatFoldersReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatFoldersReply()..mergeFromBuffer(data, registry);
+  factory ChatFoldersReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatFoldersReply()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ChatFoldersReply',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ChatFoldersReply.$_createMessage)
+    ..pPM<ChatFolder>(1, _omitFieldNames ? '' : 'folders',
+        subBuilder: ChatFolder.$_createMessage)
+    ..pPM<AccountError>(2, _omitFieldNames ? '' : 'failed',
+        subBuilder: AccountError.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatFoldersReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatFoldersReply copyWith(void Function(ChatFoldersReply) updates) =>
+      super.copyWith((message) => updates(message as ChatFoldersReply))
+          as ChatFoldersReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ChatFoldersReply() / ChatFoldersReply.new instead')
+  static ChatFoldersReply create() => ChatFoldersReply._();
+  static $pb.GeneratedMessage $_createMessage() => ChatFoldersReply._();
+  @$core.override
+  ChatFoldersReply createEmptyInstance() => ChatFoldersReply._();
+  @$core.pragma('dart2js:noInline')
+  static ChatFoldersReply getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ChatFoldersReply>(
+          ChatFoldersReply.$_createMessage);
+  static ChatFoldersReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<ChatFolder> get folders => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<AccountError> get failed => $_getList(1);
 }
 
 class ChatsRequest extends $pb.GeneratedMessage {
@@ -2161,6 +2623,8 @@ class Message extends $pb.GeneratedMessage {
     $core.bool? forwarded,
     $core.String? forwardedFrom,
     $core.String? quote,
+    $core.Iterable<TextSpan>? format,
+    $core.String? markdown,
   }) {
     final result = Message._();
     if (accountId != null) result.accountId = accountId;
@@ -2183,6 +2647,8 @@ class Message extends $pb.GeneratedMessage {
     if (forwarded != null) result.forwarded = forwarded;
     if (forwardedFrom != null) result.forwardedFrom = forwardedFrom;
     if (quote != null) result.quote = quote;
+    if (format != null) result.format.addAll(format);
+    if (markdown != null) result.markdown = markdown;
     return result;
   }
 
@@ -2223,6 +2689,9 @@ class Message extends $pb.GeneratedMessage {
     ..aOB(18, _omitFieldNames ? '' : 'forwarded')
     ..aOS(19, _omitFieldNames ? '' : 'forwardedFrom')
     ..aOS(20, _omitFieldNames ? '' : 'quote')
+    ..pPM<TextSpan>(21, _omitFieldNames ? '' : 'format',
+        subBuilder: TextSpan.$_createMessage)
+    ..aOS(22, _omitFieldNames ? '' : 'markdown')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2424,6 +2893,126 @@ class Message extends $pb.GeneratedMessage {
   $core.bool hasQuote() => $_has(19);
   @$pb.TagNumber(20)
   void clearQuote() => $_clearField(20);
+
+  /// Styles of text, which holds no markup itself.
+  @$pb.TagNumber(21)
+  $pb.PbList<TextSpan> get format => $_getList(20);
+
+  /// The text as Markdown for the composer when it differs from text (the
+  /// account's own messages only).
+  @$pb.TagNumber(22)
+  $core.String get markdown => $_getSZ(21);
+  @$pb.TagNumber(22)
+  set markdown($core.String value) => $_setString(21, value);
+  @$pb.TagNumber(22)
+  $core.bool hasMarkdown() => $_has(21);
+  @$pb.TagNumber(22)
+  void clearMarkdown() => $_clearField(22);
+}
+
+/// A styled part of a text, in UTF-16 units. Spans may nest and overlap.
+class TextSpan extends $pb.GeneratedMessage {
+  factory TextSpan({
+    TextStyle? style,
+    $core.int? offset,
+    $core.int? length,
+    $core.String? url,
+    $core.String? language,
+  }) {
+    final result = TextSpan._();
+    if (style != null) result.style = style;
+    if (offset != null) result.offset = offset;
+    if (length != null) result.length = length;
+    if (url != null) result.url = url;
+    if (language != null) result.language = language;
+    return result;
+  }
+
+  TextSpan._();
+
+  factory TextSpan.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TextSpan()..mergeFromBuffer(data, registry);
+  factory TextSpan.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      TextSpan()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TextSpan',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: TextSpan.$_createMessage)
+    ..aE<TextStyle>(1, _omitFieldNames ? '' : 'style',
+        enumValues: TextStyle.values)
+    ..aI(2, _omitFieldNames ? '' : 'offset')
+    ..aI(3, _omitFieldNames ? '' : 'length')
+    ..aOS(4, _omitFieldNames ? '' : 'url')
+    ..aOS(5, _omitFieldNames ? '' : 'language')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TextSpan clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TextSpan copyWith(void Function(TextSpan) updates) =>
+      super.copyWith((message) => updates(message as TextSpan)) as TextSpan;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TextSpan() / TextSpan.new instead')
+  static TextSpan create() => TextSpan._();
+  static $pb.GeneratedMessage $_createMessage() => TextSpan._();
+  @$core.override
+  TextSpan createEmptyInstance() => TextSpan._();
+  @$core.pragma('dart2js:noInline')
+  static TextSpan getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TextSpan>(TextSpan.$_createMessage);
+  static TextSpan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  TextStyle get style => $_getN(0);
+  @$pb.TagNumber(1)
+  set style(TextStyle value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStyle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStyle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get offset => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set offset($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOffset() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOffset() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get length => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set length($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLength() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLength() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get url => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set url($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasUrl() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearUrl() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get language => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set language($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLanguage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLanguage() => $_clearField(5);
 }
 
 class ThreadRequest extends $pb.GeneratedMessage {
@@ -2911,6 +3500,878 @@ class ReactRequest extends $pb.GeneratedMessage {
   void clearOn() => $_clearField(5);
 }
 
+class EditRequest extends $pb.GeneratedMessage {
+  factory EditRequest({
+    $core.String? accountId,
+    $core.String? chatId,
+    $core.String? messageId,
+    $core.String? text,
+    $core.String? threadId,
+  }) {
+    final result = EditRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (chatId != null) result.chatId = chatId;
+    if (messageId != null) result.messageId = messageId;
+    if (text != null) result.text = text;
+    if (threadId != null) result.threadId = threadId;
+    return result;
+  }
+
+  EditRequest._();
+
+  factory EditRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      EditRequest()..mergeFromBuffer(data, registry);
+  factory EditRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      EditRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'EditRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: EditRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'chatId')
+    ..aOS(3, _omitFieldNames ? '' : 'messageId')
+    ..aOS(4, _omitFieldNames ? '' : 'text')
+    ..aOS(5, _omitFieldNames ? '' : 'threadId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  EditRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  EditRequest copyWith(void Function(EditRequest) updates) =>
+      super.copyWith((message) => updates(message as EditRequest))
+          as EditRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use EditRequest() / EditRequest.new instead')
+  static EditRequest create() => EditRequest._();
+  static $pb.GeneratedMessage $_createMessage() => EditRequest._();
+  @$core.override
+  EditRequest createEmptyInstance() => EditRequest._();
+  @$core.pragma('dart2js:noInline')
+  static EditRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EditRequest>(
+          EditRequest.$_createMessage);
+  static EditRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get chatId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set chatId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get messageId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set messageId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMessageId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMessageId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get text => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set text($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasText() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearText() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get threadId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set threadId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasThreadId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearThreadId() => $_clearField(5);
+}
+
+class DeleteRequest extends $pb.GeneratedMessage {
+  factory DeleteRequest({
+    $core.String? accountId,
+    $core.String? chatId,
+    $core.Iterable<$core.String>? messageIds,
+    $core.bool? forAll,
+    $core.String? threadId,
+  }) {
+    final result = DeleteRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (chatId != null) result.chatId = chatId;
+    if (messageIds != null) result.messageIds.addAll(messageIds);
+    if (forAll != null) result.forAll = forAll;
+    if (threadId != null) result.threadId = threadId;
+    return result;
+  }
+
+  DeleteRequest._();
+
+  factory DeleteRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      DeleteRequest()..mergeFromBuffer(data, registry);
+  factory DeleteRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      DeleteRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: DeleteRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'chatId')
+    ..pPS(3, _omitFieldNames ? '' : 'messageIds')
+    ..aOB(4, _omitFieldNames ? '' : 'forAll')
+    ..aOS(5, _omitFieldNames ? '' : 'threadId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteRequest copyWith(void Function(DeleteRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteRequest))
+          as DeleteRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use DeleteRequest() / DeleteRequest.new instead')
+  static DeleteRequest create() => DeleteRequest._();
+  static $pb.GeneratedMessage $_createMessage() => DeleteRequest._();
+  @$core.override
+  DeleteRequest createEmptyInstance() => DeleteRequest._();
+  @$core.pragma('dart2js:noInline')
+  static DeleteRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteRequest>(
+          DeleteRequest.$_createMessage);
+  static DeleteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get chatId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set chatId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get messageIds => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.bool get forAll => $_getBF(3);
+  @$pb.TagNumber(4)
+  set forAll($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasForAll() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearForAll() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get threadId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set threadId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasThreadId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearThreadId() => $_clearField(5);
+}
+
+/// A span of SendRequest.text naming a person; offsets in UTF-16 code units.
+class Mention extends $pb.GeneratedMessage {
+  factory Mention({
+    $core.int? offset,
+    $core.int? length,
+    User? user,
+  }) {
+    final result = Mention._();
+    if (offset != null) result.offset = offset;
+    if (length != null) result.length = length;
+    if (user != null) result.user = user;
+    return result;
+  }
+
+  Mention._();
+
+  factory Mention.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Mention()..mergeFromBuffer(data, registry);
+  factory Mention.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Mention()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Mention',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: Mention.$_createMessage)
+    ..aI(1, _omitFieldNames ? '' : 'offset')
+    ..aI(2, _omitFieldNames ? '' : 'length')
+    ..aOM<User>(3, _omitFieldNames ? '' : 'user',
+        subBuilder: User.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Mention clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Mention copyWith(void Function(Mention) updates) =>
+      super.copyWith((message) => updates(message as Mention)) as Mention;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Mention() / Mention.new instead')
+  static Mention create() => Mention._();
+  static $pb.GeneratedMessage $_createMessage() => Mention._();
+  @$core.override
+  Mention createEmptyInstance() => Mention._();
+  @$core.pragma('dart2js:noInline')
+  static Mention getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Mention>(Mention.$_createMessage);
+  static Mention? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get offset => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set offset($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOffset() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOffset() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get length => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set length($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLength() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLength() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  User get user => $_getN(2);
+  @$pb.TagNumber(3)
+  set user(User value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUser() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUser() => $_clearField(3);
+  @$pb.TagNumber(3)
+  User ensureUser() => $_ensure(2);
+}
+
+class MembersRequest extends $pb.GeneratedMessage {
+  factory MembersRequest({
+    $core.String? accountId,
+    $core.String? chatId,
+    $core.String? query,
+    $core.int? limit,
+  }) {
+    final result = MembersRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (chatId != null) result.chatId = chatId;
+    if (query != null) result.query = query;
+    if (limit != null) result.limit = limit;
+    return result;
+  }
+
+  MembersRequest._();
+
+  factory MembersRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MembersRequest()..mergeFromBuffer(data, registry);
+  factory MembersRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MembersRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MembersRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: MembersRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'chatId')
+    ..aOS(3, _omitFieldNames ? '' : 'query')
+    ..aI(4, _omitFieldNames ? '' : 'limit')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MembersRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MembersRequest copyWith(void Function(MembersRequest) updates) =>
+      super.copyWith((message) => updates(message as MembersRequest))
+          as MembersRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use MembersRequest() / MembersRequest.new instead')
+  static MembersRequest create() => MembersRequest._();
+  static $pb.GeneratedMessage $_createMessage() => MembersRequest._();
+  @$core.override
+  MembersRequest createEmptyInstance() => MembersRequest._();
+  @$core.pragma('dart2js:noInline')
+  static MembersRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MembersRequest>(
+          MembersRequest.$_createMessage);
+  static MembersRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get chatId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set chatId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get query => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set query($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasQuery() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearQuery() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get limit => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set limit($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLimit() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLimit() => $_clearField(4);
+}
+
+class MembersReply extends $pb.GeneratedMessage {
+  factory MembersReply({
+    $core.Iterable<User>? users,
+  }) {
+    final result = MembersReply._();
+    if (users != null) result.users.addAll(users);
+    return result;
+  }
+
+  MembersReply._();
+
+  factory MembersReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MembersReply()..mergeFromBuffer(data, registry);
+  factory MembersReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MembersReply()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MembersReply',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: MembersReply.$_createMessage)
+    ..pPM<User>(1, _omitFieldNames ? '' : 'users',
+        subBuilder: User.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MembersReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MembersReply copyWith(void Function(MembersReply) updates) =>
+      super.copyWith((message) => updates(message as MembersReply))
+          as MembersReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use MembersReply() / MembersReply.new instead')
+  static MembersReply create() => MembersReply._();
+  static $pb.GeneratedMessage $_createMessage() => MembersReply._();
+  @$core.override
+  MembersReply createEmptyInstance() => MembersReply._();
+  @$core.pragma('dart2js:noInline')
+  static MembersReply getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MembersReply>(
+          MembersReply.$_createMessage);
+  static MembersReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<User> get users => $_getList(0);
+}
+
+class LinkPreviewRequest extends $pb.GeneratedMessage {
+  factory LinkPreviewRequest({
+    $core.String? url,
+  }) {
+    final result = LinkPreviewRequest._();
+    if (url != null) result.url = url;
+    return result;
+  }
+
+  LinkPreviewRequest._();
+
+  factory LinkPreviewRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      LinkPreviewRequest()..mergeFromBuffer(data, registry);
+  factory LinkPreviewRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      LinkPreviewRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LinkPreviewRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: LinkPreviewRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LinkPreviewRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LinkPreviewRequest copyWith(void Function(LinkPreviewRequest) updates) =>
+      super.copyWith((message) => updates(message as LinkPreviewRequest))
+          as LinkPreviewRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use LinkPreviewRequest() / LinkPreviewRequest.new instead')
+  static LinkPreviewRequest create() => LinkPreviewRequest._();
+  static $pb.GeneratedMessage $_createMessage() => LinkPreviewRequest._();
+  @$core.override
+  LinkPreviewRequest createEmptyInstance() => LinkPreviewRequest._();
+  @$core.pragma('dart2js:noInline')
+  static LinkPreviewRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LinkPreviewRequest>(
+          LinkPreviewRequest.$_createMessage);
+  static LinkPreviewRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => $_clearField(1);
+}
+
+class LinkPreviewReply extends $pb.GeneratedMessage {
+  factory LinkPreviewReply({
+    $core.String? url,
+    $core.String? siteName,
+    $core.String? title,
+    $core.String? description,
+    $core.List<$core.int>? image,
+    $core.String? imageMime,
+  }) {
+    final result = LinkPreviewReply._();
+    if (url != null) result.url = url;
+    if (siteName != null) result.siteName = siteName;
+    if (title != null) result.title = title;
+    if (description != null) result.description = description;
+    if (image != null) result.image = image;
+    if (imageMime != null) result.imageMime = imageMime;
+    return result;
+  }
+
+  LinkPreviewReply._();
+
+  factory LinkPreviewReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      LinkPreviewReply()..mergeFromBuffer(data, registry);
+  factory LinkPreviewReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      LinkPreviewReply()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LinkPreviewReply',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: LinkPreviewReply.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..aOS(2, _omitFieldNames ? '' : 'siteName')
+    ..aOS(3, _omitFieldNames ? '' : 'title')
+    ..aOS(4, _omitFieldNames ? '' : 'description')
+    ..a<$core.List<$core.int>>(
+        5, _omitFieldNames ? '' : 'image', $pb.PbFieldType.OY)
+    ..aOS(6, _omitFieldNames ? '' : 'imageMime')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LinkPreviewReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LinkPreviewReply copyWith(void Function(LinkPreviewReply) updates) =>
+      super.copyWith((message) => updates(message as LinkPreviewReply))
+          as LinkPreviewReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use LinkPreviewReply() / LinkPreviewReply.new instead')
+  static LinkPreviewReply create() => LinkPreviewReply._();
+  static $pb.GeneratedMessage $_createMessage() => LinkPreviewReply._();
+  @$core.override
+  LinkPreviewReply createEmptyInstance() => LinkPreviewReply._();
+  @$core.pragma('dart2js:noInline')
+  static LinkPreviewReply getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LinkPreviewReply>(
+          LinkPreviewReply.$_createMessage);
+  static LinkPreviewReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get siteName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set siteName($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSiteName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSiteName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get title => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set title($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTitle() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTitle() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get description => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set description($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDescription() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDescription() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<$core.int> get image => $_getN(4);
+  @$pb.TagNumber(5)
+  set image($core.List<$core.int> value) => $_setBytes(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasImage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearImage() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get imageMime => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set imageMime($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasImageMime() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearImageMime() => $_clearField(6);
+}
+
+class ProfileRequest extends $pb.GeneratedMessage {
+  factory ProfileRequest({
+    $core.String? accountId,
+    $core.String? chatId,
+  }) {
+    final result = ProfileRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (chatId != null) result.chatId = chatId;
+    return result;
+  }
+
+  ProfileRequest._();
+
+  factory ProfileRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ProfileRequest()..mergeFromBuffer(data, registry);
+  factory ProfileRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ProfileRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ProfileRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'chatId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileRequest copyWith(void Function(ProfileRequest) updates) =>
+      super.copyWith((message) => updates(message as ProfileRequest))
+          as ProfileRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ProfileRequest() / ProfileRequest.new instead')
+  static ProfileRequest create() => ProfileRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ProfileRequest._();
+  @$core.override
+  ProfileRequest createEmptyInstance() => ProfileRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ProfileRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ProfileRequest>(
+          ProfileRequest.$_createMessage);
+  static ProfileRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get chatId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set chatId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+}
+
+class ChatProfile extends $pb.GeneratedMessage {
+  factory ChatProfile({
+    $core.String? title,
+    $core.String? avatarUrl,
+    $core.String? username,
+    $core.String? about,
+    $core.String? phone,
+    $core.String? email,
+    $core.String? position,
+    $core.String? link,
+    $core.int? members,
+    $core.Iterable<User>? memberList,
+    $fixnum.Int64? lastSeenMs,
+    $core.bool? online,
+    $core.bool? bot,
+  }) {
+    final result = ChatProfile._();
+    if (title != null) result.title = title;
+    if (avatarUrl != null) result.avatarUrl = avatarUrl;
+    if (username != null) result.username = username;
+    if (about != null) result.about = about;
+    if (phone != null) result.phone = phone;
+    if (email != null) result.email = email;
+    if (position != null) result.position = position;
+    if (link != null) result.link = link;
+    if (members != null) result.members = members;
+    if (memberList != null) result.memberList.addAll(memberList);
+    if (lastSeenMs != null) result.lastSeenMs = lastSeenMs;
+    if (online != null) result.online = online;
+    if (bot != null) result.bot = bot;
+    return result;
+  }
+
+  ChatProfile._();
+
+  factory ChatProfile.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatProfile()..mergeFromBuffer(data, registry);
+  factory ChatProfile.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ChatProfile()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ChatProfile',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ChatProfile.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'title')
+    ..aOS(2, _omitFieldNames ? '' : 'avatarUrl')
+    ..aOS(3, _omitFieldNames ? '' : 'username')
+    ..aOS(4, _omitFieldNames ? '' : 'about')
+    ..aOS(5, _omitFieldNames ? '' : 'phone')
+    ..aOS(6, _omitFieldNames ? '' : 'email')
+    ..aOS(7, _omitFieldNames ? '' : 'position')
+    ..aOS(8, _omitFieldNames ? '' : 'link')
+    ..aI(9, _omitFieldNames ? '' : 'members')
+    ..pPM<User>(10, _omitFieldNames ? '' : 'memberList',
+        subBuilder: User.$_createMessage)
+    ..aInt64(11, _omitFieldNames ? '' : 'lastSeenMs')
+    ..aOB(12, _omitFieldNames ? '' : 'online')
+    ..aOB(13, _omitFieldNames ? '' : 'bot')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatProfile clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ChatProfile copyWith(void Function(ChatProfile) updates) =>
+      super.copyWith((message) => updates(message as ChatProfile))
+          as ChatProfile;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ChatProfile() / ChatProfile.new instead')
+  static ChatProfile create() => ChatProfile._();
+  static $pb.GeneratedMessage $_createMessage() => ChatProfile._();
+  @$core.override
+  ChatProfile createEmptyInstance() => ChatProfile._();
+  @$core.pragma('dart2js:noInline')
+  static ChatProfile getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ChatProfile>(
+          ChatProfile.$_createMessage);
+  static ChatProfile? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get title => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set title($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTitle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTitle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get avatarUrl => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set avatarUrl($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAvatarUrl() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAvatarUrl() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get username => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set username($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUsername() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUsername() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get about => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set about($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAbout() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAbout() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get phone => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set phone($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasPhone() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPhone() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get email => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set email($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasEmail() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEmail() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get position => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set position($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPosition() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearPosition() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get link => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set link($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasLink() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearLink() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get members => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set members($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasMembers() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearMembers() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<User> get memberList => $_getList(9);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get lastSeenMs => $_getI64(10);
+  @$pb.TagNumber(11)
+  set lastSeenMs($fixnum.Int64 value) => $_setInt64(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasLastSeenMs() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearLastSeenMs() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.bool get online => $_getBF(11);
+  @$pb.TagNumber(12)
+  set online($core.bool value) => $_setBool(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasOnline() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearOnline() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.bool get bot => $_getBF(12);
+  @$pb.TagNumber(13)
+  set bot($core.bool value) => $_setBool(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasBot() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearBot() => $_clearField(13);
+}
+
 class MediaRequest extends $pb.GeneratedMessage {
   factory MediaRequest({
     $core.String? accountId,
@@ -3253,6 +4714,8 @@ class SendRequest extends $pb.GeneratedMessage {
     $core.String? replyToId,
     $core.String? threadId,
     $core.String? quote,
+    $core.Iterable<OutFile>? files,
+    $core.Iterable<Mention>? mentions,
   }) {
     final result = SendRequest._();
     if (accountId != null) result.accountId = accountId;
@@ -3261,6 +4724,8 @@ class SendRequest extends $pb.GeneratedMessage {
     if (replyToId != null) result.replyToId = replyToId;
     if (threadId != null) result.threadId = threadId;
     if (quote != null) result.quote = quote;
+    if (files != null) result.files.addAll(files);
+    if (mentions != null) result.mentions.addAll(mentions);
     return result;
   }
 
@@ -3283,6 +4748,10 @@ class SendRequest extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'replyToId')
     ..aOS(5, _omitFieldNames ? '' : 'threadId')
     ..aOS(6, _omitFieldNames ? '' : 'quote')
+    ..pPM<OutFile>(7, _omitFieldNames ? '' : 'files',
+        subBuilder: OutFile.$_createMessage)
+    ..pPM<Mention>(8, _omitFieldNames ? '' : 'mentions',
+        subBuilder: Mention.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3362,6 +4831,99 @@ class SendRequest extends $pb.GeneratedMessage {
   $core.bool hasQuote() => $_has(5);
   @$pb.TagNumber(6)
   void clearQuote() => $_clearField(6);
+
+  /// Files to send (CAPABILITY_FILES), the text being their caption; at
+  /// most 100 MB together. Several files may become several messages (an
+  /// album): the reply is the last one, the others come as events. The
+  /// reply has an empty id when the messenger does not echo what was sent
+  /// (it comes as an event then).
+  @$pb.TagNumber(7)
+  $pb.PbList<OutFile> get files => $_getList(6);
+
+  /// People picked after "@" (CAPABILITY_MENTIONS): spans of text the
+  /// messenger turns into its mentions.
+  @$pb.TagNumber(8)
+  $pb.PbList<Mention> get mentions => $_getList(7);
+}
+
+class OutFile extends $pb.GeneratedMessage {
+  factory OutFile({
+    $core.String? name,
+    $core.String? mime,
+    $core.List<$core.int>? data,
+  }) {
+    final result = OutFile._();
+    if (name != null) result.name = name;
+    if (mime != null) result.mime = mime;
+    if (data != null) result.data = data;
+    return result;
+  }
+
+  OutFile._();
+
+  factory OutFile.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      OutFile()..mergeFromBuffer(data, registry);
+  factory OutFile.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      OutFile()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'OutFile',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: OutFile.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'mime')
+    ..a<$core.List<$core.int>>(
+        3, _omitFieldNames ? '' : 'data', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OutFile clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OutFile copyWith(void Function(OutFile) updates) =>
+      super.copyWith((message) => updates(message as OutFile)) as OutFile;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use OutFile() / OutFile.new instead')
+  static OutFile create() => OutFile._();
+  static $pb.GeneratedMessage $_createMessage() => OutFile._();
+  @$core.override
+  OutFile createEmptyInstance() => OutFile._();
+  @$core.pragma('dart2js:noInline')
+  static OutFile getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<OutFile>(OutFile.$_createMessage);
+  static OutFile? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get mime => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mime($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMime() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMime() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get data => $_getN(2);
+  @$pb.TagNumber(3)
+  set data($core.List<$core.int> value) => $_setBytes(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasData() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearData() => $_clearField(3);
 }
 
 /// Forwards messages of one chat to another chat of the same account
@@ -5531,6 +7093,7 @@ class Mail extends $pb.GeneratedMessage {
     $core.String? text,
     $core.String? html,
     $core.Iterable<Attachment>? attachments,
+    $core.Iterable<TextSpan>? format,
   }) {
     final result = Mail._();
     if (accountId != null) result.accountId = accountId;
@@ -5550,6 +7113,7 @@ class Mail extends $pb.GeneratedMessage {
     if (text != null) result.text = text;
     if (html != null) result.html = html;
     if (attachments != null) result.attachments.addAll(attachments);
+    if (format != null) result.format.addAll(format);
     return result;
   }
 
@@ -5588,6 +7152,8 @@ class Mail extends $pb.GeneratedMessage {
     ..aOS(16, _omitFieldNames ? '' : 'html')
     ..pPM<Attachment>(17, _omitFieldNames ? '' : 'attachments',
         subBuilder: Attachment.$_createMessage)
+    ..pPM<TextSpan>(18, _omitFieldNames ? '' : 'format',
+        subBuilder: TextSpan.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5720,9 +7286,9 @@ class Mail extends $pb.GeneratedMessage {
   @$pb.TagNumber(14)
   void clearHasAttachments() => $_clearField(14);
 
-  /// GetMail only. text is plain text (an HTML-only message turned into
-  /// text); html is the original HTML part, if any. Remote content in it
-  /// is not loaded by the core.
+  /// GetMail only. text is the visible text (of the HTML part when there is
+  /// one) and format its styles; html is the original HTML part, if any.
+  /// Remote content in it is not loaded by the core.
   @$pb.TagNumber(15)
   $core.String get text => $_getSZ(14);
   @$pb.TagNumber(15)
@@ -5743,6 +7309,9 @@ class Mail extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(17)
   $pb.PbList<Attachment> get attachments => $_getList(16);
+
+  @$pb.TagNumber(18)
+  $pb.PbList<TextSpan> get format => $_getList(17);
 }
 
 class MailListRequest extends $pb.GeneratedMessage {
@@ -6187,6 +7756,93 @@ class UpdateMailRequest extends $pb.GeneratedMessage {
   $core.bool hasAction() => $_has(2);
   @$pb.TagNumber(3)
   void clearAction() => $_clearField(3);
+}
+
+class MoveMailRequest extends $pb.GeneratedMessage {
+  factory MoveMailRequest({
+    $core.String? accountId,
+    $core.Iterable<$core.String>? ids,
+    $core.String? fromFolderId,
+    $core.String? toFolderId,
+  }) {
+    final result = MoveMailRequest._();
+    if (accountId != null) result.accountId = accountId;
+    if (ids != null) result.ids.addAll(ids);
+    if (fromFolderId != null) result.fromFolderId = fromFolderId;
+    if (toFolderId != null) result.toFolderId = toFolderId;
+    return result;
+  }
+
+  MoveMailRequest._();
+
+  factory MoveMailRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MoveMailRequest()..mergeFromBuffer(data, registry);
+  factory MoveMailRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      MoveMailRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MoveMailRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: MoveMailRequest.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..pPS(2, _omitFieldNames ? '' : 'ids')
+    ..aOS(3, _omitFieldNames ? '' : 'fromFolderId')
+    ..aOS(4, _omitFieldNames ? '' : 'toFolderId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MoveMailRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MoveMailRequest copyWith(void Function(MoveMailRequest) updates) =>
+      super.copyWith((message) => updates(message as MoveMailRequest))
+          as MoveMailRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use MoveMailRequest() / MoveMailRequest.new instead')
+  static MoveMailRequest create() => MoveMailRequest._();
+  static $pb.GeneratedMessage $_createMessage() => MoveMailRequest._();
+  @$core.override
+  MoveMailRequest createEmptyInstance() => MoveMailRequest._();
+  @$core.pragma('dart2js:noInline')
+  static MoveMailRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MoveMailRequest>(
+          MoveMailRequest.$_createMessage);
+  static MoveMailRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.String> get ids => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $core.String get fromFolderId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fromFolderId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFromFolderId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFromFolderId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get toFolderId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set toFolderId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasToFolderId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearToFolderId() => $_clearField(4);
 }
 
 class Calendar extends $pb.GeneratedMessage {

@@ -73,7 +73,7 @@ class DesktopNotifier {
     final thread = ev.kind == pb.Event_Kind.KIND_THREAD_MESSAGE ? m.inThread : '';
     if (_looking && s.open == key && (thread.isEmpty || s.thread?.thread == thread)) return;
     final chat = ev.hasChat() ? ev.chat : s.chats[key];
-    final title = chat?.title.isNotEmpty == true ? chat!.title : m.sender.name;
+    final title = chat?.title.isNotEmpty == true ? chatTitle(chat!) : m.sender.name;
     var text = m.text;
     if (text.isEmpty && m.attachments.isNotEmpty) text = '📎 ${m.attachments.first.name}'.trim();
     final from = m.sender.name;

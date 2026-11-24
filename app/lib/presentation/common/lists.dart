@@ -9,7 +9,7 @@ import '../../core/theme/typography.dart';
 /// Round avatar: initials (or an icon) in a tint of [color], with an
 /// optional marker in the corner (the provider of a chat).
 class HmAvatar extends StatelessWidget {
-  const HmAvatar({super.key, required this.label, this.icon, this.color = HmColors.accent, this.size = 36, this.corner, this.image, this.online = false});
+  const HmAvatar({super.key, required this.label, this.icon, this.color = HmColors.accent, this.size = 36, this.corner, this.image, this.online = false, this.showOffline = false});
 
   final String label;
   final IconData? icon;
@@ -20,9 +20,11 @@ class HmAvatar extends StatelessWidget {
   final double size;
   final Widget? corner;
 
-  /// The person is online: a green dot at the bottom right (top right when
-  /// [corner] is there).
+  /// The person is online: a green dot at the top right.
   final bool online;
+
+  /// When not [online], a grey dot instead of none.
+  final bool showOffline;
 
   static String initials(String s) {
     final words = s.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -62,7 +64,8 @@ class HmAvatar extends StatelessWidget {
               ),
             ],
           );
-    if (corner == null && !online) return face;
+    final marked = online || showOffline;
+    if (corner == null && !marked) return face;
     final dot = (size * 0.28).clamp(9.0, 14.0);
     return SizedBox.square(
       dimension: size,
@@ -71,19 +74,18 @@ class HmAvatar extends StatelessWidget {
         children: [
           face,
           if (corner != null) Positioned(right: -3, bottom: -3, child: corner!),
-          if (online)
+          if (marked)
             Positioned(
               right: -1,
-              top: corner != null ? -1 : null,
-              bottom: corner != null ? null : -1,
+              top: -1,
               child: Semantics(
-                label: tr('online', 'в сети'),
+                label: online ? tr('online', 'в сети') : tr('offline', 'не в сети'),
                 child: Container(
                   width: dot,
                   height: dot,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: HmColors.ok,
+                    color: online ? HmColors.ok : HmColors.paused,
                     border: Border.all(color: HmColors.surface, width: 2),
                   ),
                 ),

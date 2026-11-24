@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/format.dart';
@@ -9,14 +10,19 @@ import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
+import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
+import 'attach.dart';
+import 'chat_cubit.dart' show outFiles;
 import 'chat_view.dart';
 import 'forward.dart';
+import 'media.dart' show PhotoGallery;
 import 'messages.dart';
+import 'mentions.dart';
 
 /// Opens the thread under [root]: next to the chat on desktops, as its
 /// own screen on phones.
@@ -43,7 +49,7 @@ void showThread(BuildContext context, ThreadKey key, pb.Message root) {
 }
 
 class ThreadState extends Equatable {
-  const ThreadState({this.root, this.replies = const [], this.loading = true, this.older = false, this.more = false, this.error, this.rev = 0});
+  const ThreadState({this.root, this.replies = const [], this.loading = true, this.older = false, this.more = false, this.error, this.editing, this.rev = 0});
 
   final pb.Message? root;
 
@@ -53,18 +59,31 @@ class ThreadState extends Equatable {
   final bool older;
   final bool more;
   final String? error;
+
+  /// The account's reply whose text the composer is changing.
+  final pb.Message? editing;
   final int rev;
 
-  ThreadState copyWith({pb.Message? root, List<pb.Message>? replies, bool? loading, bool? older, bool? more, String? error, bool clearError = false}) =>
-      ThreadState(
-        root: root ?? this.root,
-        replies: replies ?? this.replies,
-        loading: loading ?? this.loading,
-        older: older ?? this.older,
-        more: more ?? this.more,
-        error: clearError ? null : error ?? this.error,
-        rev: rev + 1,
-      );
+  ThreadState copyWith({
+    pb.Message? root,
+    List<pb.Message>? replies,
+    bool? loading,
+    bool? older,
+    bool? more,
+    String? error,
+    pb.Message? editing,
+    bool clearError = false,
+    bool clearEdit = false,
+  }) => ThreadState(
+    root: root ?? this.root,
+    replies: replies ?? this.replies,
+    loading: loading ?? this.loading,
+    older: older ?? this.older,
+    more: more ?? this.more,
+    error: clearError ? null : error ?? this.error,
+    editing: clearEdit ? null : editing ?? this.editing,
+    rev: rev + 1,
+  );
 
   @override
   List<Object?> get props => [loading, older, more, error, rev];
@@ -132,15 +151,52 @@ class ThreadCubit extends Cubit<ThreadState> {
   }
 
   /// Sends [text] into the thread; throws so the composer keeps the text.
-  Future<void> send(String text) async {
-    final m = await _api.send(pb.SendRequest(accountId: key.account, chatId: key.chat, text: text, threadId: key.thread));
-    if (!isClosed) _put(m);
+  Future<void> send(String text, {List<LocalFile> files = const [], List<pb.Mention> mentions = const []}) async {
+    final m = await _api.send(
+      pb.SendRequest(accountId: key.account, chatId: key.chat, text: text, threadId: key.thread, files: outFiles(files), mentions: mentions),
+    );
+    if (!isClosed && m.id.isNotEmpty) _put(m);
+  }
+
+  /// Starts changing the text of the account's reply [m] (null: cancels).
+  void edit(pb.Message? m) => emit(m == null ? state.copyWith(clearEdit: true) : state.copyWith(editing: m));
+
+  /// Saves the new [text] of the reply being edited; throws so the
+  /// composer keeps it on failure.
+  Future<void> saveEdit(String text) async {
+    final m = state.editing;
+    if (m == null) return;
+    if (text != editSource(m)) {
+      final r = await _api.edit(pb.EditRequest(accountId: key.account, chatId: key.chat, messageId: m.id, text: text, threadId: key.thread));
+      if (isClosed) return;
+      final cur = state.replies.where((x) => x.id == m.id).firstOrNull;
+      if (cur != null) {
+        _put(
+          cur.deepCopy()
+            ..text = r.text
+            ..format.clear()
+            ..format.addAll(r.format)
+            ..markdown = r.markdown
+            ..editedMs = r.editedMs,
+        );
+      }
+    }
+    if (state.editing?.id == m.id) emit(state.copyWith(clearEdit: true));
   }
 
   void _onEvent(pb.Event ev) {
     final m = ev.message;
     if (m.accountId != key.account || m.chatId != key.chat) return;
     switch (ev.kind) {
+      case pb.Event_Kind.KIND_THREAD_MESSAGE when m.inThread == key.thread && m.deleted && m.timeMs == 0:
+        // Deleted here: only the id came, the copy becomes a tombstone.
+        final i = state.replies.indexWhere((x) => x.id == m.id);
+        if (i >= 0) {
+          _put(state.replies[i].deepCopy()
+            ..deleted = true
+            ..text = ''
+            ..attachments.clear());
+        }
       case pb.Event_Kind.KIND_THREAD_MESSAGE when m.inThread == key.thread:
         _put(m);
         if (!m.outgoing) _readSoon();
@@ -238,6 +294,7 @@ class _ThreadBodyState extends State<_ThreadBody> {
   Widget build(BuildContext context) {
     final hm = Hm.of(context);
     final chat = context.select<MessengerCubit, pb.Chat?>((c) => c.state.chats[(account: widget.thread.account, chat: widget.thread.chat)]);
+    final account = context.select<MessengerCubit, pb.Account?>((c) => c.state.account(widget.thread.account));
     final s = context.watch<ThreadCubit>().state;
     final cubit = context.read<ThreadCubit>();
     final direct = chat?.kind == pb.ChatKind.CHAT_KIND_DIRECT;
@@ -322,11 +379,17 @@ class _ThreadBodyState extends State<_ThreadBody> {
             quoted: quoted,
             showSender: !direct && !m.outgoing && first,
             gap: first,
+            onEdit: !widget.readOnly && canEditMessage(account, m) ? () => cubit.edit(m) : null,
+            // A topic's messages are the chat's own; a thread's are replies.
+            onDelete: !widget.readOnly && canDeleteMessage(account, m)
+                ? () => deleteMessages(context, account, [m], thread: topic != null ? '' : widget.thread.thread)
+                : null,
             onForward: () => forwardMessages(context, [m], native: topic != null),
           );
         },
       );
     }
+    body = PhotoGallery(messages: [?s.root, ...s.replies], child: body);
 
     if (topic != null) {
       return Column(
@@ -375,7 +438,7 @@ class _ThreadBodyState extends State<_ThreadBody> {
                   children: [
                     Text(tr('Thread', 'Тред'), style: HmText.bodyStrong),
                     const SizedBox(height: 2),
-                    Text(chat?.title ?? '', style: HmText.footer, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(chat == null ? '' : chatTitle(chat), style: HmText.footer, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
@@ -401,27 +464,92 @@ class _ThreadComposer extends StatefulWidget {
 
 class _ThreadComposerState extends State<_ThreadComposer> {
   final _text = TextEditingController();
+  final _files = PendingFiles();
   final _focus = FocusNode();
+  bool _sending = false; // files or an edit are on their way
+
+  /// The draft put aside while a reply is edited (null: not editing).
+  String? _beforeEdit;
+
+  /// People after "@" (null: the messenger has no mentions).
+  MentionPicker? _mentions;
 
   @override
   void initState() {
     super.initState();
+    final key = context.read<ThreadCubit>().key;
+    if (canMention(context.read<MessengerCubit>().state.account(key.account))) {
+      final core = context.read<CoreCubit>();
+      _mentions = MentionPicker(api: () => core.api, account: key.account, chat: key.chat, text: _text);
+    }
     _text.addListener(() => setState(() {}));
+    _files.addListener(() => setState(() {}));
+  }
+
+  void _editingChanged(pb.Message? now) {
+    if (now != null) {
+      _beforeEdit ??= _text.text;
+      final source = editSource(now);
+      _text.value = TextEditingValue(
+        text: source,
+        selection: TextSelection.collapsed(offset: source.length),
+      );
+      _focus.requestFocus();
+    } else {
+      _text.text = _beforeEdit ?? '';
+      _beforeEdit = null;
+    }
+  }
+
+  Future<void> _saveEdit(ThreadCubit cubit, String text) async {
+    if (text.isEmpty) return;
+    setState(() => _sending = true);
+    try {
+      await cubit.saveEdit(text);
+    } catch (e) {
+      Toasts.error(tr('Not saved', 'Не сохранено'), errorText(e));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override
   void dispose() {
+    _mentions?.dispose();
     _text.dispose();
+    _files.dispose();
     _focus.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
     final text = _text.text.trim();
-    if (text.isEmpty) return;
+    final files = _files.value;
+    if (_sending) return;
+    final cubit = context.read<ThreadCubit>();
+    if (cubit.state.editing != null) return _saveEdit(cubit, text);
+    if (text.isEmpty && files.isEmpty) return;
+    if (files.isNotEmpty) {
+      // The files and the caption stay until they are sent.
+      setState(() => _sending = true);
+      try {
+        await cubit.send(text, files: files, mentions: _mentions?.mentionsIn(text) ?? const []);
+        _mentions?.sent();
+        if (!mounted) return;
+        _files.value = const [];
+        if (_text.text.trim() == text) _text.clear();
+      } catch (e) {
+        Toasts.error(tr('Not sent', 'Не отправлено'), errorText(e));
+      } finally {
+        if (mounted) setState(() => _sending = false);
+      }
+      return;
+    }
+    final mentions = _mentions?.mentionsIn(text) ?? const <pb.Mention>[];
     _text.clear();
     try {
-      await context.read<ThreadCubit>().send(text);
+      await cubit.send(text, mentions: mentions);
+      _mentions?.sent();
     } catch (e) {
       if (_text.text.isEmpty) _text.text = text;
       Toasts.error(tr('Not sent', 'Не отправлено'), errorText(e));
@@ -431,26 +559,66 @@ class _ThreadComposerState extends State<_ThreadComposer> {
   @override
   Widget build(BuildContext context) {
     final hm = Hm.of(context);
-    return Container(
-      padding: EdgeInsets.fromLTRB(hm.mobile ? 12 : 16, 10, hm.mobile ? 8 : 16, 10),
-      decoration: const BoxDecoration(
-        color: HmColors.surface,
-        border: Border(top: BorderSide(color: HmColors.border)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: HmMessageField(
-              controller: _text,
-              focusNode: _focus,
-              onSend: _send,
-              placeholder: widget.placeholder ?? tr('Reply in thread', 'Ответ в треде'),
+    final cubit = context.read<ThreadCubit>();
+    final account = cubit.key.account;
+    final editing = context.select<ThreadCubit, pb.Message?>((c) => c.state.editing);
+    final files = editing == null && context.select<MessengerCubit, bool>((c) => canSendFiles(c.state.account(account)));
+    return BlocListener<ThreadCubit, ThreadState>(
+      listenWhen: (a, b) => a.editing?.id != b.editing?.id,
+      listener: (_, s) => _editingChanged(s.editing),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(hm.mobile ? 12 : 16, 10, hm.mobile ? 8 : 16, 10),
+        decoration: const BoxDecoration(
+          color: HmColors.surface,
+          border: Border(top: BorderSide(color: HmColors.border)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (editing != null)
+              HmQuote(
+                title: tr('Editing', 'Редактирование'),
+                text: messagePreview(editing),
+                trailing: HmIconButton(icon: Icons.close, label: tr('Cancel editing', 'Отменить редактирование'), onPressed: () => cubit.edit(null)),
+              ),
+            if (files) PendingFilesStrip(files: _files, enabled: !_sending),
+            if (_mentions != null) MentionList(picker: _mentions!),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (files) ...[AttachButton(files: _files, enabled: !_sending), const SizedBox(width: 8)],
+                Expanded(
+                  child: CallbackShortcuts(
+                    bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => cubit.edit(null)},
+                    child: HmMessageField(
+                      controller: _text,
+                      focusNode: _focus,
+                      onSend: _send,
+                      onKey: _mentions?.onKey,
+                      onPaste: files ? () => attachFromClipboard(_files) : null,
+                      onInsertContent: files ? (c) => attachInserted(_files, c) : null,
+                      placeholder: widget.placeholder ?? tr('Reply in thread', 'Ответ в треде'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _sending
+                    ? SizedBox(
+                        width: hm.toolbar,
+                        height: hm.toolbar,
+                        child: const Center(child: SizedBox(width: 16, height: 16, child: HmSpinner())),
+                      )
+                    : HmIconButton(
+                        icon: editing != null ? Icons.check : Icons.send,
+                        label: editing != null ? tr('Save', 'Сохранить') : tr('Send', 'Отправить'),
+                        color: HmColors.accent,
+                        onPressed: _text.text.trim().isEmpty && (editing != null || _files.isEmpty) ? null : _send,
+                      ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          HmIconButton(icon: Icons.send, label: tr('Send', 'Отправить'), color: HmColors.accent, onPressed: _text.text.trim().isEmpty ? null : _send),
-        ],
+          ],
+        ),
       ),
     );
   }

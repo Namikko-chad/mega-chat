@@ -1,8 +1,12 @@
 package hub
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"image"
+	"image/png"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -178,6 +182,21 @@ func TestLoginSessionAndEvents(t *testing.T) {
 	}
 	if cs, _ := e.h.Chats(nil, 0); len(cs) != 10 || len(e.h.Accounts()) != 1 {
 		t.Fatalf("after remove: %d chats, %d accounts", len(cs), len(e.h.Accounts()))
+	}
+}
+
+func TestReorderAccounts(t *testing.T) {
+	e := newEnv(t)
+	a, b, c := e.login(t, "a").ID, e.login(t, "b").ID, e.login(t, "c").ID
+	if err := e.h.Reorder([]string{c, "unknown", a}); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, x := range e.h.Accounts() {
+		got = append(got, x.ID)
+	}
+	if want := []string{c, a, b}; !slices.Equal(got, want) {
+		t.Fatalf("order %v, want %v", got, want)
 	}
 }
 
@@ -708,4 +727,173 @@ func TestPresence(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, "c2 offline when disabled", func() bool { return !online("c2") })
+}
+
+func TestSendFiles(t *testing.T) {
+	e := newEnv(t)
+	a := e.login(t, "ann")
+	waitFor(t, "online", func() bool { return e.status(a.ID) == StatusOnline })
+	info, _ := e.h.Account(a.ID)
+	if !slices.Contains(info.Caps, provider.CapFiles) {
+		t.Fatalf("caps: %v", info.Caps)
+	}
+	ctx := context.Background()
+	var png bytes.Buffer
+	if err := pngEncode(&png); err != nil {
+		t.Fatal(err)
+	}
+	out := model.Outgoing{Text: "look", Files: []model.OutFile{
+		{Name: `C:\Users\me\shot`, Data: png.Bytes()}, // a path and no type: base name, type from the content
+		{Name: "notes.txt", Data: []byte("hello")},
+	}}
+	last, err := e.h.Send(ctx, a.ID, "c1", out)
+	if err != nil || last.ID == "" || last.AccountID != a.ID || len(last.Attachments) != 1 {
+		t.Fatalf("send: %+v %v", last, err)
+	}
+	if f := last.Attachments[0]; f.Name != "notes.txt" || !strings.HasPrefix(f.MIME, "text/plain") || f.Size != 5 {
+		t.Fatalf("second file: %+v", f)
+	}
+	msgs, _, err := e.h.History(ctx, a.ID, "c1", "", 2)
+	if err != nil || len(msgs) != 2 {
+		t.Fatalf("history: %+v %v", msgs, err)
+	}
+	pic := msgs[1] // newest first
+	if f := pic.Attachments[0]; pic.Text != "look" || f.Name != "shot.png" || f.MIME != "image/png" || f.Kind != model.AttachImage || f.Width != 4 || pic.Group == "" || pic.Group != msgs[0].Group {
+		t.Fatalf("album: %+v / %+v", pic, msgs[0])
+	}
+	data, mime, err := e.h.Media(ctx, a.ID, pic.Attachments[0].Ref, 1<<20)
+	if err != nil || mime != "image/png" || !bytes.Equal(data, png.Bytes()) {
+		t.Fatalf("media: %q %v", mime, err)
+	}
+	if _, err := e.h.Send(ctx, a.ID, "c1", model.Outgoing{Files: []model.OutFile{{Name: "x"}}}); err == nil {
+		t.Fatal("an empty file must fail")
+	}
+	big := model.Outgoing{Files: []model.OutFile{{Name: "big", Data: make([]byte, MaxUpload+1)}}}
+	if _, err := e.h.Send(ctx, a.ID, "c1", big); !errors.Is(err, provider.ErrTooLarge) {
+		t.Fatalf("too large: %v", err)
+	}
+}
+
+func pngEncode(w io.Writer) error {
+	return png.Encode(w, image.NewRGBA(image.Rect(0, 0, 4, 3)))
+}
+
+func TestProfile(t *testing.T) {
+	e := newEnv(t)
+	a := e.login(t, "pat")
+	waitFor(t, "online", func() bool { return e.status(a.ID) == StatusOnline })
+	info, _ := e.h.Account(a.ID)
+	if !slices.Contains(info.Caps, provider.CapProfiles) {
+		t.Fatalf("caps: %v", info.Caps)
+	}
+	ctx := context.Background()
+	// c1's contact is online by presence; c3 is a group.
+	waitFor(t, "presence", func() bool { p, err := e.h.Profile(ctx, a.ID, "c1"); return err == nil && p.Online })
+	p, err := e.h.Profile(ctx, a.ID, "c3")
+	if err != nil || p.Title != "Team 3" || p.Members == 0 || len(p.MemberList) != 3 || p.Online {
+		t.Fatalf("group: %+v %v", p, err)
+	}
+	if _, err := e.h.Profile(ctx, a.ID, "nope"); err == nil {
+		t.Fatal("a missing chat has a profile")
+	}
+}
+
+func TestEdit(t *testing.T) {
+	e := newEnv(t)
+	a := e.login(t, "eve")
+	waitFor(t, "online", func() bool { return e.status(a.ID) == StatusOnline })
+	info, _ := e.h.Account(a.ID)
+	if !slices.Contains(info.Caps, provider.CapEdit) {
+		t.Fatalf("caps: %v", info.Caps)
+	}
+	ctx := context.Background()
+	if _, _, err := e.h.History(ctx, a.ID, "c1", "", 10); err != nil {
+		t.Fatal(err)
+	}
+	sent, err := e.h.Send(ctx, a.ID, "c1", model.Outgoing{Text: "helo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := e.h.Edit(ctx, a.ID, "c1", "", sent.ID, "hello")
+	if err != nil || got.Text != "hello" || got.Edited.IsZero() || got.Time.IsZero() {
+		t.Fatalf("edit: %+v %v", got, err)
+	}
+	if !e.has(EvMessageEdit, sent.ID) {
+		t.Fatal("no edit event")
+	}
+	top, _, _ := e.h.History(ctx, a.ID, "c1", "", 1)
+	if top[0].ID != sent.ID || top[0].Text != "hello" || top[0].Edited.IsZero() {
+		t.Fatalf("cached: %+v", top[0])
+	}
+	if c, _ := e.h.Chats(nil, 0); !slices.ContainsFunc(c, func(c model.Chat) bool { return c.ID == "c1" && c.Last != nil && c.Last.Text == "hello" }) {
+		t.Fatal("the chat's last message was not edited")
+	}
+	// Someone else's message, an empty text.
+	if _, err := e.h.Edit(ctx, a.ID, "c1", "", top[0].ID, ""); err == nil {
+		t.Fatal("an empty text was accepted")
+	}
+	older, _, _ := e.h.History(ctx, a.ID, "c1", sent.ID, 1)
+	if _, err := e.h.Edit(ctx, a.ID, "c1", "", older[0].ID, "mine now"); err == nil {
+		t.Fatal("someone else's message was edited")
+	}
+}
+
+func TestDelete(t *testing.T) {
+	e := newEnv(t)
+	a := e.login(t, "eve")
+	waitFor(t, "online", func() bool { return e.status(a.ID) == StatusOnline })
+	info, _ := e.h.Account(a.ID)
+	if !slices.Contains(info.Caps, provider.CapDelete) || !slices.Contains(info.Caps, provider.CapDeleteForMe) {
+		t.Fatalf("caps: %v", info.Caps)
+	}
+	ctx := context.Background()
+	if _, _, err := e.h.History(ctx, a.ID, "c1", "", 10); err != nil {
+		t.Fatal(err)
+	}
+	sent, err := e.h.Send(ctx, a.ID, "c1", model.Outgoing{Text: "oops"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.h.Delete(ctx, a.ID, "c1", "", nil, true); err == nil {
+		t.Fatal("nothing to delete was accepted")
+	}
+	if err := e.h.Delete(ctx, a.ID, "c1", "", []string{sent.ID}, false); err != nil {
+		t.Fatal(err)
+	}
+	if !e.has(EvMessageDelete, sent.ID) {
+		t.Fatal("no delete event")
+	}
+	top, _, _ := e.h.History(ctx, a.ID, "c1", "", 1)
+	if top[0].ID != sent.ID || !top[0].Deleted || top[0].Text != "" {
+		t.Fatalf("cached: %+v", top[0])
+	}
+	older, _, _ := e.h.History(ctx, a.ID, "c1", sent.ID, 1)
+	if err := e.h.Delete(ctx, a.ID, "c1", "", []string{older[0].ID}, true); err == nil {
+		t.Fatal("someone else's message was deleted")
+	}
+}
+
+func TestMembers(t *testing.T) {
+	e := newEnv(t)
+	a := e.login(t, "eve")
+	waitFor(t, "online", func() bool { return e.status(a.ID) == StatusOnline })
+	info, _ := e.h.Account(a.ID)
+	if !slices.Contains(info.Caps, provider.CapMentions) {
+		t.Fatalf("caps: %v", info.Caps)
+	}
+	chats, _ := e.h.Chats(nil, 0)
+	var group string
+	for _, c := range chats {
+		if c.AccountID == a.ID && c.Kind == model.ChatGroup {
+			group = c.ID
+		}
+	}
+	us, err := e.h.Members(context.Background(), a.ID, group, "bo", 0)
+	if err != nil || len(us) != 1 || us[0].Name != "Bob Stone" || us[0].Online {
+		t.Fatalf("%+v %v", us, err)
+	}
+	us, err = e.h.Members(context.Background(), a.ID, group, "alice", 0)
+	if err != nil || len(us) != 1 || !us[0].Online {
+		t.Fatalf("online: %+v %v", us, err)
+	}
 }

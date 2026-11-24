@@ -18,6 +18,7 @@ import (
 
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/richtext"
 )
 
 const keyUsers = "users"
@@ -40,6 +41,10 @@ type session struct {
 	latest map[string]string // chat → newest ts seen (polling)
 	self   model.User
 	rtm    *websocket.Conn // while runRTM is connected: presence_sub goes here
+	// presence: user → last known presence, for the "@" list (see fillPresence).
+	presence map[string]seenPresence
+	// foldersDue: a reload of the sidebar sections is on its way.
+	foldersDue bool
 }
 
 func (p *Provider) Open(acct provider.Account, env provider.Env) (provider.Session, error) {
@@ -217,8 +222,26 @@ func (s *session) convert(ctx context.Context, chat string, m wMessage) model.Me
 	if m.ThreadTS != "" && m.ThreadTS != m.TS && m.Subtype != "thread_broadcast" {
 		out.InThread = m.ThreadTS
 	}
+	// An app's blocks carry the body; its text is only the fallback. A
+	// user's rich text says what the text does.
+	if bs := parseBlocks(m.Blocks); blocksCarryBody(bs) || (strings.TrimSpace(m.Text) == "" && len(bs) > 0) {
+		if t := blocksText(bs, s.userName); t != "" {
+			out.Text = t
+		}
+	}
 	for _, f := range m.Files {
 		out.Attachments = append(out.Attachments, attachmentOf(f))
+	}
+	// An app's legacy attachments (not link unfurls) add to the body.
+	if m.BotID != "" || m.Subtype == "bot_message" {
+		for _, a := range m.Attachments {
+			if a.IsShare || a.IsMsgUnfurl || a.FromURL != "" || a.OriginalURL != "" {
+				continue
+			}
+			if t := attachmentText(a, s.userName); t != "" && t != out.Text {
+				out.Text = strings.TrimSpace(out.Text + "\n" + t)
+			}
+		}
 	}
 	// A shared message (Share message, a pasted permalink): its author,
 	// text and files instead of the bare link.
@@ -242,6 +265,17 @@ func (s *session) convert(ctx context.Context, chat string, m wMessage) model.Me
 		for _, f := range a.Files {
 			out.Attachments = append(out.Attachments, attachmentOf(f))
 		}
+	}
+	// Everything above is mrkdwn: its marks become styles.
+	if !out.Service {
+		// A reply shown in the chat: its leading "> " lines are its quote.
+		if out.ReplyTo != "" {
+			if lines, rest := splitQuote(out.Text); len(lines) > 0 {
+				out.Quote, out.Text = richtext.Parse(strings.Join(lines, "\n"), richtext.Slack).Text, rest
+			}
+		}
+		d := richtext.Parse(out.Text, richtext.Slack)
+		out.Text, out.Format = d.Text, d.Spans
 	}
 	out.Reactions = s.reactionsOf(m.Reactions)
 	// Any message of the chat can start a thread: Thread with no replies
@@ -310,6 +344,7 @@ func (s *session) chatOf(ctx context.Context, c wChannel) model.Chat {
 		out.Title, out.Avatar = u.Name, u.Avatar
 		if c.User == s.params["user_id"] {
 			out.Title += " (you)"
+			out.Saved = true // the notes to oneself
 		}
 	case c.IsMPIM:
 		out.Kind, out.Title = model.ChatGroup, mpimTitle(c.Name)
@@ -386,6 +421,7 @@ func (s *session) subscribePresence(ctx context.Context) {
 // emitPresence reports the presence of users ("active" or "away") as the
 // presence of their direct chats.
 func (s *session) emitPresence(sink provider.Sink, users []string, presence string) {
+	s.setPresence(users, presence == "active")
 	s.mu.Lock()
 	var chats []string
 	for _, ch := range s.chats {
@@ -417,6 +453,9 @@ func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 	convs, err := s.conversations(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if c, ok := s.selfDM(ctx, convs); ok {
+		convs = append(convs, c)
 	}
 	defer s.saveUsers()
 	latest := map[string]countEntry{}
@@ -498,7 +537,7 @@ func (s *session) History(ctx context.Context, chatID, beforeID string, limit in
 
 func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (model.Message, error) {
 	// A quote is "> " lines (escaped, as Slack itself writes them).
-	q := url.Values{"channel": {chatID}, "text": {escapeText(o.QuotedText())}}
+	q := url.Values{"channel": {chatID}, "text": {outText(o)}}
 	switch {
 	case o.Thread != "":
 		q.Set("thread_ts", o.Thread)
@@ -521,6 +560,10 @@ func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (mo
 	}
 	if o.Thread != "" && r.Message.ThreadTS == "" {
 		r.Message.ThreadTS = o.Thread
+	}
+	if o.Thread == "" && o.ReplyTo != "" && r.Message.Subtype == "" {
+		// The answer may not say what reply_broadcast made of it.
+		r.Message.Subtype, r.Message.ThreadTS = "thread_broadcast", o.ReplyTo
 	}
 	m := s.convert(ctx, chatID, r.Message)
 	m.Outgoing = true
@@ -666,6 +709,10 @@ func (s *session) handle(ctx context.Context, sink provider.Sink, raw []byte) {
 	}
 	var msg wMessage
 	if ev.Type == "message" && json.Unmarshal(raw, &msg) != nil {
+		return
+	}
+	if strings.HasPrefix(ev.Type, "channel_section") { // the sidebar's sections
+		s.sectionsChanged(ctx, sink)
 		return
 	}
 	switch ev.Type {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,6 +14,7 @@ import '../accounts/login_wizard.dart';
 import '../accounts/providers.dart';
 import '../common/hm.dart';
 import '../core/messenger_cubit.dart';
+import 'chat_actions.dart';
 import 'chat_view.dart';
 import 'media.dart';
 import 'messages.dart';
@@ -128,18 +130,16 @@ class _AccountRail extends StatelessWidget {
             child: Text(tr('ACCOUNTS', 'АККАУНТЫ'), style: HmText.sectionTitle),
           ),
           Expanded(
-            child: ListView(
-              children: [
-                HmListItem(
-                  leading: const HmAvatar(label: '', icon: Icons.all_inbox_outlined),
-                  title: Text(tr('All chats', 'Все чаты')),
-                  subtitle: Text(tr('${m.accounts.length} accounts', 'аккаунтов: ${m.accounts.length}')),
-                  trailing: HmCount(m.unread),
-                  selected: m.filter.isEmpty,
-                  onTap: () => messenger.setFilter(''),
-                ),
-                for (final a in m.accounts) _AccountItem(account: a, selected: m.filter == a.id, onTap: () => messenger.setFilter(a.id)),
-              ],
+            child: _ReorderableAccounts(
+              first: HmListItem(
+                leading: const HmAvatar(label: '', icon: Icons.all_inbox_outlined),
+                title: Text(tr('All chats', 'Все чаты')),
+                subtitle: Text(tr('${m.accounts.length} accounts', 'аккаунтов: ${m.accounts.length}')),
+                trailing: HmCount(m.unread),
+                selected: m.filter.isEmpty,
+                onTap: () => messenger.setFilter(''),
+              ),
+              item: (a) => _AccountItem(account: a, selected: m.filter == a.id, onTap: () => messenger.setFilter(a.id)),
             ),
           ),
           Padding(
@@ -148,6 +148,55 @@ class _AccountRail extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The accounts in the user's order after a fixed first item ("All"). Mouse:
+/// drag an account; touch: long press, so that a swipe still scrolls.
+class _ReorderableAccounts extends StatelessWidget {
+  const _ReorderableAccounts({required this.first, required this.item, this.axis = Axis.vertical, this.padding = EdgeInsets.zero});
+
+  final Widget first;
+  final Widget Function(pb.Account) item;
+  final Axis axis;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final accounts = context.watch<MessengerCubit>().state.accounts;
+    final messenger = context.read<MessengerCubit>();
+    final touch = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+    final vertical = axis == Axis.vertical;
+    return CustomScrollView(
+      scrollDirection: axis,
+      slivers: [
+        SliverPadding(
+          padding: vertical ? padding.copyWith(bottom: 0) : padding.copyWith(right: 0),
+          sliver: SliverToBoxAdapter(child: first),
+        ),
+        SliverPadding(
+          padding: vertical ? padding.copyWith(top: 0) : padding.copyWith(left: 0),
+          sliver: SliverReorderableList(
+            itemCount: accounts.length,
+            proxyDecorator: (child, _, _) => Material(type: MaterialType.transparency, child: child),
+            onReorder: (from, to) async {
+              try {
+                await messenger.moveAccount(from, to);
+              } catch (e) {
+                Toasts.error(tr('Could not save the order', 'Не удалось сохранить порядок'), errorText(e));
+              }
+            },
+            itemBuilder: (_, i) {
+              final key = ValueKey(accounts[i].id);
+              final child = item(accounts[i]);
+              return touch
+                  ? ReorderableDelayedDragStartListener(key: key, index: i, child: child)
+                  : ReorderableDragStartListener(key: key, index: i, child: child);
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -202,35 +251,33 @@ class _CompactRail extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: ListView(
+            child: _ReorderableAccounts(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _RailButton(
-                  icon: const HmAvatar(label: '', icon: Icons.all_inbox_outlined, size: 36),
-                  label: tr('All', 'Все'),
-                  tooltip: tr('All chats', 'Все чаты'),
-                  count: m.unread,
-                  selected: m.filter.isEmpty,
-                  onTap: () => messenger.setFilter(''),
+              first: _RailButton(
+                icon: const HmAvatar(label: '', icon: Icons.all_inbox_outlined, size: 36),
+                label: tr('All', 'Все'),
+                tooltip: tr('All chats', 'Все чаты'),
+                count: m.unread,
+                selected: m.filter.isEmpty,
+                onTap: () => messenger.setFilter(''),
+              ),
+              item: (a) => _RailButton(
+                icon: MediaAvatar(
+                  account: a.id,
+                  photo: a.self.avatarUrl,
+                  label: a.name,
+                  icon: providerIcon(a.provider),
+                  color: providerColor(a.provider),
+                  size: 36,
+                  corner: a.self.avatarUrl.isEmpty ? null : providerMarker(a.provider),
                 ),
-                for (final a in m.accounts)
-                  _RailButton(
-                    icon: MediaAvatar(
-                      account: a.id,
-                      photo: a.self.avatarUrl,
-                      label: a.name,
-                      icon: providerIcon(a.provider),
-                      color: providerColor(a.provider),
-                      size: 36,
-                      corner: a.enabled ? HmDot(ok: isOnline(a), label: accountStatus(a).$1) : null,
-                    ),
-                    label: a.name.isEmpty ? a.login : a.name,
-                    tooltip: '${a.name.isEmpty ? a.login : a.name} · ${accountStatus(a).$1}',
-                    count: a.enabled ? a.unread : 0,
-                    selected: m.filter == a.id,
-                    onTap: () => messenger.setFilter(a.id),
-                  ),
-              ],
+                dot: a.enabled ? HmDot(ok: isOnline(a), label: accountStatus(a).$1) : null,
+                label: a.name.isEmpty ? a.login : a.name,
+                tooltip: '${a.name.isEmpty ? a.login : a.name} · ${accountStatus(a).$1}',
+                count: a.enabled ? a.unread : 0,
+                selected: m.filter == a.id,
+                onTap: () => messenger.setFilter(a.id),
+              ),
             ),
           ),
           Padding(
@@ -244,9 +291,20 @@ class _CompactRail extends StatelessWidget {
 }
 
 class _RailButton extends StatefulWidget {
-  const _RailButton({required this.icon, required this.label, required this.tooltip, required this.count, required this.selected, required this.onTap});
+  const _RailButton({
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.dot,
+  });
 
   final Widget icon;
+
+  /// Online or not, at the bottom left (the messenger's mark takes the right).
+  final Widget? dot;
   final String label;
   final String tooltip;
   final int count;
@@ -286,6 +344,7 @@ class _RailButtonState extends State<_RailButton> {
                   clipBehavior: Clip.none,
                   children: [
                     widget.icon,
+                    if (widget.dot != null) Positioned(left: -2, bottom: -2, child: widget.dot!),
                     if (widget.count > 0) Positioned(right: -10, top: -6, child: HmCount(widget.count)),
                   ],
                 ),
@@ -323,22 +382,20 @@ class _AccountStrip extends StatelessWidget {
         color: HmColors.surface,
         border: Border(bottom: BorderSide(color: HmColors.border)),
       ),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+      child: _ReorderableAccounts(
+        axis: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        children: [
-          HmChip(label: tr('All', 'Все'), active: m.filter.isEmpty, count: m.unread, onTap: () => messenger.setFilter('')),
-          for (final a in m.accounts) ...[
-            const SizedBox(width: 8),
-            HmChip(
-              label: a.name.isEmpty ? a.login : a.name,
-              leading: Icon(providerIcon(a.provider), size: 14, color: providerColor(a.provider)),
-              active: m.filter == a.id,
-              count: a.enabled ? a.unread : 0,
-              onTap: () => messenger.setFilter(a.id),
-            ),
-          ],
-        ],
+        first: HmChip(label: tr('All', 'Все'), active: m.filter.isEmpty, count: m.unread, onTap: () => messenger.setFilter('')),
+        item: (a) => Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: HmChip(
+            label: a.name.isEmpty ? a.login : a.name,
+            leading: Icon(providerIcon(a.provider), size: 14, color: providerColor(a.provider)),
+            active: m.filter == a.id,
+            count: a.enabled ? a.unread : 0,
+            onTap: () => messenger.setFilter(a.id),
+          ),
+        ),
       ),
     );
   }
@@ -386,7 +443,7 @@ class _ChatListState extends State<_ChatList> {
     final hm = Hm.of(context);
     final m = context.watch<MessengerCubit>().state;
     final q = _query.toLowerCase();
-    final chats = q.isEmpty ? m.shown : m.shown.where((c) => c.title.toLowerCase().contains(q)).toList();
+    final chats = q.isEmpty ? m.shown : m.shown.where((c) => chatTitle(c).toLowerCase().contains(q)).toList();
     // The provider marker tells accounts apart only when each provider has one.
     final perProvider = <String, int>{};
     for (final a in m.accounts) {
@@ -431,8 +488,16 @@ class _ChatListState extends State<_ChatList> {
                     ? tr('Nothing found', 'Ничего не найдено')
                     : m.unreadOnly
                     ? tr('No unread chats', 'Непрочитанных чатов нет')
+                    : m.view == archiveView
+                    ? tr('The archive is empty', 'Архив пуст')
+                    : m.folder != null
+                    ? tr('No chats in this folder', 'В этой папке нет чатов')
                     : tr('No chats yet', 'Чатов пока нет'),
-                icon: m.unreadOnly && q.isEmpty ? Icons.mark_chat_read_outlined : Icons.chat_bubble_outline,
+                icon: m.unreadOnly && q.isEmpty
+                    ? Icons.mark_chat_read_outlined
+                    : m.view == archiveView
+                    ? Icons.archive_outlined
+                    : Icons.chat_bubble_outline,
               ),
             ],
           )
@@ -496,6 +561,7 @@ class _ChatListState extends State<_ChatList> {
               ],
             ),
           ),
+          const _ViewStrip(),
           const Divider(),
           Expanded(child: list),
         ],
@@ -549,8 +615,12 @@ class _ChatTile extends StatelessWidget {
       leading: MediaAvatar(
         account: c.accountId,
         photo: c.avatarUrl,
-        label: c.title,
-        icon: c.kind == pb.ChatKind.CHAT_KIND_CHANNEL ? Icons.campaign_outlined : null,
+        label: chatTitle(c),
+        icon: c.saved
+            ? Icons.bookmark_outline
+            : c.kind == pb.ChatKind.CHAT_KIND_CHANNEL
+            ? Icons.campaign_outlined
+            : null,
         color: providerColor(provider),
         size: Hm.of(context).mobile ? 44 : 40,
         corner: showAccount ? providerMarker(provider, tooltip: account?.name) : null,
@@ -558,7 +628,7 @@ class _ChatTile extends StatelessWidget {
       ),
       title: Row(
         children: [
-          Flexible(child: Text(c.title, overflow: TextOverflow.ellipsis)),
+          Flexible(child: Text(chatTitle(c), overflow: TextOverflow.ellipsis)),
           if (c.muted) ...[const SizedBox(width: 4), const Icon(Icons.notifications_off_outlined, size: 12, color: HmColors.muted)],
           if (c.pinned) ...[const SizedBox(width: 4), const Icon(Icons.push_pin_outlined, size: 12, color: HmColors.muted)],
         ],
@@ -568,6 +638,58 @@ class _ChatTile extends StatelessWidget {
       trailing: HmCount(c.unread, muted: c.muted),
       selected: selected,
       onTap: onTap,
+      // Right click or long press: pin, mute, archive, leave.
+      onLongPress: () => showChatMenu(context, c, anchor: context),
+    );
+  }
+}
+
+/// All chats, the chat folders (Telegram) and the archive, over the list.
+/// Hidden while there are neither folders nor archived chats.
+class _ViewStrip extends StatelessWidget {
+  const _ViewStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    final m = context.watch<MessengerCubit>().state;
+    final messenger = context.read<MessengerCubit>();
+    final folders = m.shownFolders;
+    if (folders.isEmpty && m.archived.isEmpty && m.view != archiveView) return const SizedBox.shrink();
+    // Folders of several accounts are told apart by the account's name.
+    final owners = {for (final f in folders) f.accountId};
+    String label(pb.ChatFolder f) {
+      final name = f.emoji.isEmpty ? f.title : '${f.emoji} ${f.title}';
+      if (owners.length < 2) return name;
+      final a = m.account(f.accountId);
+      return '$name · ${a?.name.isNotEmpty == true ? a!.name : a?.login ?? ''}';
+    }
+
+    int unread(bool Function(pb.Chat) where) =>
+        m.chats.values.where((c) => (m.filter.isEmpty || c.accountId == m.filter) && !c.muted && c.unread > 0 && where(c)).length;
+    final current = m.view == archiveView || m.folder != null ? m.view : '';
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        children: [
+          HmChip(label: tr('All chats', 'Все чаты'), active: current.isEmpty, count: unread((c) => !c.archived), onTap: () => messenger.setView('')),
+          for (final f in folders) ...[
+            const SizedBox(width: 8),
+            HmChip(label: label(f), active: current == folderView(f), count: unread((c) => inFolder(f, c)), onTap: () => messenger.setView(folderView(f))),
+          ],
+          if (m.archived.isNotEmpty || current == archiveView) ...[
+            const SizedBox(width: 8),
+            HmChip(
+              label: tr('Archive', 'Архив'),
+              leading: const Icon(Icons.archive_outlined, size: 14, color: HmColors.muted),
+              active: current == archiveView,
+              count: unread((c) => c.archived),
+              onTap: () => messenger.setView(archiveView),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

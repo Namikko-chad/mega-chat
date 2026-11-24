@@ -233,68 +233,152 @@ Future<T?> pickOption<T>(
   T? value,
   String Function(T)? describe,
 }) {
-  final hm = Hm.of(context);
   final list = _OptionList<T>(options: options, value: value, describe: describe);
-  if (hm.mobile) {
-    return showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      barrierColor: _scrim,
-      backgroundColor: Colors.transparent,
-      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
-      builder: (_) => _Sheet(title: title, body: (_) => list, actions: null),
-    );
-  }
-  final box = context.findRenderObject() as RenderBox?;
-  final origin = box?.localToGlobal(Offset.zero) ?? Offset.zero;
-  final size = box?.size ?? Size.zero;
-  return showGeneralDialog<T>(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: title,
-    barrierColor: Colors.transparent,
-    transitionDuration: Duration.zero,
-    pageBuilder: (ctx, _, _) {
-      final screen = MediaQuery.sizeOf(ctx);
-      final below = screen.height - origin.dy - size.height - 8;
-      final up = below < 240 && origin.dy > below;
-      final width = size.width.clamp(180.0, 320.0);
-      return CallbackShortcuts(
-        bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(ctx)},
-        child: Stack(
-          children: [
-            Positioned(
-              left: origin.dx.clamp(8, screen.width - width - 8),
-              top: up ? null : origin.dy + size.height + 8,
-              bottom: up ? screen.height - origin.dy + 8 : null,
-              width: width,
-              child: Material(
-                type: MaterialType.transparency,
-                child: Container(
-                  constraints: BoxConstraints(maxHeight: screen.height * 0.6),
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: HmColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: HmColors.border),
-                    boxShadow: const [BoxShadow(color: Color(0x66000000), offset: Offset(0, 8), blurRadius: 24)],
-                  ),
-                  child: list,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    },
+  if (Hm.of(context).mobile) return _showOptionSheet<T>(context, title, list);
+  final overlay = _overlayBox(context);
+  final anchor = _rectIn(context.findRenderObject(), overlay);
+  return _showOptionPanel<T>(
+    context,
+    title: title,
+    list: list,
+    anchor: anchor,
+    gap: 8,
+    width: anchor.width.clamp(180.0, 320.0),
   );
 }
 
+/// One entry of a context menu ([showContextMenu]).
+typedef HmMenuItem<T> = ({T value, String label});
+
+/// A context menu: on desktops a panel at [position] (the pointer, global
+/// coordinates: a right click or a long press), or — opened without a
+/// pointer — next to [anchor]'s box (the item it is about; null: [context]'s
+/// box). It opens down and right of the point and flips or slides to stay
+/// inside the window. On phones it is a picker sheet (App. D). Returns the
+/// value of the picked item, null when dismissed.
+Future<T?> showContextMenu<T>(
+  BuildContext context, {
+  required String title,
+  required List<HmMenuItem<T>> items,
+  Offset? position,
+  BuildContext? anchor,
+}) {
+  if (items.isEmpty) return Future.value();
+  final list = _OptionList<T>(options: {for (final i in items) i.value: i.label}, value: null, searchable: false);
+  if (Hm.of(context).mobile) return _showOptionSheet<T>(context, title, list);
+  final overlay = _overlayBox(context);
+  final Rect at;
+  if (position != null) {
+    final p = overlay?.globalToLocal(position) ?? position;
+    at = Rect.fromLTWH(p.dx, p.dy, 0, 0);
+  } else {
+    at = _rectIn((anchor ?? context).findRenderObject(), overlay);
+  }
+  return _showOptionPanel<T>(context, title: title, list: list, anchor: at, gap: position != null ? 2 : 4, width: 280);
+}
+
+/// The box of the overlay the panels open in (the root navigator's, as
+/// [showGeneralDialog] uses it).
+RenderBox? _overlayBox(BuildContext context) =>
+    Navigator.of(context, rootNavigator: true).overlay?.context.findRenderObject() as RenderBox?;
+
+/// [object]'s bounds in [overlay]'s coordinates.
+Rect _rectIn(RenderObject? object, RenderBox? overlay) {
+  if (object is! RenderBox || !object.hasSize) return Rect.zero;
+  return MatrixUtils.transformRect(object.getTransformTo(overlay), Offset.zero & object.size);
+}
+
+Future<T?> _showOptionSheet<T>(BuildContext context, String title, Widget list) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  barrierColor: _scrim,
+  backgroundColor: Colors.transparent,
+  constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+  builder: (_) => _Sheet(title: title, body: (_) => list, actions: null),
+);
+
+/// The desktop option panel (§ 16) placed next to [anchor] (overlay
+/// coordinates) by [_PanelLayout].
+Future<T?> _showOptionPanel<T>(
+  BuildContext context, {
+  required String title,
+  required Widget list,
+  required Rect anchor,
+  required double gap,
+  required double width,
+}) => showGeneralDialog<T>(
+  context: context,
+  barrierDismissible: true,
+  barrierLabel: title,
+  barrierColor: Colors.transparent,
+  transitionDuration: Duration.zero,
+  pageBuilder: (ctx, _, _) {
+    final screen = MediaQuery.sizeOf(ctx);
+    return CallbackShortcuts(
+      bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(ctx)},
+      child: CustomSingleChildLayout(
+        delegate: _PanelLayout(anchor: anchor, gap: gap),
+        child: SizedBox(
+          width: width,
+          child: Material(
+            type: MaterialType.transparency,
+            child: Container(
+              constraints: BoxConstraints(maxHeight: screen.height * 0.6),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: HmColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: HmColors.border),
+                boxShadow: const [BoxShadow(color: Color(0x66000000), offset: Offset(0, 8), blurRadius: 24)],
+              ),
+              child: list,
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+);
+
+/// Places a panel by [anchor] (a point is an empty rect): below it from its
+/// left edge; above it when it does not fit below; right-aligned with it
+/// when it does not fit to the right; then kept [_margin] inside.
+class _PanelLayout extends SingleChildLayoutDelegate {
+  const _PanelLayout({required this.anchor, required this.gap});
+
+  final Rect anchor;
+  final double gap;
+
+  static const _margin = 8.0;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      BoxConstraints.loose(constraints.biggest).deflate(const EdgeInsets.all(_margin));
+
+  @override
+  Offset getPositionForChild(Size size, Size child) {
+    var x = anchor.left;
+    if (x + child.width > size.width - _margin) x = anchor.right - child.width;
+    var y = anchor.bottom + gap;
+    if (y + child.height > size.height - _margin && anchor.top - gap - child.height >= _margin) {
+      y = anchor.top - gap - child.height;
+    }
+    double clamp(double v, double max) => max < _margin ? _margin : v.clamp(_margin, max);
+    return Offset(clamp(x, size.width - child.width - _margin), clamp(y, size.height - child.height - _margin));
+  }
+
+  @override
+  bool shouldRelayout(_PanelLayout old) => old.anchor != anchor || old.gap != gap;
+}
+
 class _OptionList<T> extends StatefulWidget {
-  const _OptionList({required this.options, required this.value, this.describe});
+  const _OptionList({required this.options, required this.value, this.describe, this.searchable = true});
 
   final Map<T, String> options;
+
+  /// From 8 options on, a search field on top (not in context menus).
+  final bool searchable;
   final T? value;
   final String Function(T)? describe;
 
@@ -322,7 +406,7 @@ class _OptionListState<T> extends State<_OptionList<T>> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.options.length >= 8)
+        if (widget.searchable && widget.options.length >= 8)
           Padding(
             padding: const EdgeInsets.all(4),
             child: TextField(

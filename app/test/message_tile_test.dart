@@ -1,6 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:megachat/core/theme/app_theme.dart';
 import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
@@ -56,6 +57,32 @@ void main() {
     await tester.tap(find.text('Quote'));
     await tester.pumpAndSettle();
     expect(quoted, 'hello brave world');
+  });
+
+  testWidgets('the menu opens at the pointer and stays inside the window', (tester) async {
+    final own = msg()..outgoing = true;
+    await tester.pumpWidget(host(MessageTile(message: own, quoted: null, showSender: false, gap: false, onReply: () {}, onForward: () {}, onSelect: () {})));
+    // A right click on the own message (on the right side).
+    final at = tester.getCenter(find.text('hello brave world'));
+    final click = await tester.startGesture(at, kind: PointerDeviceKind.mouse, buttons: kSecondaryMouseButton);
+    await click.up();
+    await tester.pumpAndSettle();
+    final reply = tester.getRect(find.text('Reply'));
+    expect((reply.top - at.dy).abs(), lessThan(40), reason: 'opens next to the pointer, not at $reply');
+    expect(reply.left, greaterThan(800 / 2 - 300), reason: 'not at the left edge');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    // A long press near the bottom-right corner: it flips up and left.
+    await tester.binding.setSurfaceSize(const Size(800, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(host(MessageTile(message: own, quoted: null, showSender: false, gap: false, onReply: () {}, onForward: () {}, onSelect: () {})));
+    final corner = tester.getBottomRight(find.text('hello brave world'));
+    await tester.longPressAt(corner);
+    await tester.pumpAndSettle();
+    final select = tester.getRect(find.text('Select'));
+    expect(select.right, lessThanOrEqualTo(800));
+    expect(select.bottom, lessThanOrEqualTo(600));
+    expect(find.text('Reply'), findsOneWidget);
   });
 
   testWidgets('picking: a tap picks, the check shows', (tester) async {

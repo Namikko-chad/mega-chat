@@ -24,6 +24,7 @@ type fakeServer struct {
 	fetches int
 	sent    map[string]any
 	read    map[string]any
+	managed []string // "method buddy" of buddylist calls
 }
 
 func (f *fakeServer) wim(w http.ResponseWriter, code int, data any) {
@@ -102,13 +103,18 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}, "results": map[string]any{"msgId": 103, "state": "accepted"}})
 	case "/api/v150/rapi/contacts/get":
 		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}, "results": map[string]any{
-			"contacts": []any{map[string]any{"sn": "ann@corp.ru"}, map[string]any{"sn": "42@chat.agent"}},
-			"persons":  []any{map[string]any{"sn": "ann@corp.ru", "friendly": "Ann"}},
+			"contacts": []any{map[string]any{"sn": "ann@corp.ru"}, map[string]any{"sn": "42@chat.agent"}, map[string]any{"sn": "bob@corp.ru"}},
+			"persons":  []any{map[string]any{"sn": "ann@corp.ru", "friendly": "Ann"}, map[string]any{"sn": "bob@corp.ru", "friendly": "bob@corp.ru"}},
 		}})
 	case "/api/v132/rapi/getUserInfo", "/api/v150/rapi/getUserInfo":
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
-		if body["params"].(map[string]any)["sn"] != "me@corp.ru" {
+		switch body["params"].(map[string]any)["sn"] {
+		case "me@corp.ru":
+		case "bob@corp.ru": // VK WorkSpace: friendly is the login, the name is in first/lastName
+			json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}, "results": map[string]any{"firstName": "Bob", "lastName": "Builder", "friendly": "bob@corp.ru"}})
+			return
+		default:
 			json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 40400}})
 			return
 		}
@@ -125,12 +131,20 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		w.Write([]byte("\xff\xd8\xff\xe0JPEG"))
 	case "/api/v150/rapi/getChatInfo":
-		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}, "results": map[string]any{"sn": "42@chat.agent", "name": "Team"}})
+		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}, "results": map[string]any{"sn": "42@chat.agent", "name": "Team",
+			"about": "Our team", "membersCount": "2", "members": []any{map[string]any{"sn": "ann@corp.ru"}, map[string]any{"sn": "me@corp.ru"}}}})
 	case "/api/v132/rapi/setDlgState":
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
 		f.read = body["params"].(map[string]any)
 		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": 20000}})
+	case "/api/v132/wim/buddylist/mute", "/api/v132/wim/buddylist/hideChat", "/api/v132/wim/buddylist/removeBuddy":
+		if r.Form.Get("aimsid") != f.aimsid {
+			f.wim(w, 401, nil)
+			return
+		}
+		f.managed = append(f.managed, strings.TrimPrefix(r.URL.Path, "/api/v132/wim/buddylist/")+" "+r.Form.Get("buddy")+" "+r.Form.Get("timeout")+r.Form.Get("lastMsgId"))
+		f.wim(w, 200, nil)
 	default:
 		http.NotFound(w, r)
 	}
@@ -235,8 +249,28 @@ func TestPasswordLoginSessionAndRenew(t *testing.T) {
 
 	m := sess.(provider.Messenger)
 	chats, _ := m.Chats(ctx, 10)
-	if len(chats) != 1 || chats[0].Last == nil {
+	// Ann's chat and the saved chat with oneself, listed even when empty.
+	if len(chats) != 2 || chats[0].Last == nil || chats[1].ID != "me@corp.ru" || !chats[1].Saved {
 		t.Fatalf("chats: %+v", chats)
+	}
+	cm := sess.(provider.ChatManager)
+	if err := cm.ManageChat(ctx, "ann@corp.ru", model.ChatMute); err != nil {
+		t.Fatal(err)
+	}
+	if err := cm.ManageChat(ctx, "ann@corp.ru", model.ChatArchive); err != nil {
+		t.Fatal(err)
+	}
+	if err := cm.ManageChat(ctx, "ann@corp.ru", model.ChatLeave); !errors.Is(err, provider.ErrUnsupported) {
+		t.Fatalf("leave a direct chat: %v", err)
+	}
+	if chats, _ = m.Chats(ctx, 10); !chats[0].Muted || !chats[0].Archived {
+		t.Fatalf("after mute and archive: %+v", chats[0])
+	}
+	fs.mu.Lock()
+	managed := strings.Join(fs.managed, ";")
+	fs.mu.Unlock()
+	if managed != "mute ann@corp.ru 2147483647;hideChat ann@corp.ru 102" {
+		t.Fatalf("buddylist calls: %s", managed)
 	}
 	msgs, _, err := m.History(ctx, "ann@corp.ru", "102", 10)
 	if err != nil || len(msgs) != 2 || msgs[0].ID != "101" || !msgs[1].Outgoing {
@@ -375,7 +409,7 @@ func TestResumedSessionListsChats(t *testing.T) {
 	}
 	m := sess.(provider.Messenger)
 	chats, err := m.Chats(ctx, 10)
-	if err != nil || len(chats) != 2 {
+	if err != nil || len(chats) != 4 { // three and the saved chat
 		t.Fatalf("chats: %+v %v", chats, err)
 	}
 	titles := map[string]string{}
@@ -385,22 +419,25 @@ func TestResumedSessionListsChats(t *testing.T) {
 	if titles["ann@corp.ru"] != "Ann" {
 		t.Fatalf("titles: %v", titles)
 	}
-	// Group names come later, as chat updates.
+	// Group names and names of people the contacts gave none come later, as chat updates.
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		k.mu.Lock()
-		named := false
+		group, person := false, false
 		for _, ev := range k.events {
 			if ev.Kind == model.EvChat && ev.Chat.ID == "42@chat.agent" && ev.Chat.Title == "Team" && ev.Chat.Unread == -1 {
-				named = true
+				group = true
+			}
+			if ev.Kind == model.EvChat && ev.Chat.ID == "bob@corp.ru" && ev.Chat.Title == "Bob Builder" && ev.Chat.Unread == -1 {
+				person = true
 			}
 		}
 		k.mu.Unlock()
-		if named {
+		if group && person {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("no group name")
+			t.Fatalf("no group or person name: group %v, person %v", group, person)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -410,6 +447,13 @@ func TestResumedSessionListsChats(t *testing.T) {
 	q := fs.sent["params"].(map[string]any)["quoteParts"].([]any)[0].(map[string]any)
 	if q["msgId"] != float64(77) {
 		t.Fatalf("quote: %v", q)
+	}
+	pr := sess.(provider.Profiles)
+	if g, err := pr.Profile(ctx, "42@chat.agent"); err != nil || g.Title != "Team" || g.About != "Our team" || g.Members != 2 || len(g.MemberList) != 2 || g.MemberList[0].Name != "Ann" {
+		t.Fatalf("group profile: %+v %v", g, err)
+	}
+	if u, err := pr.Profile(ctx, "bob@corp.ru"); err != nil || u.Title != "Bob Builder" || u.Email != "bob@corp.ru" {
+		t.Fatalf("user profile: %+v %v", u, err)
 	}
 	cancel()
 	<-done
@@ -437,5 +481,221 @@ func TestFilesharingNumbersQuoted(t *testing.T) {
 	}
 	if f := m.Filesharing; f[0].Size != 12345 || f[0].Duration != 7 || f[1].Size != 678 || f[1].Duration != 0 || f[2].Size != 0 {
 		t.Fatalf("filesharing: %+v", f)
+	}
+}
+
+func TestMessageBody(t *testing.T) {
+	for raw, want := range map[string]string{
+		`{"msgId":1,"text":"plain"}`:                                                                 "plain",
+		`{"msgId":1,"parts":{"mainPart":{"text":{"plain":"main"}}}}`:                                 "main",
+		`{"msgId":1,"parts":[{"mediaType":"quote","text":"old"},{"mediaType":"text","text":"new"}]}`: "new",
+		`{"msgId":1,"parts":[{"mediaType":"forward","text":"old"}]}`:                                 "old",
+		`{"msgId":1}`: "",
+	} {
+		var m wMessage
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			t.Fatal(err)
+		}
+		if got := m.body(); got != want {
+			t.Errorf("%s: got %q, want %q", raw, got, want)
+		}
+	}
+	var m wMessage
+	if err := json.Unmarshal([]byte(`{"msgId":1,"secret":"value"}`), &m); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(m.shape, "value") || !strings.Contains(m.shape, "secret:string") {
+		t.Errorf("shape must list keys only: %s", m.shape)
+	}
+}
+
+func TestFileDownload(t *testing.T) {
+	var ts *httptest.Server
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/files/info/abc/":
+			if r.URL.Query().Get("aimsid") != "sid" {
+				t.Errorf("info without the session: %s", r.URL.RawQuery)
+			}
+			json.NewEncoder(w).Encode(map[string]any{"status": 200, "result": map[string]any{"info": map[string]any{"dlink": ts.URL + "/dl/abc"}}})
+		case "/dl/abc":
+			if r.URL.Query().Get("aimsid") != "" {
+				t.Errorf("the session went to the download link")
+			}
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Write([]byte("picture"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+	u, _ := url.Parse(ts.URL)
+	srv := &server{scheme: "http", host: u.Host, version: "v1", http: ts.Client()}
+	link, err := srv.fileLink(context.Background(), "sid", "abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, mime, err := srv.fileGet(context.Background(), link, 100)
+	if err != nil || string(data) != "picture" || mime != "image/jpeg" {
+		t.Fatalf("%q %q %v", data, mime, err)
+	}
+	if _, _, err := srv.fileGet(context.Background(), link, 3); !errors.Is(err, errTooLarge) {
+		t.Fatalf("limit: %v", err)
+	}
+	if _, _, err := srv.fileGet(context.Background(), "https://evil.example/x", 100); err == nil {
+		t.Fatal("a foreign host must be refused")
+	}
+	own := &server{host: "u.myteam.vmailru.net"}
+	for host, want := range map[string]bool{"files.vmailru.net": true, "u.myteam.vmailru.net": true, "vmailru.net.evil.io": false, "evilvmailru.net": false} {
+		if own.sameDomain(host) != want {
+			t.Errorf("sameDomain(%s) != %v", host, want)
+		}
+	}
+}
+
+func TestMessageForwardAndQuote(t *testing.T) {
+	names := func(id string) string {
+		if id == "oleg@x" {
+			return "Oleg"
+		}
+		return id
+	}
+	read := func(raw string) msgContent {
+		t.Helper()
+		var m wMessage
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			t.Fatal(err)
+		}
+		return m.content(names)
+	}
+	// The shape seen from the server.
+	c := read(`{"msgId":"5","mediaType":"forward","time":1,"parts":[{"chat":{"name":"Front","sn":"1@chat.agent"},"mediaType":"forward","msgId":"3","sn":"oleg@x","text":"hello","time":1}]}`)
+	if c.text != "hello" || !c.forwarded || c.from != "Oleg · Front" {
+		t.Fatalf("forward: %+v", c)
+	}
+	c = read(`{"msgId":"5","parts":[{"mediaType":"forward","sn":"oleg@x","text":"a"},{"mediaType":"forward","sn":"ann@x","chat":{"name":"Ann"},"text":"b"}]}`)
+	if c.text != "Oleg:\na\n\nAnn:\nb" || c.from != "" {
+		t.Fatalf("two authors: %+v", c)
+	}
+	c = read(`{"msgId":"5","parts":[{"mediaType":"quote","msgId":"3","sn":"oleg@x","text":"old"},{"mediaType":"text","text":"new"}]}`)
+	if c.text != "new" || c.replyTo != "3" || c.quote != "old" || c.forwarded {
+		t.Fatalf("quote: %+v", c)
+	}
+	c = read(`{"msgId":"5","parts":[{"mediaType":"text","text":"https://f/get/1"}],"filesharing":[{"id":"1","original_url":"https://f/get/1"}]}`)
+	if c.text != "" {
+		t.Fatalf("a file's own link is not its text: %+v", c)
+	}
+}
+
+func TestServiceText(t *testing.T) {
+	names := func(id string) string {
+		return map[string]string{"admin@x": "Administrator", "a@x": "Valeria", "b@x": "Yuri"}[id]
+	}
+	for raw, want := range map[string]string{
+		`{"msgId":"1","class":"event","chat":{"sender":"admin@x","memberEvent":{"type":"delMembers","members":["a@x"]}}}`:       "Administrator removed Valeria",
+		`{"msgId":"1","class":"event","chat":{"sender":"admin@x","memberEvent":{"type":"addMembers","members":["a@x","b@x"]}}}`: "Administrator added Valeria, Yuri",
+		`{"msgId":"1","class":"event","chat":{"sender":"a@x","memberEvent":{"type":"leave","members":["a@x"]}}}`:                "Valeria left the chat",
+		`{"msgId":"1","class":"event","chat":{"sender":"admin@x","modifiedInfo":{"name":"Front"}}}`:                             "Administrator changed the title to «Front»",
+		`{"msgId":"1","class":"event","chat":{"sender":"admin@x","modifiedInfo":{"about":"x"}}}`:                                "Administrator changed the description",
+		`{"msgId":"1","class":"event","chat":{"sender":"admin@x","memberEvent":{"type":"somethingNew"}}}`:                       "",
+	} {
+		var m wMessage
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			t.Fatal(err)
+		}
+		if !m.isService() {
+			t.Errorf("%s: not a service message", raw)
+		}
+		if got := m.serviceText(names); got != want {
+			t.Errorf("%s: got %q, want %q", raw, got, want)
+		}
+	}
+}
+
+func TestReactions(t *testing.T) {
+	var gone bool
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Params map[string]any `json:"params"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		one := map[string]any{"msgId": 7, "chatId": "c@chat.agent", "myReaction": "👍",
+			"reactions": []any{map[string]any{"reaction": "👍", "counter": 2}, map[string]any{"reaction": "👎", "counter": 0}}}
+		var results any
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/reaction/add"):
+			if body.Params["reaction"] != "🚀" && body.Params["reaction"] != "👍" {
+				t.Errorf("add: %v", body.Params)
+			}
+			if _, ok := body.Params["msgId"].(float64); !ok {
+				t.Errorf("msgId must be a number: %v", body.Params["msgId"])
+			}
+			results = one
+		case strings.HasSuffix(r.URL.Path, "/reaction/remove"):
+			gone, results = true, map[string]any{}
+		case strings.HasSuffix(r.URL.Path, "/reaction/get"):
+			if gone {
+				one["myReaction"] = ""
+				one["reactions"] = []any{map[string]any{"reaction": "👍", "counter": 1}}
+			}
+			results = map[string]any{"reactions": []any{one}}
+		}
+		json.NewEncoder(w).Encode(map[string]any{"status": map[string]any{"code": rapiOK}, "results": results})
+	}))
+	defer ts.Close()
+	u, _ := url.Parse(ts.URL)
+	s := &session{aimsid: "sid", online: true, srv: &server{scheme: "http", host: u.Host, version: "v1", http: ts.Client()}}
+	var _ provider.Reactor = s
+	ctx := context.Background()
+	got, err := s.React(ctx, "c@chat.agent", "7", "👍", true)
+	if err != nil || len(got) != 1 || got[0] != (model.Reaction{Emoji: "👍", Count: 2, Mine: true}) {
+		t.Fatalf("add: %+v %v", got, err)
+	}
+	got, err = s.React(ctx, "c@chat.agent", "7", "👍", false)
+	if err != nil || len(got) != 1 || got[0] != (model.Reaction{Emoji: "👍", Count: 1}) {
+		t.Fatalf("remove: %+v %v", got, err)
+	}
+}
+
+type threadSink struct {
+	provider.Sink
+	evs []model.Event
+}
+
+func (t *threadSink) Emit(e model.Event) { t.evs = append(t.evs, e) }
+
+func TestThreadIsNotAChat(t *testing.T) {
+	sess, err := New().Open(provider.Account{ID: "a", Login: "h/me@corp.ru"}, provider.Env{State: provider.NewMemKV()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := sess.(*session)
+	s.dialogs["7@chat.agent"] = &dialog{SN: "7@chat.agent"}
+	s.dialogs["1@chat.agent"] = &dialog{SN: "1@chat.agent", Title: "Group"}
+	sink := &threadSink{}
+	s.handle(sink, rawEvent{Type: "histDlgState", EventData: json.RawMessage(`{"sn":"7@chat.agent","parentTopic":{"type":"message","chatId":"1@chat.agent","messageId":42},
+		"messages":[{"msgId":"50","time":1700000000,"text":"**reply**","chat":{"sender":"bob@corp.ru"}}]}`)})
+	if len(sink.evs) != 2 || sink.evs[0].Kind != model.EvChatRemoved || sink.evs[0].Chat.ID != "7@chat.agent" {
+		t.Fatalf("events: %+v", sink.evs)
+	}
+	r := sink.evs[1]
+	if r.Kind != model.EvThreadMessage || r.Message.ChatID != "1@chat.agent" || r.Message.InThread != "42" || r.Message.Text != "reply" {
+		t.Fatalf("reply: %+v", r.Message)
+	}
+	chats, err := s.Chats(context.Background(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range chats {
+		if c.ID == "7@chat.agent" {
+			t.Fatal("the thread is in the chat list")
+		}
+	}
+	root := s.convert("1@chat.agent", wMessage{MsgID: "42", Text: "root", Thread: &wThread{ThreadID: "7@chat.agent"}})
+	if root.Thread == nil || root.Thread.ID != "42" || s.threadOf[msgKey("1@chat.agent", "42")] != "7@chat.agent" {
+		t.Fatalf("root: %+v", root.Thread)
+	}
+	if got := s.homeOf("1@chat.agent", "50"); got != "7@chat.agent" {
+		t.Fatalf("reply lives in %q", got)
 	}
 }

@@ -121,19 +121,34 @@ class _WizardState extends State<_Wizard> {
     }
   }
 
-  void _apply(pb.LoginStepReply r) {
+  /// [poll]: the answer to a poll (no values sent), not to the user.
+  void _apply(pb.LoginStepReply r, {bool poll = false}) {
     final retry = r.error.isNotEmpty;
-    final old = Map.of(_fields);
-    _fields.clear();
-    for (final f in r.fields) {
-      // A rejected answer keeps what was typed, except secrets.
-      final keep = retry && !f.secret ? old[f.key]?.text : null;
-      _fields[f.key] = TextEditingController(text: keep ?? f.defaultValue);
+    // A poll answer while the user types (the same step again) keeps the
+    // fields as they are: new controllers would drop the focus and the text.
+    final prev = _step;
+    final same = !retry &&
+        !r.done &&
+        prev != null &&
+        !prev.done &&
+        prev.title == r.title &&
+        prev.fields.map((f) => f.key).join('\n') == r.fields.map((f) => f.key).join('\n');
+    if (!same) {
+      final old = Map.of(_fields);
+      _fields.clear();
+      for (final f in r.fields) {
+        // A rejected answer keeps what was typed, except secrets.
+        final keep = retry && !f.secret ? old[f.key]?.text : null;
+        _fields[f.key] = TextEditingController(text: keep ?? f.defaultValue);
+      }
+      for (final c in old.values) {
+        c.dispose();
+      }
+      _fieldErrors.clear();
     }
-    for (final c in old.values) {
-      c.dispose();
-    }
-    _fieldErrors.clear();
+    // A poll repeats the step without the error the user's last answer got;
+    // keep showing it until the user answers again.
+    if (same && poll && prev.error.isNotEmpty) r = r.deepCopy()..error = prev.error;
     setState(() {
       _step = r;
       if (r.loginId.isNotEmpty) _loginId = r.loginId;
@@ -159,14 +174,15 @@ class _WizardState extends State<_Wizard> {
         // The core holds each call until something changes, so a short
         // pause between calls is enough.
         await Future<void>.delayed(const Duration(milliseconds: 300));
-        if (!mounted || _busy) continue;
+        if (!mounted || _done) return; // finished during the pause: the login is gone
+        if (_busy) continue;
         final gen = _gen;
         try {
           final r = await _api.loginStep(pb.LoginStepRequest(loginId: _loginId));
           if (!mounted || _done) return;
-          if (gen == _gen || r.done) _apply(r);
+          if (gen == _gen || r.done) _apply(r, poll: true);
         } catch (e) {
-          if (mounted && gen == _gen) setState(() => _error = errorText(e));
+          if (mounted && !_done && gen == _gen) setState(() => _error = errorText(e));
         }
       }
     } finally {
@@ -176,7 +192,7 @@ class _WizardState extends State<_Wizard> {
 
   void _submit() {
     final step = _step;
-    if (step == null) return;
+    if (step == null || _busy) return; // Enter while the answer is on its way
     _fieldErrors.clear();
     for (final f in step.fields) {
       if (!f.optional && _fields[f.key]!.text.trim().isEmpty) _fieldErrors[f.key] = tr('Required', 'Обязательное поле');

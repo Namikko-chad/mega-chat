@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -242,6 +243,27 @@ func (s *sinkRec) kinds() []model.EventKind {
 	return out
 }
 
+// An account whose calendar discovery failed at sign-in was saved without a
+// CalDAV address: a standard one still gets Mail.ru's, own servers do not.
+func TestOpenRestoresDefaultCalendar(t *testing.T) {
+	cfg := config{Email: "a@mail.ru", Password: "p", IMAP: defaultIMAP, SMTP: defaultSMTP}
+	p := New()
+	sess, err := p.Open(provider.Account{Params: cfg.params(methodPassword)}, provider.Env{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cs, ok := sess.(calSession); !ok || cs.cfg.CalDAV != defaultCalDAV {
+		t.Fatalf("standard account without CalDAV: %#v", sess)
+	}
+	sess, err = p.Open(provider.Account{Params: cfg.params(methodServer)}, provider.Env{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := sess.(provider.Calendars); ok {
+		t.Fatal("own servers without CalDAV must have no calendar")
+	}
+}
+
 func TestMail(t *testing.T) {
 	imapAddr, _ := imapServer(t)
 	sm := &smtpServer{}
@@ -337,6 +359,17 @@ func TestMail(t *testing.T) {
 	}
 	if tr, _, _ := s.Mail(ctx, "Корзина", time.Time{}, 10); len(tr) != 1 {
 		t.Fatalf("trash: %d", len(tr))
+	}
+	// Moving back to the inbox.
+	tr, _, _ := s.Mail(ctx, "Корзина", time.Time{}, 10)
+	if err := s.MoveMail(ctx, []string{tr[0].ID}, tr[0].FolderID, "INBOX"); err != nil {
+		t.Fatal(err)
+	}
+	if after, _, _ := s.Mail(ctx, "Корзина", time.Time{}, 10); len(after) != 0 {
+		t.Fatalf("still in the trash: %d", len(after))
+	}
+	if in, _, _ := s.Mail(ctx, "INBOX", time.Time{}, 10); len(in) != len(ms) {
+		t.Fatalf("inbox: %d, want %d", len(in), len(ms))
 	}
 
 	// New mail arrives: the poll reports it.
@@ -442,5 +475,27 @@ func TestCalDAV(t *testing.T) {
 	be.mu.Unlock()
 	if n != 2 {
 		t.Fatalf("objects left: %d", n)
+	}
+}
+
+// Mail.ru has /principals/ but answers /principals with 404.
+func TestCalDAVKeepsBaseSlash(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/principals/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusMultiStatus)
+		io.WriteString(w, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/principals/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/principals/example.com/me/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>`)
+	}))
+	defer ts.Close()
+	c, err := davClient(ts.Client(), config{Email: "me@example.com", Password: "p"}, ts.URL+"/principals/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := c.FindCurrentUserPrincipal(context.Background())
+	if err != nil || got != "/principals/example.com/me/" {
+		t.Fatalf("%q %v", got, err)
 	}
 }

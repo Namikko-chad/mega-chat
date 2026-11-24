@@ -367,6 +367,35 @@ func (s *session) UpdateMail(ctx context.Context, ids []string, action model.Mai
 	return s.c.do(ctx, http.MethodPost, gmail+"messages/batchModify", body, nil)
 }
 
+// MoveMail moves messages between labels: the target's label goes on, the
+// listed folder's comes off. All mail is no label (moving there archives);
+// Sent, Drafts and Starred are not places a message leaves by moving.
+func (s *session) MoveMail(ctx context.Context, ids []string, from, to string) error {
+	if to == "TRASH" {
+		return s.UpdateMail(ctx, ids, model.MailTrash)
+	}
+	if from == "TRASH" {
+		if err := parallel(len(ids), func(i int) error {
+			return s.c.do(ctx, http.MethodPost, gmail+"messages/"+url.PathEscape(ids[i])+"/untrash", nil, nil)
+		}); err != nil {
+			return err
+		}
+	}
+	body := map[string]any{"ids": ids}
+	if to != archiveID {
+		body["addLabelIds"] = []string{to}
+	}
+	switch from {
+	case "", archiveID, "TRASH", "SENT", "DRAFT", "STARRED", "IMPORTANT":
+	default:
+		body["removeLabelIds"] = []string{from}
+	}
+	if body["addLabelIds"] == nil && body["removeLabelIds"] == nil {
+		return nil
+	}
+	return s.c.do(ctx, http.MethodPost, gmail+"messages/batchModify", body, nil)
+}
+
 // resetHistory starts watching for changes from now.
 func (s *session) resetHistory(ctx context.Context) error {
 	var p struct {

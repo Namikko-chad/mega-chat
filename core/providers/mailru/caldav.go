@@ -31,7 +31,27 @@ type calClient struct {
 }
 
 func davClient(hc *http.Client, cfg config, base string) (*caldav.Client, error) {
-	return caldav.NewClient(webdav.HTTPClientWithBasicAuth(hc, cfg.Email, cfg.Password), base)
+	u, err := url.Parse(base)
+	if err != nil {
+		return nil, err
+	}
+	return caldav.NewClient(keepSlash{webdav.HTTPClientWithBasicAuth(hc, cfg.Email, cfg.Password), u.Path}, base)
+}
+
+// keepSlash puts back the trailing slash of the base path: go-webdav drops
+// it when it asks the base itself, and Mail.ru answers /principals with 404
+// (only /principals/ exists).
+type keepSlash struct {
+	webdav.HTTPClient
+	base string
+}
+
+func (k keepSlash) Do(req *http.Request) (*http.Response, error) {
+	if len(k.base) > 1 && strings.HasSuffix(k.base, "/") && req.URL.Path == strings.TrimSuffix(k.base, "/") {
+		req = req.Clone(req.Context())
+		req.URL.Path, req.URL.RawPath = k.base, ""
+	}
+	return k.HTTPClient.Do(req)
 }
 
 // discoverCalendars finds the account's calendar home set: the principal

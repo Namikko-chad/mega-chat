@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -272,6 +273,21 @@ func TestGmail(t *testing.T) {
 	f.mu.Lock()
 	if len(f.modified) != 1 || f.modified[0]["removeLabelIds"].([]any)[0] != "UNREAD" {
 		t.Fatalf("modify %+v", f.modified)
+	}
+	f.modified = nil
+	f.mu.Unlock()
+	// Moving: the target label on, the listed folder's off; to All mail
+	// only off; out of Starred only on.
+	for _, mv := range [][2]string{{"INBOX", "Label_1"}, {"INBOX", archiveID}, {"STARRED", "SPAM"}} {
+		if err := s.MoveMail(ctx, []string{"a"}, mv[0], mv[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.mu.Lock()
+	if len(f.modified) != 3 || fmt.Sprint(f.modified[0]["addLabelIds"], f.modified[0]["removeLabelIds"]) != "[Label_1] [INBOX]" ||
+		f.modified[1]["addLabelIds"] != nil || fmt.Sprint(f.modified[1]["removeLabelIds"]) != "[INBOX]" ||
+		fmt.Sprint(f.modified[2]["addLabelIds"]) != "[SPAM]" || f.modified[2]["removeLabelIds"] != nil {
+		t.Fatalf("move %+v", f.modified)
 	}
 	if len(f.sent) != 1 || !strings.Contains(f.sent[0], "In-Reply-To: <a@x>") || !strings.Contains(f.sent[0], "thread=ta") || !strings.Contains(f.sent[0], "Bcc: bcc@x") {
 		t.Fatalf("sent %q", f.sent)

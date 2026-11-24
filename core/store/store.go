@@ -402,11 +402,20 @@ func (s *Store) PutMessage(m model.Message) (prev *model.Message, err error) {
 		r := &record{Msg: m}
 		if old != nil {
 			prev = &old.Msg
+			if Blank(m) {
+				return nil // never replaces what is stored
+			}
 			r.Linked, r.First = old.Linked, old.First
 		}
 		return t.write(r)
 	})
 	return prev, err
+}
+
+// Blank tells that m carries no content at all: a provider that failed to
+// read a message, not a real change (deletions come as Deleted).
+func Blank(m model.Message) bool {
+	return m.Text == "" && len(m.Attachments) == 0 && !m.Deleted && !m.Service
 }
 
 // UpdateMessage applies fn to a stored message; ok is false if it is not
@@ -580,6 +589,9 @@ func (s *Store) PutHistory(acct, chat, beforeID string, msgs []model.Message, mo
 				return err
 			} else if old != nil {
 				r.Linked, r.First = old.Linked, old.First
+				if Blank(m) {
+					r.Msg.Text, r.Msg.Format, r.Msg.Attachments = old.Msg.Text, old.Msg.Format, old.Msg.Attachments
+				}
 			}
 			if i < len(msgs)-1 {
 				r.Linked = true

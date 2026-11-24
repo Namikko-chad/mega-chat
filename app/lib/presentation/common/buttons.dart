@@ -120,12 +120,15 @@ class _HmButtonState extends State<HmButton> {
 /// Square icon button for toolbars (§ 9.3): 30 px, 44 px on phones (M7).
 /// [label] is both the tooltip and the screen reader name.
 class HmIconButton extends StatefulWidget {
-  const HmIconButton({super.key, required this.icon, required this.label, this.onPressed, this.color});
+  const HmIconButton({super.key, required this.icon, required this.label, this.onPressed, this.color, this.dense = false});
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
   final Color? color;
+
+  /// Smaller and without a border until hovered: inside a row or a chip.
+  final bool dense;
 
   @override
   State<HmIconButton> createState() => _HmIconButtonState();
@@ -137,7 +140,7 @@ class _HmIconButtonState extends State<HmIconButton> {
   @override
   Widget build(BuildContext context) {
     final hm = Hm.of(context);
-    final size = hm.toolbar;
+    final size = widget.dense ? (hm.mobile ? 32.0 : 22.0) : hm.toolbar;
     final btn = MouseRegion(
       cursor: widget.onPressed == null ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hot = true),
@@ -153,7 +156,7 @@ class _HmIconButtonState extends State<HmIconButton> {
             decoration: BoxDecoration(
               color: _hot ? HmColors.tint(HmColors.accent, 0.08) : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: _hot ? HmColors.tint(HmColors.accent, HmColors.ring) : HmColors.border),
+              border: Border.all(color: _hot ? HmColors.tint(HmColors.accent, HmColors.ring) : (widget.dense ? Colors.transparent : HmColors.border)),
             ),
             child: Icon(widget.icon, size: hm.mobile ? 16 : 14, color: widget.color ?? HmColors.muted),
           ),

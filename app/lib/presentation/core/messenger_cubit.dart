@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/i18n.dart';
 import '../../core/settings/app_settings.dart';
 import '../../data/media_store.dart';
 import '../../data/rpc/core_client.dart';
@@ -23,6 +24,22 @@ typedef ThreadKey = ({String account, String chat, String thread});
 /// Channels and groups, or direct messages: the sections of the list.
 bool isDirect(pb.Chat c) => c.kind == pb.ChatKind.CHAT_KIND_DIRECT;
 
+/// The name a chat is shown with: the saved chat has the app's own.
+String chatTitle(pb.Chat c) => c.saved ? tr('Saved Messages', 'Избранное') : c.title;
+
+/// The chat-list view of the archive ([MessengerState.view]).
+const archiveView = 'archive';
+
+/// The chat-list view of a chat folder ([MessengerState.view]).
+String folderView(pb.ChatFolder f) => 'folder:${f.accountId}/${f.id}';
+
+/// Whether [c] is in the chat folder [f] (rules in the proto's ChatFolder).
+bool inFolder(pb.ChatFolder f, pb.Chat c) {
+  if (c.accountId != f.accountId) return false;
+  if (f.always.contains(c.id)) return true;
+  return c.folders.contains(f.id) && !(f.excludeMuted && c.muted) && !(f.excludeRead && c.unread == 0) && !(f.excludeArchived && c.archived);
+}
+
 class MessengerState extends Equatable {
   MessengerState({
     this.loading = false,
@@ -32,6 +49,8 @@ class MessengerState extends Equatable {
     this.providers = const [],
     this.typing = const {},
     this.filter = '',
+    this.view = '',
+    this.folders = const [],
     this.unreadOnly = false,
     this.open,
     this.thread,
@@ -51,6 +70,14 @@ class MessengerState extends Equatable {
   /// The account the chat list shows; empty: all of them.
   final String filter;
 
+  /// What part of the chat list is shown: empty: the chats outside the
+  /// archive, [archiveView], or a chat folder ([folderView]).
+  final String view;
+
+  /// The accounts' chat folders (CAPABILITY_CHAT_FOLDERS), each account's
+  /// in its order.
+  final List<pb.ChatFolder> folders;
+
   /// Only chats with unread messages are listed (and the open one).
   final bool unreadOnly;
 
@@ -69,9 +96,32 @@ class MessengerState extends Equatable {
   /// Newest activity first.
   late final List<pb.Chat> sorted = chats.values.toList()..sort((a, b) => b.updatedMs.compareTo(a.updatedMs));
 
-  late final List<pb.Chat> shown = sorted
-      .where((c) => (filter.isEmpty || c.accountId == filter) && (!unreadOnly || c.unread > 0 || chatKey(c) == open))
-      .toList();
+  /// The chat folder shown ([view]), when it still exists.
+  late final pb.ChatFolder? folder = folders.where((f) => folderView(f) == view).firstOrNull;
+
+  /// The folders the list offers: those of the shown account (all of them
+  /// when every account is shown).
+  late final List<pb.ChatFolder> shownFolders = folders.where((f) => filter.isEmpty || f.accountId == filter).toList();
+
+  /// Chats of the shown accounts in the archive.
+  late final List<pb.Chat> archived = sorted.where((c) => c.archived && (filter.isEmpty || c.accountId == filter)).toList();
+
+  /// The chat list as shown: pinned chats first (a folder's own pins
+  /// first of all, in its order), then by activity.
+  late final List<pb.Chat> shown = () {
+    final f = folder;
+    final list = sorted.where((c) {
+      if (filter.isNotEmpty && c.accountId != filter) return false;
+      if (unreadOnly && c.unread == 0 && chatKey(c) != open) return false;
+      if (view == archiveView) return c.archived;
+      if (f != null) return inFolder(f, c);
+      return !c.archived || chatKey(c) == open;
+    }).toList();
+    final pins = f == null ? const <String>[] : f.pinned;
+    final first = [for (final id in pins) ...list.where((c) => c.id == id)];
+    final rest = list.where((c) => !first.contains(c));
+    return [...first, ...rest.where((c) => c.pinned && view != archiveView), ...rest.where((c) => !c.pinned || view == archiveView)];
+  }();
 
   int get unread => accounts.fold(0, (n, a) => n + (a.enabled ? a.unread : 0));
 
@@ -87,6 +137,8 @@ class MessengerState extends Equatable {
     List<pb.ProviderInfo>? providers,
     Map<ChatKey, String>? typing,
     String? filter,
+    String? view,
+    List<pb.ChatFolder>? folders,
     bool? unreadOnly,
     ChatKey? open,
     ThreadKey? thread,
@@ -102,6 +154,8 @@ class MessengerState extends Equatable {
     providers: providers ?? this.providers,
     typing: typing ?? this.typing,
     filter: filter ?? this.filter,
+    view: view ?? this.view,
+    folders: folders ?? this.folders,
     unreadOnly: unreadOnly ?? this.unreadOnly,
     open: close ? null : open ?? this.open,
     // A thread belongs to its chat: another chat closes it.
@@ -168,6 +222,30 @@ class MessengerCubit extends Cubit<MessengerState> {
     } catch (e) {
       if (!isClosed) emit(state.copyWith(loading: false, error: errorText(e)));
     }
+    await _loadFolders();
+  }
+
+  /// Chat folders; an account that fails keeps none (they come again with
+  /// its KIND_CHAT_FOLDERS).
+  Future<void> _loadFolders() async {
+    try {
+      final r = await api.chatFolders(pb.AccountsRequest());
+      if (!isClosed) emit(state.copyWith(folders: r.folders));
+    } catch (_) {}
+  }
+
+  /// Shows all chats, the archive or a folder ([MessengerState.view]).
+  void setView(String view) => emit(state.copyWith(view: view));
+
+  /// Mutes, pins, archives or leaves a chat (Account.chat_actions).
+  Future<void> manageChat(ChatKey key, pb.ChatAction action) async {
+    final c = await api.manageChat(pb.ManageChatRequest(accountId: key.account, chatId: key.chat, action: action));
+    if (isClosed) return;
+    if (action == pb.ChatAction.CHAT_ACTION_LEAVE) {
+      emit(state.copyWith(chats: Map.of(state.chats)..remove(key), close: state.open == key));
+    } else if (c.id.isNotEmpty && state.chats.containsKey(key)) {
+      emit(state.copyWith(chats: {...state.chats, key: c}));
+    }
   }
 
   Future<void> _loadChats() async {
@@ -184,7 +262,11 @@ class MessengerCubit extends Cubit<MessengerState> {
     await _loadChats();
   }
 
-  void setFilter(String accountId) => emit(state.copyWith(filter: accountId));
+  /// Shows one account (empty: all); a folder of another account closes.
+  void setFilter(String accountId) {
+    final f = state.folder;
+    emit(state.copyWith(filter: accountId, view: f != null && accountId.isNotEmpty && f.accountId != accountId ? '' : null));
+  }
 
   void setUnreadOnly(bool v) {
     emit(state.copyWith(unreadOnly: v));
@@ -216,6 +298,7 @@ class MessengerCubit extends Cubit<MessengerState> {
       state.copyWith(
         accounts: state.accounts.where((a) => a.id != id).toList(),
         chats: Map.of(state.chats)..removeWhere((k, _) => k.account == id),
+        folders: state.folders.where((f) => f.accountId != id).toList(),
         filter: state.filter == id ? '' : null,
         close: state.open?.account == id,
       ),
@@ -231,6 +314,23 @@ class MessengerCubit extends Cubit<MessengerState> {
     _removeAccount(id);
   }
 
+  /// Moves an account (indexes as in onReorder: [to] counts the moved one).
+  /// Shown at once; a failed save brings the previous order back.
+  Future<void> moveAccount(int from, int to) async {
+    if (to > from) to--;
+    if (to == from) return;
+    final before = state.accounts;
+    final list = [...before];
+    list.insert(to, list.removeAt(from));
+    emit(state.copyWith(accounts: list));
+    try {
+      await api.reorderAccounts(pb.ReorderAccountsRequest(ids: list.map((a) => a.id)));
+    } catch (_) {
+      if (!isClosed && identical(state.accounts, list)) emit(state.copyWith(accounts: before));
+      rethrow;
+    }
+  }
+
   void _onEvent(pb.Event ev) {
     if (!_core.state.unlocked) return;
     switch (ev.kind) {
@@ -243,6 +343,8 @@ class MessengerCubit extends Cubit<MessengerState> {
         }
       case pb.Event_Kind.KIND_CHAT:
         emit(state.copyWith(chats: {...state.chats, chatKey(ev.chat): ev.chat}));
+      case pb.Event_Kind.KIND_CHAT_FOLDERS:
+        unawaited(_loadFolders());
       case pb.Event_Kind.KIND_CHAT_REMOVED:
         final key = chatKey(ev.chat);
         emit(state.copyWith(chats: Map.of(state.chats)..remove(key), close: state.open == key));

@@ -12,6 +12,7 @@ import (
 
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/richtext"
 )
 
 // --- threads -------------------------------------------------------------
@@ -196,4 +197,38 @@ func (s *session) Media(ctx context.Context, ref string, limit int64) ([]byte, s
 		return nil, "", provider.ErrTooLarge
 	}
 	return data, mime, nil
+}
+
+// Delete deletes the account's messages for everyone (chat.delete); Slack
+// has no "only for me". The delete comes back over RTM too.
+func (s *session) Delete(ctx context.Context, chatID string, msgIDs []string, forAll bool) error {
+	if !forAll {
+		return provider.ErrUnsupported
+	}
+	for _, id := range msgIDs {
+		if err := s.call(ctx, "chat.delete", url.Values{"channel": {chatID}, "ts": {id}}, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DeletesForMe: Slack deletes for everyone only.
+func (s *session) DeletesForMe() bool { return false }
+
+// Edit changes the text of one of the account's messages (chat.update).
+// The full message comes back over RTM as message_changed.
+func (s *session) Edit(ctx context.Context, chatID, msgID, text string) (model.Message, error) {
+	var r struct {
+		TS string `json:"ts"`
+	}
+	head, err := s.quoteHead(ctx, chatID, msgID)
+	if err != nil {
+		return model.Message{}, err
+	}
+	d := richtext.Parse(text, richtext.Markdown)
+	if err := s.call(ctx, "chat.update", url.Values{"channel": {chatID}, "ts": {msgID}, "text": {head + richtext.ToSlack(d, nil)}}, &r); err != nil {
+		return model.Message{}, err
+	}
+	return model.Message{ChatID: chatID, ID: msgID, Text: d.Text, Format: d.Spans, Edited: time.Now(), Outgoing: true}, nil
 }

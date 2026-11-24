@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/format.dart';
@@ -301,7 +302,17 @@ class _MailListState extends State<_MailList> {
           }
           final x = s.mails[i];
           final a = m.account(x.accountId);
-          return _MailTile(mail: x, account: unified ? a : null, selected: !hm.mobile && s.open == mailKey(x), onTap: () => openMail(context, mailKey(x)));
+          final k = mailKey(x);
+          final selecting = s.selected.isNotEmpty;
+          return _MailTile(
+            mail: x,
+            account: unified ? a : null,
+            selected: !hm.mobile && s.open == k,
+            selecting: selecting,
+            checked: s.selected.contains(k),
+            onCheck: () => mail.toggleSelected(k),
+            onTap: selecting ? () => mail.toggleSelected(k) : () => openMail(context, k),
+          );
         },
       );
     }
@@ -316,7 +327,9 @@ class _MailListState extends State<_MailList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!hm.mobile)
+          if (s.selected.isNotEmpty)
+            const _MailSelectionBar()
+          else if (!hm.mobile)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
               child: Row(
@@ -347,12 +360,27 @@ class _MailListState extends State<_MailList> {
 }
 
 class _MailTile extends StatelessWidget {
-  const _MailTile({required this.mail, required this.account, required this.selected, required this.onTap});
+  const _MailTile({
+    required this.mail,
+    required this.account,
+    required this.selected,
+    required this.onTap,
+    required this.onCheck,
+    this.selecting = false,
+    this.checked = false,
+  });
 
   final pb.Mail mail;
   final pb.Account? account; // set in merged views: the account's marker shows
   final bool selected;
   final VoidCallback onTap;
+
+  /// Ticks or unticks it: a tap on the avatar, a long press, a right click.
+  final VoidCallback onCheck;
+
+  /// Messages are being ticked: a check box instead of the avatar.
+  final bool selecting;
+  final bool checked;
 
   @override
   Widget build(BuildContext context) {
@@ -361,13 +389,33 @@ class _MailTile extends StatelessWidget {
     final who = sent ? '${tr('To', 'Кому')}: ${x.to.map(addressName).join(', ')}' : addressName(x.from);
     final strong = x.unread ? HmText.bodyStrong : HmText.body;
     final provider = account?.provider ?? '';
+    final size = Hm.of(context).mobile ? 40.0 : 36.0;
+    final avatar = selecting
+        ? SizedBox.square(
+            dimension: size,
+            child: Icon(
+              checked ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 24,
+              color: checked ? HmColors.accent : HmColors.muted,
+              semanticLabel: checked ? tr('Selected', 'Выбрано') : tr('Not selected', 'Не выбрано'),
+            ),
+          )
+        : HmAvatar(
+            label: who,
+            color: account == null ? HmColors.accent : providerColor(provider),
+            size: size,
+            corner: account == null ? null : providerMarker(provider, tooltip: accountName(account)),
+          );
     return HmListItem(
-      leading: HmAvatar(
-        label: who,
-        color: account == null ? HmColors.accent : providerColor(provider),
-        size: Hm.of(context).mobile ? 40 : 36,
-        corner: account == null ? null : providerMarker(provider, tooltip: accountName(account)),
+      leading: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onCheck,
+          child: Tooltip(message: tr('Select', 'Выбрать'), waitDuration: const Duration(milliseconds: 600), child: avatar),
+        ),
       ),
+      onLongPress: onCheck,
       title: Text(
         who,
         overflow: TextOverflow.ellipsis,
@@ -394,8 +442,130 @@ class _MailTile extends StatelessWidget {
           if (x.starred) const Icon(Icons.star, size: 14, color: HmColors.warning),
         ],
       ),
-      selected: selected,
+      selected: selected || checked,
       onTap: onTap,
+    );
+  }
+}
+
+/// Instead of the list's header while messages are ticked: how many, tick
+/// all, and what to do with them (Escape drops the ticks).
+class _MailSelectionBar extends StatelessWidget {
+  const _MailSelectionBar();
+
+  Future<void> _run(Future<void> Function() action, String done) async {
+    try {
+      await action();
+      Toasts.success(done);
+    } catch (e) {
+      Toasts.error(tr('Not everything was changed', 'Изменилось не всё'), errorText(e));
+    }
+  }
+
+  Future<void> _act(MailCubit cubit, pb.MailAction a, String done) {
+    final keys = cubit.state.selected;
+    if (a == pb.MailAction.MAIL_ACTION_TRASH) cubit.clearSelected();
+    return _run(() => cubit.actMany(keys, a), done);
+  }
+
+  /// Picks where to: a folder of the account when all are of one, else a
+  /// role every account has its own folder of.
+  Future<void> _move(BuildContext context, MailCubit cubit) async {
+    final s = cubit.state;
+    final mails = s.selectedMails;
+    final accounts = {for (final m in mails) m.accountId};
+    final from = {for (final m in mails) m.folderId};
+    const nowhere = {pb.FolderRole.FOLDER_ROLE_SENT, pb.FolderRole.FOLDER_ROLE_DRAFTS};
+    final Map<String, String> options;
+    if (accounts.length == 1) {
+      options = {
+        for (final f in s.foldersOf(accounts.first))
+          if (!nowhere.contains(f.role) && !(from.length == 1 && from.first == f.id)) 'f:${f.id}': folderName(f),
+      };
+    } else {
+      options = {
+        for (final r in unifiedRoles)
+          if (!nowhere.contains(r) && s.folders.any((f) => f.role == r && accounts.contains(f.accountId))) 'r:${r.value}': roleName(r),
+      };
+    }
+    if (options.isEmpty) return;
+    final v = await pickOption<String>(context, title: tr('Move to', 'Переместить в'), options: options);
+    if (v == null) return;
+    final role = v.startsWith('r:') ? pb.FolderRole.valueOf(int.parse(v.substring(2))) : null;
+    final folder = v.startsWith('f:') ? s.foldersOf(accounts.first).where((f) => f.id == v.substring(2)).firstOrNull : null;
+    cubit.clearSelected();
+    var skipped = 0;
+    await _run(() async => skipped = await cubit.move(mails, role: role, folder: folder), '${tr('Moved to', 'Перемещено в')} ${options[v]}');
+    if (skipped > 0) {
+      Toasts.error(tr('$skipped not moved', 'Не перемещено: $skipped'), tr('Their account has no such folder', 'В их аккаунте нет такой папки'));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hm = Hm.of(context);
+    final cubit = context.read<MailCubit>();
+    final s = context.watch<MailCubit>().state;
+    final picked = s.selectedMails;
+    final n = s.selected.length;
+    final anyUnread = picked.any((m) => m.unread);
+    final anyUnstarred = picked.any((m) => !m.starred);
+    return CallbackShortcuts(
+      bindings: {const SingleActivator(LogicalKeyboardKey.escape): cubit.clearSelected},
+      child: Focus(
+        autofocus: true,
+        child: Container(
+          height: hm.mobile ? 56 : 60,
+          padding: EdgeInsets.symmetric(horizontal: hm.mobile ? 4 : 8),
+          decoration: const BoxDecoration(
+            color: HmColors.surface,
+            border: Border(bottom: BorderSide(color: HmColors.border)),
+          ),
+          child: Row(
+            children: [
+              HmIconButton(icon: Icons.close, label: tr('Cancel', 'Отмена'), onPressed: cubit.clearSelected),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text('$n', style: HmText.bodyStrong, overflow: TextOverflow.ellipsis, semanticsLabel: tr('Selected: $n', 'Выбрано: $n')),
+              ),
+              HmIconButton(icon: Icons.select_all, label: tr('Select all', 'Выбрать все'), onPressed: cubit.selectAll),
+              anyUnread
+                  ? HmIconButton(
+                      icon: Icons.mark_email_read_outlined,
+                      label: tr('Mark read', 'Пометить прочитанными'),
+                      onPressed: () => _act(cubit, pb.MailAction.MAIL_ACTION_READ, tr('Marked read', 'Помечено прочитанными')),
+                    )
+                  : HmIconButton(
+                      icon: Icons.mark_email_unread_outlined,
+                      label: tr('Mark unread', 'Пометить непрочитанными'),
+                      onPressed: () => _act(cubit, pb.MailAction.MAIL_ACTION_UNREAD, tr('Marked unread', 'Помечено непрочитанными')),
+                    ),
+              anyUnstarred
+                  ? HmIconButton(
+                      icon: Icons.star_border,
+                      label: tr('Star', 'Отметить'),
+                      onPressed: () => _act(cubit, pb.MailAction.MAIL_ACTION_STAR, tr('Starred', 'Отмечено')),
+                    )
+                  : HmIconButton(
+                      icon: Icons.star,
+                      label: tr('Unstar', 'Снять отметку'),
+                      color: HmColors.warning,
+                      onPressed: () => _act(cubit, pb.MailAction.MAIL_ACTION_UNSTAR, tr('Unstarred', 'Отметка снята')),
+                    ),
+              Builder(
+                builder: (context) =>
+                    HmIconButton(icon: Icons.drive_file_move_outline, label: tr('Move to…', 'Переместить в…'), onPressed: () => _move(context, cubit)),
+              ),
+              HmIconButton(
+                icon: Icons.delete_outline,
+                label: tr('Delete', 'Удалить'),
+                color: HmColors.error,
+                onPressed: () => _act(cubit, pb.MailAction.MAIL_ACTION_TRASH, tr('Deleted: $n', 'Удалено: $n')),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -528,7 +698,7 @@ class MailReader extends StatelessWidget {
                     child: Center(child: HmSpinner()),
                   )
                 else
-                  Text(body.text.isEmpty ? tr('(empty message)', '(пустое письмо)') : body.text, style: HmText.body.copyWith(height: 1.6)),
+                  HmRichText(body.text.isEmpty ? tr('(empty message)', '(пустое письмо)') : body.text, spans: body.format, style: HmText.body.copyWith(height: 1.6)),
               ],
             ),
           ),

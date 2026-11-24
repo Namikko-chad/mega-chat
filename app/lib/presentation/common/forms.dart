@@ -449,12 +449,24 @@ class HmSelect<T> extends StatelessWidget {
 /// sends and Shift+Enter breaks the line; on phones Enter is a new line and
 /// the send button sends.
 class HmMessageField extends StatefulWidget {
-  const HmMessageField({super.key, required this.controller, required this.onSend, this.focusNode, this.placeholder});
+  const HmMessageField({super.key, required this.controller, required this.onSend, this.focusNode, this.placeholder, this.onPaste, this.onInsertContent, this.onKey});
 
   final TextEditingController controller;
   final VoidCallback onSend;
   final FocusNode? focusNode;
   final String? placeholder;
+
+  /// Runs on a paste (Ctrl+V, the context menu) before the text paste:
+  /// true means it took the clipboard (files), so no text is pasted.
+  final Future<bool> Function()? onPaste;
+
+  /// A picture or a file the keyboard inserts (Android keyboards paste
+  /// images from their clipboard this way).
+  final ValueChanged<KeyboardInsertedContent>? onInsertContent;
+
+  /// Sees keys before the field (a suggestion list over it takes arrows,
+  /// Enter and Esc while it is open).
+  final KeyEventResult Function(KeyEvent)? onKey;
 
   @override
   State<HmMessageField> createState() => _HmMessageFieldState();
@@ -478,6 +490,7 @@ class _HmMessageFieldState extends State<HmMessageField> {
   }
 
   KeyEventResult _key(FocusNode _, KeyEvent e) {
+    if (widget.onKey?.call(e) == KeyEventResult.handled) return KeyEventResult.handled;
     if (Hm.of(context).mobile || e is! KeyDownEvent) return KeyEventResult.ignored;
     if (e.logicalKey != LogicalKeyboardKey.enter && e.logicalKey != LogicalKeyboardKey.numpadEnter) return KeyEventResult.ignored;
     // Shift+Enter is a new line; Enter while an IME composes confirms the text.
@@ -489,7 +502,7 @@ class _HmMessageFieldState extends State<HmMessageField> {
   @override
   Widget build(BuildContext context) {
     final hm = Hm.of(context);
-    return TextField(
+    final field = TextField(
       controller: widget.controller,
       focusNode: _focus,
       minLines: 1,
@@ -499,6 +512,52 @@ class _HmMessageFieldState extends State<HmMessageField> {
       textCapitalization: TextCapitalization.sentences,
       style: HmText.jb(hm.inputFont),
       decoration: _decoration(context, hint: widget.placeholder),
+      contentInsertionConfiguration: widget.onInsertContent == null ? null : ContentInsertionConfiguration(onContentInserted: widget.onInsertContent!),
+      contextMenuBuilder: widget.onPaste == null
+          ? null
+          : (context, editable) => AdaptiveTextSelectionToolbar.buttonItems(
+              anchors: editable.contextMenuAnchors,
+              buttonItems: [
+                for (final b in editable.contextMenuButtonItems)
+                  b.type == ContextMenuButtonType.paste
+                      ? b.copyWith(
+                          onPressed: () {
+                            editable.hideToolbar();
+                            _paste(() => editable.pasteText(SelectionChangedCause.toolbar));
+                          },
+                        )
+                      : b,
+              ],
+            ),
     );
+    if (widget.onPaste == null) return field;
+    return Actions(actions: {PasteTextIntent: _PasteAction(this)}, child: field);
+  }
+
+  /// Files first; the text paste only when there were none.
+  Future<void> _paste(VoidCallback pasteText) async {
+    final took = await widget.onPaste!();
+    if (!took && mounted) pasteText();
+  }
+}
+
+/// Ctrl+V in a message field: [HmMessageField.onPaste] first, then the
+/// field's own text paste.
+class _PasteAction extends ContextAction<PasteTextIntent> {
+  _PasteAction(this.state);
+
+  final _HmMessageFieldState state;
+
+  @override
+  bool get isActionEnabled => callingAction?.isActionEnabled ?? true;
+
+  @override
+  bool consumesKey(PasteTextIntent intent) => callingAction?.consumesKey(intent) ?? true;
+
+  @override
+  Object? invoke(PasteTextIntent intent, [BuildContext? context]) {
+    final text = callingAction;
+    state._paste(() => text is ContextAction<PasteTextIntent> ? text.invoke(intent, context) : text?.invoke(intent));
+    return null;
   }
 }

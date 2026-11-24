@@ -16,3 +16,21 @@ func TestQuotedText(t *testing.T) {
 		}
 	}
 }
+
+func TestMentionedText(t *testing.T) {
+	text := "hi @Ann and @Bob <3"
+	ms := []Mention{{Offset: 3, Length: 4, User: User{ID: "A"}}, {Offset: 12, Length: 4, User: User{ID: "B"}}, {Offset: 40, Length: 2}}
+	got := MentionedText(text, ms, func(m Mention, span string) string { return "<" + m.User.ID + ":" + span + ">" }, func(s string) string { return "[" + s + "]" })
+	if want := "[hi ]<A:@Ann>[ and ]<B:@Bob>[ <3]"; got != want {
+		t.Fatalf("%q", got)
+	}
+}
+
+func TestMatchUser(t *testing.T) {
+	u := User{Name: "Анна Петрова", Username: "anna_p"}
+	for q, want := range map[string]bool{"": true, "ann": true, "АН": true, "пет": true, "x": false, "анна п": true} {
+		if MatchUser(u, q) != want {
+			t.Errorf("%q: %v", q, !want)
+		}
+	}
+}

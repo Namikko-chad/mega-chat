@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -113,6 +114,12 @@ func TestServiceFlow(t *testing.T) {
 	if _, err := c.Send(ctx, &pb.SendRequest{AccountId: acct, ChatId: "c3", Text: "pong"}); err != nil {
 		t.Fatal(err)
 	}
+	// A file larger than gRPC's default 4 MB message limit.
+	big := make([]byte, 6<<20)
+	sent, err := c.Send(ctx, &pb.SendRequest{AccountId: acct, ChatId: "c1", Files: []*pb.OutFile{{Name: "big.bin", Data: big}}})
+	if err != nil || len(sent.Attachments) != 1 || sent.Attachments[0].Size != int64(len(big)) || sent.Attachments[0].Name != "big.bin" {
+		t.Fatalf("send a file: %v %v", sent, err)
+	}
 	if _, err := c.History(ctx, &pb.HistoryRequest{AccountId: "nope", ChatId: "c3"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("unknown account: %v", err)
 	}
@@ -201,5 +208,72 @@ func TestRememberPassword(t *testing.T) {
 	}
 	if st, err = c.ForgetPassword(ctx, &pb.Empty{}); err != nil || st.Remembered || kept() != nil {
 		t.Fatalf("forget: %v %v", st, err)
+	}
+}
+
+func TestSetVaultPath(t *testing.T) {
+	kc := keychain.NewMemory()
+	var svc *Service
+	pointer := filepath.Join(t.TempDir(), "vault.path")
+	c, _, ctx := serveWith(t, func(s *Service) { svc, s.Keychain, s.VaultPointer = s, kc, pointer })
+	old := svc.vaultPath()
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: t.TempDir(), Move: true}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("move while locked: %v", err)
+	}
+	if _, err := c.CreateVault(ctx, &pb.PasswordRequest{Password: "pw"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.RememberPassword(ctx, &pb.PasswordRequest{Password: "pw"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: "rel/vault.mc", Move: true}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("relative path: %v", err)
+	}
+	dir := t.TempDir()
+	st, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: dir, Move: true}) // a directory: vault.mc in it
+	moved := filepath.Join(dir, "vault.mc")
+	if err != nil || st.VaultPath != moved || !st.Unlocked || !st.Remembered {
+		t.Fatalf("move: %v %v", st, err)
+	}
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Fatalf("old file stays: %v", err)
+	}
+	if ReadVaultPointer(pointer) != moved {
+		t.Fatalf("pointer: %q", ReadVaultPointer(pointer))
+	}
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: moved, Move: false}); err != nil {
+		t.Fatalf("same place: %v", err)
+	}
+	// The remembered key followed the file.
+	if _, err := c.LockVault(ctx, &pb.Empty{}); err != nil {
+		t.Fatal(err)
+	}
+	if st, err = c.UnlockRemembered(ctx, &pb.Empty{}); err != nil || !st.Unlocked {
+		t.Fatalf("unlock remembered after move: %v %v", st, err)
+	}
+	// Moving onto an existing file is refused.
+	other := filepath.Join(t.TempDir(), "other.mc")
+	if err := os.WriteFile(other, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: other, Move: true}); status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("move onto a file: %v", err)
+	}
+	// Using another file needs a locked vault and an existing file.
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: moved + ".x"}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("use while unlocked: %v", err)
+	}
+	c.LockVault(ctx, &pb.Empty{})
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: moved + ".x"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("use a missing file: %v", err)
+	}
+	back := filepath.Join(t.TempDir(), "copy.mc")
+	data, _ := os.ReadFile(moved)
+	os.WriteFile(back, data, 0o600)
+	if st, err = c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: back}); err != nil || st.VaultPath != back || st.Unlocked {
+		t.Fatalf("use: %v %v", st, err)
+	}
+	if st, err = c.Unlock(ctx, &pb.PasswordRequest{Password: "pw"}); err != nil || !st.Unlocked {
+		t.Fatalf("unlock the copy: %v %v", st, err)
 	}
 }

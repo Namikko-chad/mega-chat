@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/desktop/desktop_window.dart';
 import '../../core/format.dart';
@@ -9,10 +10,13 @@ import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/biometric.dart';
+import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../accounts/providers.dart' show isOnline;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
+import '../core/messenger_cubit.dart';
 import '../shell/app_shell.dart' show AppShell, BuildInfo, Section, StatusPills;
 import '../unlock/unlock_screen.dart' show rememberHint, rememberPassword;
 
@@ -78,6 +82,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _formError = errorText(e));
     } finally {
       if (mounted) setState(() => _changing = false);
+    }
+  }
+
+  /// Moves the vault file wherever the user likes (another disk, a synced
+  /// folder); the core keeps the place for the next start.
+  Future<void> _moveVault(String current) async {
+    final path = await askSavePath(p.basename(current), directory: p.dirname(current));
+    if (path == null) return;
+    try {
+      await _core.setVaultPath(path, move: true);
+      Toasts.success(tr('The vault is moved', 'Хранилище перемещено'));
+    } catch (e) {
+      Toasts.error('${tr('Could not move the vault', 'Не удалось переместить хранилище')}: ${errorText(e)}');
     }
   }
 
@@ -223,6 +240,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: settings.setAutoPhotos,
             ),
             gap,
+            HmToggleRow(
+              label: tr('Link previews', 'Превью ссылок'),
+              hint: tr(
+                'A link in a message shows the title and picture of its page. The page is loaded from this device, so the site sees its address.',
+                'Ссылка в сообщении показывает заголовок и картинку своей страницы. Страница загружается с этого устройства, поэтому сайт видит его адрес.',
+              ),
+              value: settings.linkPreviews,
+              onChanged: settings.setLinkPreviews,
+            ),
+            gap,
             HmField(
               tr('Videos in chats', 'Видео в чатах'),
               Align(
@@ -292,6 +319,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final hm = Hm.of(context);
     final core = context.watch<CoreCubit>().state;
     final s = core.state ?? pb.State();
+    // The live account list, as in the footer: State is a snapshot taken
+    // at unlock, while the accounts were still connecting.
+    final accounts = context.watch<MessengerCubit>().state.accounts.where((a) => a.enabled).toList();
     final gap = SizedBox(height: hm.gapSm);
     return HmPage(
       children: [
@@ -305,8 +335,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               gap,
               HmField(tr('Platform', 'Платформа'), Text(platformName(s.platform))),
               HmField(tr('Core', 'Ядро'), Text(s.coreVersion.isEmpty ? '—' : '${s.coreVersion} ${s.coreBuild}')),
-              HmField(tr('Vault file', 'Файл хранилища'), SelectableText(s.vaultPath.isEmpty ? '—' : s.vaultPath)),
-              HmField(tr('Accounts', 'Аккаунты'), Text('${s.accountsOnline} / ${s.accounts} ${tr('online', 'в сети')}')),
+              HmField(
+                tr('Vault file', 'Файл хранилища'),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    SelectableText(s.vaultPath.isEmpty ? '—' : s.vaultPath),
+                    if (canAskSavePath && s.vaultPath.isNotEmpty) HmButton(tr('Move…', 'Переместить…'), icon: Icons.drive_file_move_outline, onPressed: () => _moveVault(s.vaultPath)),
+                  ],
+                ),
+              ),
+              HmField(tr('Accounts', 'Аккаунты'), Text('${accounts.where(isOnline).length} / ${accounts.length} ${tr('online', 'в сети')}')),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  HmButton(tr('Accounts', 'Аккаунты'), icon: Section.accounts.icon, expand: hm.mobile, onPressed: () => AppShell.go(context, Section.accounts)),
+                  HmButton(tr('Log', 'Журнал'), icon: Section.log.icon, expand: hm.mobile, onPressed: () => AppShell.go(context, Section.log)),
+                ],
+              ),
             ],
           ),
         ),
@@ -361,8 +411,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 StatusPills(core: core),
-                const SizedBox(height: 12),
-                HmButton(tr('Log', 'Журнал'), icon: Icons.receipt_long_outlined, expand: true, onPressed: () => AppShell.go(context, Section.log)),
               ],
             ),
           ),

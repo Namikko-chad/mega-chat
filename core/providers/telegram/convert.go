@@ -304,8 +304,12 @@ func convertMessage(d dirOf, mc tg.MessageClass) (model.Message, bool) {
 	case *tg.Message:
 		out.ID, out.Seq = strconv.Itoa(m.ID), int64(m.ID)
 		from, peer, outgo, date, reply = m.FromID, m.PeerID, m.Out, m.Date, m.ReplyTo
-		out.Text = m.Message
+		out.Text, out.Format = incomingText(m.Message, m.Entities)
 		if t := mediaText(m.Media); t != "" {
+			shift := utf16Len(t) + 1
+			for i := range out.Format {
+				out.Format[i].Offset += shift
+			}
 			out.Text = strings.TrimSpace(t + "\n" + out.Text)
 		}
 		out.Attachments = attachments(peerKey(m.PeerID), m.ID, m.Media)

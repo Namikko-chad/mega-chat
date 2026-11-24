@@ -41,13 +41,15 @@ const (
 	methodServer   = "server"
 )
 
-// Mail.ru's servers (also VK WorkSpace in the cloud). The CalDAV address
-// and the absence of a copy in Sent after SMTP follow Mail.ru's help pages
-// and are not checked against the live service by the tests.
+// Mail.ru's servers (also VK WorkSpace in the cloud). The absence of a copy
+// in Sent after SMTP follows Mail.ru's help pages and is not checked against
+// the live service by the tests. CalDAV must start at /principals/: the root
+// answers PROPFIND with 400 and /.well-known/caldav redirects with a 301,
+// which Go's HTTP client follows as a GET.
 const (
 	defaultIMAP   = "imap.mail.ru:993"
 	defaultSMTP   = "smtp.mail.ru:465"
-	defaultCalDAV = "https://calendar.mail.ru/"
+	defaultCalDAV = "https://calendar.mail.ru/principals/"
 )
 
 func init() {
@@ -240,6 +242,11 @@ func (p *Provider) Open(acct provider.Account, env provider.Env) (provider.Sessi
 	cfg := configOf(acct.Params)
 	if cfg.Email == "" || cfg.IMAP == "" {
 		return nil, fmt.Errorf("mailru: incomplete account settings")
+	}
+	// A standard account always has Mail.ru's calendar, also when discovery
+	// failed at sign-in: a real failure then shows in the calendar screen.
+	if cfg.CalDAV == "" && acct.Params["method"] == methodPassword {
+		cfg.CalDAV = defaultCalDAV
 	}
 	s := &session{p: p, cfg: cfg, env: env}
 	if cfg.CalDAV == "" {

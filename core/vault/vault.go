@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -330,6 +331,26 @@ func (v *Vault) ChangePassword(password []byte, p KDFParams) error {
 	if err := v.write(); err != nil {
 		v.sealer, v.cfg = prevSealer, prevCfg
 		return err
+	}
+	return nil
+}
+
+// MoveTo writes the vault to path, keeps it there from now on and removes
+// the old file. It fails if path exists; on failure the vault stays put.
+func (v *Vault) MoveTo(path string) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("vault: %s already exists", path)
+	}
+	old := v.path
+	v.path = path
+	if err := v.write(); err != nil {
+		v.path = old
+		return err
+	}
+	if err := os.Remove(old); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("vault: moved, but the old file stays: %w", err)
 	}
 	return nil
 }

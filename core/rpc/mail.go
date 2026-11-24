@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -11,6 +12,7 @@ import (
 
 	"megachat/core/hub"
 	"megachat/core/model"
+	"megachat/core/richtext"
 	"megachat/core/rpc/pb"
 )
 
@@ -169,6 +171,18 @@ func mailToPB(m *model.Mail) *pb.Mail {
 		Unread: m.Unread, Starred: m.Starred, HasAttachments: m.HasAttachments || len(m.Attachments) > 0,
 		Text: m.Text, Html: m.HTML,
 	}
+	// The body as text and styles: the HTML part when it says anything,
+	// else the plain part read as Markdown.
+	var body richtext.Doc
+	if m.HTML != "" {
+		body = richtext.FromHTML(m.HTML)
+	}
+	if strings.TrimSpace(body.Text) == "" && m.Text != "" {
+		body = richtext.Parse(m.Text, richtext.Markdown)
+	}
+	if body.Text != "" {
+		out.Text, out.Format = body.Text, spansToPB(body.Spans)
+	}
 	for _, a := range m.Attachments {
 		out.Attachments = append(out.Attachments, &pb.Attachment{
 			Kind: pb.AttachmentKind(a.Kind), Name: a.Name, Mime: a.MIME, Size: a.Size,
@@ -268,4 +282,12 @@ func calEvent(r *pb.CalendarEvent) model.CalEvent {
 		}
 	}
 	return e
+}
+
+func (s *Service) MoveMail(ctx context.Context, r *pb.MoveMailRequest) (*pb.Empty, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Empty{}, toStatus(h.MoveMail(ctx, r.AccountId, r.Ids, r.FromFolderId, r.ToFolderId))
 }

@@ -25,6 +25,8 @@ type User struct {
 	Username string `json:"username,omitempty"`
 	// Avatar is a media ref of the user's photo (see Media); empty: none.
 	Avatar string `json:"avatar,omitempty"`
+	// Online: set only on the people Members returns. Live, never stored.
+	Online bool `json:"-"`
 }
 
 // Chat is a dialog, group or channel of one account.
@@ -49,6 +51,101 @@ type Chat struct {
 	// Online: the other person of a direct chat is online now. Live state
 	// from the hub (EvPresence), never stored.
 	Online bool `json:"-"`
+	// Saved: the account's own notes (Telegram's Saved Messages, the chat
+	// with oneself in VK Teams and Slack). The app names it itself.
+	Saved bool `json:"saved,omitempty"`
+	// Archived: the chat is in the messenger's archive (Telegram's archive
+	// folder, a hidden VK Teams chat, an archived Slack channel).
+	Archived bool `json:"archived,omitempty"`
+	// Folders are the ids of the account's chat folders (ChatFolder) the
+	// chat belongs to by the folders' rules; nil: unknown, keep the stored.
+	Folders []string `json:"folders,omitempty"`
+}
+
+// ChatFolder is a folder of an account's chat list (Telegram's chat
+// folders). A chat is in it when its id is in Always, or Chat.Folders
+// names the folder and none of the Exclude flags applies.
+type ChatFolder struct {
+	ID     string   `json:"id"`
+	Title  string   `json:"title"`
+	Emoji  string   `json:"emoji,omitempty"`
+	Always []string `json:"always,omitempty"` // chats added by hand
+	Pinned []string `json:"pinned,omitempty"` // shown first, in this order (also in Always)
+	// Exclude chats that are muted, read or archived (unless in Always).
+	ExcludeMuted    bool `json:"exclude_muted,omitempty"`
+	ExcludeRead     bool `json:"exclude_read,omitempty"`
+	ExcludeArchived bool `json:"exclude_archived,omitempty"`
+}
+
+// Contains tells whether c is in the folder.
+func (f ChatFolder) Contains(c Chat) bool {
+	for _, id := range f.Always {
+		if id == c.ID {
+			return true
+		}
+	}
+	in := false
+	for _, id := range c.Folders {
+		in = in || id == f.ID
+	}
+	return in && !(f.ExcludeMuted && c.Muted) && !(f.ExcludeRead && c.Unread == 0) && !(f.ExcludeArchived && c.Archived)
+}
+
+// ChatAction is something the account does to one of its chats.
+type ChatAction int
+
+const (
+	ChatActionUnknown ChatAction = iota
+	ChatMute
+	ChatUnmute
+	ChatPin
+	ChatUnpin
+	ChatArchive
+	ChatUnarchive
+	// ChatLeave: leave a group or channel; it disappears from the list.
+	ChatLeave
+)
+
+// ChatFlags are the account's own settings of a chat that changed (nil:
+// unchanged), for EvChatFlags.
+type ChatFlags struct {
+	Muted, Pinned, Archived *bool
+}
+
+// Apply sets what f carries on c.
+func (f ChatFlags) Apply(c *Chat) {
+	if f.Muted != nil {
+		c.Muted = *f.Muted
+	}
+	if f.Pinned != nil {
+		c.Pinned = *f.Pinned
+	}
+	if f.Archived != nil {
+		c.Archived = *f.Archived
+	}
+}
+
+// FlagsOf is what action changes, ok false for an action that changes no
+// flag (leaving).
+func FlagsOf(action ChatAction) (f ChatFlags, ok bool) {
+	t, n := true, false
+	switch action {
+	case ChatMute:
+		f.Muted = &t
+	case ChatUnmute:
+		f.Muted = &n
+	case ChatPin:
+		f.Pinned = &t
+	case ChatUnpin:
+		f.Pinned = &n
+	case ChatArchive:
+		f.Archived = &t
+	case ChatUnarchive:
+		f.Archived = &n
+	default:
+		return f, false
+	}
+	return f, true
 }
 
 // Topic is one topic of a forum chat. Its messages are a thread of the
@@ -64,6 +161,29 @@ type Topic struct {
 	Hidden  bool      `json:"hidden,omitempty"` // the general topic, collapsed
 	Last    *Message  `json:"last,omitempty"`
 	Updated time.Time `json:"updated"`
+}
+
+// Profile describes a chat for its info page: the other person of a direct
+// chat, a group or a channel. Empty fields are unknown or hidden.
+type Profile struct {
+	Title    string
+	Avatar   string // a media ref (Media), larger when the messenger has one
+	Username string // @handle without "@", Slack display name, VK nick
+	About    string // bio, description, channel purpose and topic
+	Phone    string
+	Email    string
+	Position string // job title, status text
+	// Link is a public address of the chat or person (https://t.me/x).
+	Link string
+	// Members is how many members a group or channel has (0: unknown).
+	Members int
+	// MemberList is some of the members (may be empty or partial).
+	MemberList []User
+	// LastSeen is when the person of a direct chat was last online (zero:
+	// unknown or hidden); Online tells they are online now.
+	LastSeen time.Time
+	Online   bool
+	Bot      bool
 }
 
 // ChatAccess is what the account may do in a chat.
@@ -166,6 +286,35 @@ type Message struct {
 	ForwardedFrom string `json:"forwarded_from,omitempty"`
 	// Quote: the fragment of ReplyTo's text this reply quotes.
 	Quote string `json:"quote,omitempty"`
+	// Format styles Text, which holds no markup itself (core/richtext).
+	Format []TextSpan `json:"format,omitempty"`
+}
+
+// SpanKind is a style of a part of a text.
+type SpanKind int
+
+const (
+	SpanUnknown SpanKind = iota
+	SpanBold
+	SpanItalic
+	SpanUnderline
+	SpanStrike
+	SpanSpoiler
+	SpanCode
+	SpanPre
+	SpanLink
+	SpanQuote
+	SpanHeading
+)
+
+// TextSpan styles a part of a text; offsets are UTF-16 units, as in
+// Telegram and in the app's strings. Spans may nest and overlap.
+type TextSpan struct {
+	Kind   SpanKind `json:"k"`
+	Offset int      `json:"o"`
+	Length int      `json:"l"`
+	URL    string   `json:"u,omitempty"`  // SpanLink: http(s) or mailto
+	Lang   string   `json:"lg,omitempty"` // SpanPre: the code's language
 }
 
 // EventKind says what changed.
@@ -210,6 +359,12 @@ const (
 	// (Event.Online) or went away. A session reports what it knows after
 	// connecting and then changes; the hub forgets it all on disconnect.
 	EvPresence
+	// EvChatFlags: the account's settings of Chat.ID (mute, pin, archive)
+	// changed, maybe on another device; Event.Flags says which.
+	EvChatFlags
+	// EvChatFolders: the account's chat folders changed (ChatFolders); the
+	// chats' Folders come with the next chat list.
+	EvChatFolders
 )
 
 // Event is something a session reports. The account fields are filled by
@@ -226,6 +381,8 @@ type Event struct {
 	Mail *Mail
 	// EvPresence: whether the peer of Chat is online.
 	Online bool
+	// EvChatFlags: what changed.
+	Flags *ChatFlags
 }
 
 // Outgoing is a message to send.
@@ -237,6 +394,78 @@ type Outgoing struct {
 	// Quote is a fragment of ReplyTo's text the reply quotes. A provider
 	// without native quotes sends QuotedText instead of Text.
 	Quote string
+	// Files are sent with the message, Text being their caption. They go
+	// to the session's FileSender, never to Send.
+	Files []OutFile
+	// Mentions are people picked in the composer: spans of Text (byte
+	// offsets, sorted, not overlapping) the messenger turns into its own
+	// mentions.
+	Mentions []Mention
+}
+
+// Mention is a span of an outgoing text that names a person.
+type Mention struct {
+	Offset, Length int // bytes of Outgoing.Text
+	User           User
+}
+
+// MentionedText is text with every mention span replaced by mention(m,
+// span) and the rest passed through plain (nil: as is).
+func MentionedText(text string, ms []Mention, mention func(m Mention, span string) string, plain func(string) string) string {
+	if plain == nil {
+		plain = func(s string) string { return s }
+	}
+	var b strings.Builder
+	at := 0
+	for _, m := range ms {
+		if m.Offset < at || m.Offset+m.Length > len(text) {
+			continue
+		}
+		b.WriteString(plain(text[at:m.Offset]))
+		b.WriteString(mention(m, text[m.Offset:m.Offset+m.Length]))
+		at = m.Offset + m.Length
+	}
+	b.WriteString(plain(text[at:]))
+	return b.String()
+}
+
+// MatchUser tells whether a person fits what was typed after "@": a word
+// of the name or the username starts with query (any case); "" fits all.
+func MatchUser(u User, query string) bool {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return true
+	}
+	if strings.HasPrefix(strings.ToLower(u.Username), q) || strings.HasPrefix(strings.ToLower(u.Name), q) {
+		return true
+	}
+	for _, w := range strings.FieldsFunc(strings.ToLower(u.Name), func(r rune) bool { return r == ' ' || r == '.' || r == '-' || r == '_' }) {
+		if strings.HasPrefix(w, q) {
+			return true
+		}
+	}
+	return false
+}
+
+// OutFile is a file to send. The hub fills in Name and MIME when the app
+// left them empty.
+type OutFile struct {
+	Name string
+	MIME string
+	Data []byte
+}
+
+// Kind is how a messenger should show the file.
+func (f OutFile) Kind() AttachmentKind {
+	switch {
+	case f.MIME == "image/jpeg" || f.MIME == "image/png" || f.MIME == "image/gif" || f.MIME == "image/webp":
+		return AttachImage
+	case strings.HasPrefix(f.MIME, "video/"):
+		return AttachVideo
+	case strings.HasPrefix(f.MIME, "audio/"):
+		return AttachAudio
+	}
+	return AttachFile
 }
 
 // QuotedText is Text with Quote before it as "> " lines (Markdown-style

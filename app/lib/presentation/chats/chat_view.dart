@@ -19,13 +19,19 @@ import '../common/hm.dart';
 import '../call/call_cubit.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
+import '../../data/local_files.dart';
+import 'attach.dart';
 import 'chat_cubit.dart';
 import 'forward.dart';
 import 'media.dart';
 import 'messages.dart';
+import 'link_preview.dart';
+import 'mentions.dart';
+import 'profile_view.dart';
 import 'reactions.dart';
 import 'thread_view.dart';
 import 'topics.dart';
+import 'chat_actions.dart';
 
 /// One open chat: header, messages (newest at the bottom, older pages
 /// load on scrolling up) and the composer.
@@ -133,6 +139,7 @@ class _ChatBodyState extends State<_ChatBody> {
               seen: _seen,
               direct: chat?.kind == pb.ChatKind.CHAT_KIND_DIRECT,
               canReact: (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_REACTIONS) && !(chat?.readOnly ?? false),
+              account: chat?.readOnly ?? false ? null : account,
               canThread: (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_THREADS),
               openThread: m.thread,
             ),
@@ -189,41 +196,62 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           if (onBack != null) ...[HmIconButton(icon: Icons.arrow_back, label: tr('Back', 'Назад'), onPressed: onBack), const SizedBox(width: 8)],
-          MediaAvatar(
-            account: chat?.accountId ?? '',
-            photo: chat?.avatarUrl ?? '',
-            label: chat?.title ?? '',
-            icon: chat?.kind == pb.ChatKind.CHAT_KIND_CHANNEL ? Icons.campaign_outlined : null,
-            color: providerColor(provider),
-            size: 36,
-            online: online,
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(chat?.title ?? '', style: HmText.bodyStrong, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                typing != null
-                    ? Text(tr('$typing is typing…', '$typing печатает…'), style: HmText.footer.copyWith(color: HmColors.accent))
-                    : Text.rich(
-                        TextSpan(
+            child: MouseRegion(
+              cursor: chat == null ? MouseCursor.defer : SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: chat == null ? null : () => showProfile(context, (account: chat!.accountId, chat: chat!.id)),
+                child: Semantics(
+                  button: chat != null,
+                  label: tr('Chat info', 'Информация о чате'),
+                  child: Row(
+                    children: [
+                      MediaAvatar(
+                        account: chat?.accountId ?? '',
+                        photo: chat?.avatarUrl ?? '',
+                        label: chat == null ? '' : chatTitle(chat!),
+                        icon: chat?.saved == true
+                            ? Icons.bookmark_outline
+                            : chat?.kind == pb.ChatKind.CHAT_KIND_CHANNEL
+                            ? Icons.campaign_outlined
+                            : null,
+                        color: providerColor(provider),
+                        size: 36,
+                        online: online,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (online)
-                              TextSpan(
-                                text: where.isEmpty ? tr('online', 'в сети') : '${tr('online', 'в сети')} · ',
-                                style: HmText.footer.copyWith(color: HmColors.ok),
-                              ),
-                            TextSpan(text: where),
+                            Text(chat == null ? '' : chatTitle(chat!), style: HmText.bodyStrong, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 2),
+                            typing != null
+                                ? Text(tr('$typing is typing…', '$typing печатает…'), style: HmText.footer.copyWith(color: HmColors.accent))
+                                : Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        if (online)
+                                          TextSpan(
+                                            text: where.isEmpty ? tr('online', 'в сети') : '${tr('online', 'в сети')} · ',
+                                            style: HmText.footer.copyWith(color: HmColors.ok),
+                                          ),
+                                        TextSpan(text: where),
+                                      ],
+                                    ),
+                                    style: HmText.footer,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                           ],
                         ),
-                        style: HmText.footer,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-              ],
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           if (chat != null && chat!.kind == pb.ChatKind.CHAT_KIND_DIRECT && (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_CALLS)) ...[
@@ -238,6 +266,14 @@ class _Header extends StatelessWidget {
               onPressed: () => context.read<CallCubit>().start(chat!.accountId, chat!.id, video: true),
             ),
           ],
+          if (chat != null && chatActionItems(chat!, account).isNotEmpty)
+            Builder(
+              builder: (context) => HmIconButton(
+                icon: Icons.more_vert,
+                label: tr('Chat actions', 'Действия с чатом'),
+                onPressed: () => showChatMenu(context, chat!, anchor: context),
+              ),
+            ),
         ],
       ),
     );
@@ -364,12 +400,23 @@ class _SeenProbeState extends State<_SeenProbe> {
 }
 
 class _Messages extends StatelessWidget {
-  const _Messages({required this.scroll, required this.seen, required this.direct, required this.canReact, required this.canThread, this.openThread});
+  const _Messages({
+    required this.scroll,
+    required this.seen,
+    required this.direct,
+    required this.canReact,
+    required this.canThread,
+    this.account,
+    this.openThread,
+  });
 
   final ScrollController scroll;
   final _SeenTracker seen;
   final bool direct;
   final bool canReact;
+
+  /// For editing: the account's capabilities (null: never; a read-only chat).
+  final pb.Account? account;
   final bool canThread;
   final ThreadKey? openThread;
 
@@ -408,7 +455,7 @@ class _Messages extends StatelessWidget {
     final hm = Hm.of(context);
     final placing = seen.placing;
     if (placing) seen.schedule();
-    return NotificationListener<UserScrollNotification>(
+    final list = NotificationListener<UserScrollNotification>(
       onNotification: (_) {
         seen.userScrolled = true;
         return false;
@@ -449,6 +496,13 @@ class _Messages extends StatelessWidget {
               showSender: !direct && !m.outgoing && first,
               gap: first,
               onReply: () => cubit.reply(m),
+              onEdit: canEditMessage(account, m) ? () => cubit.edit(m) : null,
+              onDelete: canDeleteMessage(account, m)
+                  ? () => deleteMessages(context, account, [
+                      for (final x in parts)
+                        if (canDeleteMessage(account, x)) x,
+                    ])
+                  : null,
               onQuote: (q) => cubit.reply(m, quote: q),
               onForward: () => forwardMessages(context, parts),
               parts: parts,
@@ -471,6 +525,7 @@ class _Messages extends StatelessWidget {
         ),
       ),
     );
+    return PhotoGallery(messages: s.messages, child: list);
   }
 }
 
@@ -497,6 +552,8 @@ class MessageTile extends StatefulWidget {
     required this.showSender,
     required this.gap,
     this.onReply,
+    this.onEdit,
+    this.onDelete,
     this.onQuote,
     this.onReact,
     this.onThread,
@@ -514,6 +571,12 @@ class MessageTile extends StatefulWidget {
   final bool showSender;
   final bool gap; // a new sender: a little more room above
   final VoidCallback? onReply;
+
+  /// Changes the text of this message (null: it cannot be edited here).
+  final VoidCallback? onEdit;
+
+  /// Deletes this message (null: it cannot be deleted here).
+  final VoidCallback? onDelete;
 
   /// Replies quoting a fragment of the text (null: no quoting here).
   final ValueChanged<String>? onQuote;
@@ -558,27 +621,40 @@ class _MessageTileState extends State<MessageTile> {
     Toasts.success(tr('Copied', 'Скопировано'));
   }
 
-  Future<void> _menu(BuildContext context, {String selection = ''}) async {
+  /// The bubble: the message menu opened without a pointer sits next to it.
+  final _bubbleKey = GlobalKey();
+
+  /// The message menu at [at] (the pointer, global coordinates), or next to
+  /// the bubble without one. Add items to [items] in menu order.
+  Future<void> _menu(BuildContext context, {String selection = '', Offset? at}) async {
     final replies = m.hasThread() ? m.thread.replies : 0;
     final sel = m.deleted ? '' : selection.trim();
-    final options = {
-      if (sel.isNotEmpty) ...{
-        'copySel': tr('Copy selection', 'Копировать выделенное'),
-        if (widget.onQuote != null) 'quote': tr('Quote', 'Цитировать'),
-        'forwardSel': tr('Forward selection', 'Переслать выделенное'),
-      },
-      if (!m.deleted && widget.onReply != null) 'reply': tr('Reply', 'Ответить'),
-      if (!m.deleted && widget.onThread != null) 'thread': replies > 0 ? tr('Open thread', 'Открыть тред') : tr('Reply in thread', 'Ответить в треде'),
-      if (!m.deleted && widget.onReact != null) 'react': tr('React', 'Реакция'),
-      if (!m.deleted && m.text.isNotEmpty) 'copy': tr('Copy text', 'Копировать текст'),
-      if (!m.deleted && m.text.isNotEmpty && !_inlineSelect) 'selectText': tr('Select text', 'Выделить текст'),
-      if (!m.deleted && widget.onForward != null) 'forward': tr('Forward', 'Переслать'),
-      if (widget.onSelect != null) 'select': tr('Select', 'Выбрать'),
+    final links = m.deleted ? const <TextLink>[] : formattedLinks(m.text, m.format).take(3).toList();
+    final live = !m.deleted;
+    final items = <HmMenuItem<String>>[
+      if (sel.isNotEmpty) ...[
+        (value: 'copySel', label: tr('Copy selection', 'Копировать выделенное')),
+        if (widget.onQuote != null) (value: 'quote', label: tr('Quote', 'Цитировать')),
+        (value: 'forwardSel', label: tr('Forward selection', 'Переслать выделенное')),
+      ],
+      if (live && widget.onReply != null) (value: 'reply', label: tr('Reply', 'Ответить')),
+      if (live && widget.onEdit != null) (value: 'edit', label: tr('Edit', 'Редактировать')),
+      if (live && widget.onThread != null)
+        (value: 'thread', label: replies > 0 ? tr('Open thread', 'Открыть тред') : tr('Reply in thread', 'Ответить в треде')),
+      if (live && widget.onReact != null) (value: 'react', label: tr('React', 'Реакция')),
+      if (live && m.text.isNotEmpty) (value: 'copy', label: tr('Copy text', 'Копировать текст')),
+      for (final (i, l) in links.indexed) (value: 'copyLink$i', label: '${tr('Copy link', 'Копировать ссылку')} · ${_linkLabel(l)}'),
+      if (live && m.text.isNotEmpty && !_inlineSelect) (value: 'selectText', label: tr('Select text', 'Выделить текст')),
+      if (live && widget.onForward != null) (value: 'forward', label: tr('Forward', 'Переслать')),
+      if (widget.onSelect != null) (value: 'select', label: tr('Select', 'Выбрать')),
+      if (live && widget.onDelete != null) (value: 'delete', label: tr('Delete', 'Удалить')),
       for (final (i, a) in m.attachments.indexed)
-        if (a.ref.isNotEmpty) 'save$i': '${tr('Save', 'Сохранить')} · ${attachmentText(a).$1}',
-    };
-    if (options.isEmpty) return;
-    final v = await pickOption<String>(context, title: tr('Message', 'Сообщение'), options: options);
+        if (a.ref.isNotEmpty) ...[
+          (value: 'save$i', label: '${tr('Save to Downloads', 'Сохранить в «Загрузки»')} · ${attachmentText(a).$1}'),
+          if (canAskSavePath) (value: 'saveAs$i', label: '${tr('Save as…', 'Сохранить как…')} · ${attachmentText(a).$1}'),
+        ],
+    ];
+    final v = await showContextMenu<String>(context, title: tr('Message', 'Сообщение'), items: items, position: at, anchor: _bubbleKey.currentContext);
     if (!context.mounted) return;
     switch (v) {
       case 'copySel':
@@ -589,6 +665,8 @@ class _MessageTileState extends State<MessageTile> {
         await forwardMessages(context, [m], fragment: sel);
       case 'reply':
         widget.onReply!();
+      case 'edit':
+        widget.onEdit!();
       case 'thread':
         widget.onThread!();
       case 'react':
@@ -602,10 +680,19 @@ class _MessageTileState extends State<MessageTile> {
         widget.onForward!();
       case 'select':
         widget.onSelect!();
+      case 'delete':
+        widget.onDelete!();
+      case final String s when s.startsWith('copyLink'):
+        await _copy(links[int.parse(s.substring(8))].uri.toString().replaceFirst('mailto:', ''));
+      case final String s when s.startsWith('saveAs'):
+        await saveAttachment(context, m.accountId, m.attachments[int.parse(s.substring(6))], ask: true);
       case final String s when s.startsWith('save'):
         await saveAttachment(context, m.accountId, m.attachments[int.parse(s.substring(4))]);
     }
   }
+
+  /// A link as the menu names it: its host, or the address of a mail link.
+  static String _linkLabel(TextLink l) => l.uri.scheme == 'mailto' ? l.uri.path : l.uri.host;
 
   /// Phones: the text in a sheet, to select a part of it and copy, quote
   /// or forward that part (nothing selected: all of it).
@@ -642,7 +729,9 @@ class _MessageTileState extends State<MessageTile> {
     final mediaWidth = hm.mobile ? MediaQuery.sizeOf(context).width * 0.7 : 360.0;
     final thread = m.hasThread() && m.thread.replies > 0 && widget.onThread != null ? m.thread : null;
     final quoted = widget.quoted;
-    Widget text = Text(m.text);
+    Widget text = HmRichText(m.text, spans: m.format);
+    // A link's page preview; a message with pictures or files shows those.
+    final preview = !m.deleted && m.attachments.isEmpty && linkPreviewsOn ? previewLink(m.text) : null;
     if (_inlineSelect && !widget.selecting) {
       text = SelectionArea(
         onSelectionChanged: (c) => _selection = c?.plainText ?? '',
@@ -652,6 +741,7 @@ class _MessageTileState extends State<MessageTile> {
       );
     }
     final bubble = HmBubble(
+      boxKey: _bubbleKey,
       outgoing: m.outgoing,
       dim: m.deleted,
       child: Column(
@@ -698,6 +788,7 @@ class _MessageTileState extends State<MessageTile> {
                 padding: EdgeInsets.only(top: m.attachments.isEmpty ? 0 : 4),
                 child: text,
               ),
+            if (preview != null) LinkPreviewCard(uri: preview, maxWidth: mediaWidth),
             if (m.reactions.isNotEmpty)
               HmReactions(items: [for (final r in m.reactions) (r.emoji, r.count, r.mine)], onTap: widget.selecting ? null : widget.onReact),
             if (thread != null)
@@ -759,11 +850,12 @@ class _MessageTileState extends State<MessageTile> {
           onPointerDown: (e) {
             if (widget.selecting || e.kind != PointerDeviceKind.mouse || e.buttons & kSecondaryMouseButton == 0) return;
             final sel = _selection;
-            _menu(context, selection: sel);
+            _menu(context, selection: sel, at: e.position);
           },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onLongPress: widget.selecting ? widget.onSelect : () => _menu(context),
+            onLongPress: widget.selecting ? widget.onSelect : null,
+            onLongPressStart: widget.selecting ? null : (d) => _menu(context, at: d.globalPosition),
             onDoubleTap: widget.selecting || m.deleted || widget.onReply == null ? null : widget.onReply,
             child: body,
           ),
@@ -852,17 +944,31 @@ class _Composer extends StatefulWidget {
 }
 
 class _ComposerState extends State<_Composer> {
-  // Unsent text per chat, while the app runs.
+  // Unsent text and files per chat, while the app runs.
   static final _drafts = <ChatKey, String>{};
+  static final _draftFiles = <ChatKey, List<LocalFile>>{};
 
   late final _text = TextEditingController(text: _drafts[widget.chat]);
+  late final _files = PendingFiles(_draftFiles[widget.chat] ?? const []);
   final _focus = FocusNode();
   late final ChatCubit _cubit = context.read<ChatCubit>();
+  bool _sending = false; // files or an edit are on their way
+
+  /// The draft put aside while a message is edited (null: not editing).
+  String? _beforeEdit;
+
+  /// People after "@" (null: the messenger has no mentions).
+  MentionPicker? _mentions;
 
   @override
   void initState() {
     super.initState();
+    if (canMention(context.read<MessengerCubit>().state.account(widget.chat.account))) {
+      final core = context.read<CoreCubit>();
+      _mentions = MentionPicker(api: () => core.api, account: widget.chat.account, chat: widget.chat.chat, text: _text);
+    }
     _text.addListener(() => setState(() {}));
+    _files.addListener(() => setState(() {}));
     // Desktop: type right away in the chat just opened.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !Hm.of(context).mobile) _focus.requestFocus();
@@ -871,22 +977,85 @@ class _ComposerState extends State<_Composer> {
 
   @override
   void dispose() {
-    final t = _text.text;
+    final t = _beforeEdit ?? _text.text;
     t.isEmpty ? _drafts.remove(widget.chat) : _drafts[widget.chat] = t;
+    _files.isEmpty ? _draftFiles.remove(widget.chat) : _draftFiles[widget.chat] = _files.value;
+    _mentions?.dispose();
     _text.dispose();
+    _files.dispose();
     _focus.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
     final text = _text.text.trim();
-    if (text.isEmpty) return;
+    final files = _files.value;
+    if (_sending) return;
+    if (_cubit.state.editing != null) return _saveEdit(text);
+    if (text.isEmpty && files.isEmpty) return;
+    if (files.isNotEmpty) return _sendFiles(text, files);
+    final mentions = _mentions?.mentionsIn(text) ?? const <pb.Mention>[];
     _text.clear();
     try {
-      await _cubit.send(text);
+      await _cubit.send(text, mentions: mentions);
+      _mentions?.sent();
     } catch (e) {
       if (_text.text.isEmpty) _text.text = text;
       Toasts.error(tr('Not sent', 'Не отправлено'), errorText(e));
+    }
+  }
+
+  /// The edited text goes in place of the message's; the draft comes back
+  /// once it is saved (the listener below).
+  Future<void> _saveEdit(String text) async {
+    if (text.isEmpty) return;
+    setState(() => _sending = true);
+    try {
+      await _cubit.saveEdit(text);
+    } catch (e) {
+      Toasts.error(tr('Not saved', 'Не сохранено'), errorText(e));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  /// Editing started, moved to another message or ended: the composer
+  /// holds the message's text meanwhile, the draft before and after.
+  void _editingChanged(pb.Message? now) {
+    if (now != null) {
+      _beforeEdit ??= _text.text;
+      final source = editSource(now);
+      _text.value = TextEditingValue(
+        text: source,
+        selection: TextSelection.collapsed(offset: source.length),
+      );
+      _focus.requestFocus();
+    } else {
+      _text.text = _beforeEdit ?? '';
+      _beforeEdit = null;
+    }
+  }
+
+  /// Files take a while: they and the caption stay in the composer until
+  /// they are sent, so a failure loses nothing.
+  Future<void> _sendFiles(String text, List<LocalFile> files) async {
+    final chat = widget.chat;
+    setState(() => _sending = true);
+    try {
+      await _cubit.send(text, files: files, mentions: _mentions?.mentionsIn(text) ?? const []);
+      _mentions?.sent();
+      if (!mounted) {
+        // The chat was left meanwhile: its draft is what was sent.
+        _draftFiles.remove(chat);
+        if (_drafts[chat]?.trim() == text) _drafts.remove(chat);
+        return;
+      }
+      _files.value = const [];
+      if (_text.text.trim() == text) _text.clear();
+    } catch (e) {
+      Toasts.error(tr('Not sent', 'Не отправлено'), errorText(e));
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
   }
 
@@ -894,10 +1063,17 @@ class _ComposerState extends State<_Composer> {
   Widget build(BuildContext context) {
     final hm = Hm.of(context);
     final reply = context.select<ChatCubit, pb.Message?>((c) => c.state.replyTo);
+    final editing = context.select<ChatCubit, pb.Message?>((c) => c.state.editing);
+    final files = editing == null && context.select<MessengerCubit, bool>((c) => canSendFiles(c.state.account(widget.chat.account)));
     final quote = context.select<ChatCubit, String?>((c) => c.state.quote);
-    return BlocListener<ChatCubit, ChatState>(
-      listenWhen: (a, b) => b.replyTo != null && (a.replyTo != b.replyTo || a.quote != b.quote),
-      listener: (_, _) => _focus.requestFocus(),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ChatCubit, ChatState>(
+          listenWhen: (a, b) => b.replyTo != null && (a.replyTo != b.replyTo || a.quote != b.quote),
+          listener: (_, _) => _focus.requestFocus(),
+        ),
+        BlocListener<ChatCubit, ChatState>(listenWhen: (a, b) => a.editing?.id != b.editing?.id, listener: (_, s) => _editingChanged(s.editing)),
+      ],
       child: Container(
         padding: EdgeInsets.fromLTRB(hm.mobile ? 12 : 24, 10, hm.mobile ? 8 : 24, 10),
         decoration: const BoxDecoration(
@@ -914,16 +1090,33 @@ class _ComposerState extends State<_Composer> {
                 text: quote != null ? quote.replaceAll(RegExp(r'\s+'), ' ') : messagePreview(reply),
                 trailing: HmIconButton(icon: Icons.close, label: tr('Cancel reply', 'Отменить ответ'), onPressed: () => _cubit.reply(null)),
               ),
+            if (editing != null)
+              HmQuote(
+                title: tr('Editing', 'Редактирование'),
+                text: messagePreview(editing),
+                trailing: HmIconButton(icon: Icons.close, label: tr('Cancel editing', 'Отменить редактирование'), onPressed: () => _cubit.edit(null)),
+              ),
+            if (files) PendingFilesStrip(files: _files, enabled: !_sending),
+            if (_mentions != null) MentionList(picker: _mentions!),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                if (files) ...[AttachButton(files: _files, enabled: !_sending), const SizedBox(width: 8)],
                 Expanded(
                   child: CallbackShortcuts(
-                    bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => _cubit.reply(null)},
+                    bindings: {
+                      const SingleActivator(LogicalKeyboardKey.escape): () {
+                        _cubit.reply(null);
+                        _cubit.edit(null);
+                      },
+                    },
                     child: HmMessageField(
                       controller: _text,
                       focusNode: _focus,
                       onSend: _send,
+                      onKey: _mentions?.onKey,
+                      onPaste: files ? () => attachFromClipboard(_files) : null,
+                      onInsertContent: files ? (c) => attachInserted(_files, c) : null,
                       placeholder: hm.mobile
                           ? tr('Message', 'Сообщение')
                           : tr('Message — Enter to send, Shift+Enter for a new line', 'Сообщение — Enter отправить, Shift+Enter новая строка'),
@@ -931,7 +1124,18 @@ class _ComposerState extends State<_Composer> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                HmIconButton(icon: Icons.send, label: tr('Send', 'Отправить'), color: HmColors.accent, onPressed: _text.text.trim().isEmpty ? null : _send),
+                _sending
+                    ? SizedBox(
+                        width: hm.toolbar,
+                        height: hm.toolbar,
+                        child: const Center(child: SizedBox(width: 16, height: 16, child: HmSpinner())),
+                      )
+                    : HmIconButton(
+                        icon: editing != null ? Icons.check : Icons.send,
+                        label: editing != null ? tr('Save', 'Сохранить') : tr('Send', 'Отправить'),
+                        color: HmColors.accent,
+                        onPressed: _text.text.trim().isEmpty && (editing != null || _files.isEmpty) ? null : _send,
+                      ),
               ],
             ),
           ],

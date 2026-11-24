@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
+import 'messages.dart';
+
+/// Files to send as the request carries them.
+List<pb.OutFile> outFiles(List<LocalFile> files) => [for (final f in files) pb.OutFile(name: f.name, mime: f.mime, data: f.data)];
 
 class ChatState extends Equatable {
   const ChatState({
@@ -19,6 +24,7 @@ class ChatState extends Equatable {
     this.error,
     this.replyTo,
     this.quote,
+    this.editing,
     this.selected = const {},
     this.rev = 0,
   });
@@ -41,6 +47,9 @@ class ChatState extends Equatable {
   /// The fragment of [replyTo]'s text the reply quotes.
   final String? quote;
 
+  /// The account's message whose text the composer is changing.
+  final pb.Message? editing;
+
   /// Messages picked to copy or forward together (the ids shown: an
   /// album's is its captioned part). Empty: not picking.
   final Set<String> selected;
@@ -58,9 +67,11 @@ class ChatState extends Equatable {
     String? error,
     pb.Message? replyTo,
     String? quote,
+    pb.Message? editing,
     Set<String>? selected,
     bool clearError = false,
     bool clearReply = false,
+    bool clearEdit = false,
   }) => ChatState(
     messages: messages ?? this.messages,
     loading: loading ?? this.loading,
@@ -71,6 +82,7 @@ class ChatState extends Equatable {
     error: clearError ? null : error ?? this.error,
     replyTo: clearReply ? null : replyTo ?? this.replyTo,
     quote: clearReply ? null : (replyTo != null ? quote : this.quote),
+    editing: clearEdit ? null : editing ?? this.editing,
     selected: selected ?? this.selected,
     rev: rev + 1,
   );
@@ -162,7 +174,35 @@ class ChatCubit extends Cubit<ChatState> {
   /// Replies to [m] (null: cancels), quoting [quote] of its text.
   void reply(pb.Message? m, {String? quote}) {
     final q = quote?.trim();
-    emit(m == null ? state.copyWith(clearReply: true) : state.copyWith(replyTo: m, quote: q == null || q.isEmpty ? null : q));
+    emit(m == null ? state.copyWith(clearReply: true) : state.copyWith(replyTo: m, quote: q == null || q.isEmpty ? null : q, clearEdit: true));
+  }
+
+  /// Starts changing the text of the account's message [m] in the
+  /// composer (null: cancels).
+  void edit(pb.Message? m) => emit(m == null ? state.copyWith(clearEdit: true) : state.copyWith(editing: m, clearReply: true));
+
+  /// Saves the new [text] of the message being edited; throws so the
+  /// composer keeps it on failure.
+  Future<void> saveEdit(String text) async {
+    final m = state.editing;
+    if (m == null) return;
+    if (text != editSource(m)) {
+      final r = await _api.edit(pb.EditRequest(accountId: key.account, chatId: key.chat, messageId: m.id, text: text));
+      if (isClosed) return;
+      // The reply may carry only the new text: patch what is shown.
+      final cur = state.byId(m.id);
+      if (cur != null) {
+        _put(
+          cur.deepCopy()
+            ..text = r.text
+            ..format.clear()
+            ..format.addAll(r.format)
+            ..markdown = r.markdown
+            ..editedMs = r.editedMs,
+        );
+      }
+    }
+    if (state.editing?.id == m.id) emit(state.copyWith(clearEdit: true));
   }
 
   /// Picks [id] for copying or forwarding, or drops it.
@@ -176,12 +216,24 @@ class ChatCubit extends Cubit<ChatState> {
     if (state.selected.isNotEmpty) emit(state.copyWith(selected: const {}));
   }
 
-  /// Sends [text]; throws so the composer can keep the text on failure.
-  Future<void> send(String text) async {
+  /// Sends [text] with [files] (its caption then); throws so the composer
+  /// can keep both on failure.
+  Future<void> send(String text, {List<LocalFile> files = const [], List<pb.Mention> mentions = const []}) async {
     final reply = state.replyTo;
-    final m = await _api.send(pb.SendRequest(accountId: key.account, chatId: key.chat, text: text, replyToId: reply?.id ?? '', quote: state.quote ?? ''));
+    final m = await _api.send(
+      pb.SendRequest(
+        accountId: key.account,
+        chatId: key.chat,
+        text: text,
+        replyToId: reply?.id ?? '',
+        quote: state.quote ?? '',
+        files: outFiles(files),
+        mentions: mentions,
+      ),
+    );
     if (isClosed) return;
-    _put(m);
+    // Empty: the messenger does not echo what was sent; it comes as an event.
+    if (m.id.isNotEmpty) _put(m);
     if (state.replyTo == reply) emit(state.copyWith(clearReply: true));
   }
 

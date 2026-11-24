@@ -9,6 +9,7 @@ import '../../core/settings/app_settings.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/biometric.dart';
+import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import '../common/hm.dart';
@@ -301,6 +302,7 @@ class _UnlockState extends State<_Unlock> {
           HmPageTitle(tr('Unlock vault', 'Разблокировать хранилище')),
           const SizedBox(height: 8),
           Text(path, style: HmText.small, overflow: TextOverflow.ellipsis),
+          const _OtherVault(),
           const SizedBox(height: 20),
           HmTextField(
             label: tr('Password', 'Пароль'),
@@ -390,6 +392,7 @@ class _SetupState extends State<_Setup> {
             ),
             style: HmText.small.copyWith(height: 1.5),
           ),
+          const _OtherVault(),
           const SizedBox(height: 20),
           if (_error != null) ...[HmBanner(_error!, tone: HmTone.error), SizedBox(height: hm.gapSm)],
           HmTextField(label: tr('Password', 'Пароль'), required: true, password: true, autofocus: true, controller: _password, error: _errors['password']),
@@ -411,6 +414,35 @@ class _SetupState extends State<_Setup> {
             children: [HmButton(tr('Create vault', 'Создать хранилище'), variant: HmVariant.primary, loading: _busy, expand: hm.mobile, onPressed: _submit)],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Open another vault file": a vault brought from another machine, or one
+/// kept on a stick or in a synced folder (desktops).
+class _OtherVault extends StatelessWidget {
+  const _OtherVault();
+
+  Future<void> _pick(BuildContext context) async {
+    final core = context.read<CoreCubit>();
+    final path = await pickVaultFile();
+    if (path == null) return;
+    try {
+      await core.setVaultPath(path);
+    } catch (e) {
+      Toasts.error('${tr('Could not open the vault', 'Не удалось открыть хранилище')}: ${errorText(e)}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!canAskSavePath) return const SizedBox();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: HmButton(tr('Open another vault file…', 'Открыть другой файл хранилища…'), icon: Icons.folder_open_outlined, onPressed: () => _pick(context)),
       ),
     );
   }

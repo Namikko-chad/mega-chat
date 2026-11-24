@@ -223,6 +223,22 @@ func (c *session) UpdateMail(_ context.Context, ids []string, action model.MailA
 	return nil
 }
 
+func (c *session) MoveMail(_ context.Context, ids []string, _, to string) error {
+	if !slices.ContainsFunc(demoFolders(), func(f model.Folder) bool { return f.ID == to }) {
+		return fmt.Errorf("fake: no folder %s", to)
+	}
+	c.s.mu.Lock()
+	defer c.s.mu.Unlock()
+	for _, id := range ids {
+		m, err := c.find(id)
+		if err != nil {
+			return err
+		}
+		m.FolderID = to
+	}
+	return nil
+}
+
 // --- calendars ---------------------------------------------------------------
 
 func (c *session) Calendars(context.Context) ([]model.Calendar, error) {

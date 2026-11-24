@@ -35,6 +35,7 @@ class MailState extends Equatable {
     this.open,
     this.body,
     this.bodyError,
+    this.selected = const {},
     this.rev = 0,
   });
 
@@ -54,7 +55,15 @@ class MailState extends Equatable {
   final MailKey? open;
   final pb.Mail? body;
   final String? bodyError;
+
+  /// Messages ticked for an action on all of them; empty: not picking.
+  final Set<MailKey> selected;
   final int rev;
+
+  List<pb.Mail> get selectedMails => [
+    for (final m in mails)
+      if (selected.contains(mailKey(m))) m,
+  ];
 
   /// Unread of one role over all accounts.
   int unreadOf(pb.FolderRole role) => folders.where((f) => f.role == role).fold(0, (n, f) => n + f.unread);
@@ -76,6 +85,7 @@ class MailState extends Equatable {
     MailKey? open,
     pb.Mail? body,
     String? bodyError,
+    Set<MailKey>? selected,
     bool clearError = false,
     bool close = false,
     bool clearBody = false,
@@ -92,6 +102,7 @@ class MailState extends Equatable {
     open: close ? null : open ?? this.open,
     body: close || clearBody ? null : body ?? this.body,
     bodyError: close || clearBody ? null : bodyError ?? this.bodyError,
+    selected: selected ?? this.selected,
     rev: rev + 1,
   );
 
@@ -185,6 +196,7 @@ class MailCubit extends Cubit<MailState> {
           folders: f.folders,
           failed: [...f.failed, ...l.failed],
           mails: merged,
+          selected: state.selected.isEmpty ? null : {for (final m in merged) mailKey(m)}.intersection(state.selected),
           next: state.mails.length > l.mails.length ? state.next : l.next,
           more: state.mails.length > l.mails.length ? state.more : l.more,
           close: gone,
@@ -240,7 +252,29 @@ class MailCubit extends Cubit<MailState> {
 
   /// Marks, stars or trashes a message; the list follows at once, the
   /// core confirms with KIND_MAIL.
-  Future<void> act(MailKey k, pb.MailAction a) async {
+  Future<void> act(MailKey k, pb.MailAction a) => actMany({k}, a);
+
+  /// Ticks or unticks a message.
+  void toggleSelected(MailKey k) {
+    final s = {...state.selected};
+    if (!s.remove(k)) s.add(k);
+    emit(state.copyWith(selected: s));
+  }
+
+  /// Ticks every message shown (all ticked already: none).
+  void selectAll() {
+    final all = {for (final m in state.mails) mailKey(m)};
+    emit(state.copyWith(selected: state.selected.containsAll(all) ? const {} : all));
+  }
+
+  void clearSelected() {
+    if (state.selected.isNotEmpty) emit(state.copyWith(selected: const {}));
+  }
+
+  /// Does [a] to every message of [keys] (one request per account); the
+  /// list follows at once. Throws the first failure after trying all.
+  Future<void> actMany(Set<MailKey> keys, pb.MailAction a) async {
+    if (keys.isEmpty) return;
     void patch(void Function(pb.Mail m) fn) {
       pb.Mail changed(pb.Mail m) {
         final c = m.deepCopy();
@@ -248,8 +282,8 @@ class MailCubit extends Cubit<MailState> {
         return c;
       }
 
-      final mails = [for (final m in state.mails) mailKey(m) == k ? changed(m) : m];
-      final body = state.body != null && mailKey(state.body!) == k ? changed(state.body!) : null;
+      final mails = [for (final m in state.mails) keys.contains(mailKey(m)) ? changed(m) : m];
+      final body = state.body != null && keys.contains(mailKey(state.body!)) ? changed(state.body!) : null;
       emit(state.copyWith(mails: mails, body: body));
     }
 
@@ -263,10 +297,69 @@ class MailCubit extends Cubit<MailState> {
       case pb.MailAction.MAIL_ACTION_UNSTAR:
         patch((m) => m.starred = false);
       case pb.MailAction.MAIL_ACTION_TRASH:
-        emit(state.copyWith(mails: state.mails.where((m) => mailKey(m) != k).toList(), close: state.open == k));
+        _drop(keys);
       default:
     }
-    await api.updateMail(pb.UpdateMailRequest(accountId: k.account, ids: [k.id], action: a));
+    final byAccount = <String, List<String>>{};
+    for (final k in keys) {
+      (byAccount[k.account] ??= []).add(k.id);
+    }
+    await _all([for (final e in byAccount.entries) api.updateMail(pb.UpdateMailRequest(accountId: e.key, ids: e.value, action: a))]);
+  }
+
+  /// Moves [mails] to [folder] of their account, or with [role] to the
+  /// folder of that role of each one's account. Returns how many could
+  /// not go anywhere (their account has no such folder).
+  Future<int> move(List<pb.Mail> mails, {pb.FolderRole? role, pb.Folder? folder}) async {
+    final groups = <(String, String, String), List<String>>{}; // account, from, to → ids
+    final moved = <MailKey>{};
+    var skipped = 0;
+    for (final m in mails) {
+      final to = folder != null
+          ? (folder.accountId == m.accountId ? folder : null)
+          : state.folders.where((f) => f.accountId == m.accountId && f.role == role).firstOrNull;
+      if (to == null) {
+        skipped++;
+        continue;
+      }
+      if (to.id == m.folderId) continue;
+      (groups[(m.accountId, m.folderId, to.id)] ??= []).add(m.id);
+      moved.add(mailKey(m));
+    }
+    // Out of this view, unless the view is where they go.
+    final v = state.view;
+    final stays = folder != null ? (v.account == folder.accountId && v.folder == folder.id) : (v.account.isEmpty && v.role == role);
+    if (!stays) _drop(moved);
+    await _all([
+      for (final e in groups.entries) api.moveMail(pb.MoveMailRequest(accountId: e.key.$1, fromFolderId: e.key.$2, toFolderId: e.key.$3, ids: e.value)),
+    ]);
+    return skipped;
+  }
+
+  /// Takes messages out of the list (and the selection, and the reader).
+  void _drop(Set<MailKey> keys) => emit(
+    state.copyWith(
+      mails: state.mails.where((m) => !keys.contains(mailKey(m))).toList(),
+      selected: state.selected.difference(keys),
+      close: state.open != null && keys.contains(state.open),
+    ),
+  );
+
+  /// Waits for every request; the first failure is thrown after all ended
+  /// (the list is reloaded to show what really happened).
+  Future<void> _all(List<Future<Object?>> calls) async {
+    Object? failure;
+    for (final c in calls) {
+      try {
+        await c;
+      } catch (e) {
+        failure ??= e;
+      }
+    }
+    if (failure != null) {
+      _scheduleReload();
+      throw failure;
+    }
   }
 
   Future<void> send(pb.SendMailRequest r) async {

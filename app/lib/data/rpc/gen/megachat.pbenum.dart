@@ -41,6 +41,22 @@ class Capability extends $pb.ProtobufEnum {
       Capability._(9, _omitEnumNames ? '' : 'CAPABILITY_TOPICS');
   static const Capability CAPABILITY_FORWARD =
       Capability._(10, _omitEnumNames ? '' : 'CAPABILITY_FORWARD');
+  static const Capability CAPABILITY_FILES =
+      Capability._(11, _omitEnumNames ? '' : 'CAPABILITY_FILES');
+  static const Capability CAPABILITY_PROFILES =
+      Capability._(12, _omitEnumNames ? '' : 'CAPABILITY_PROFILES');
+  static const Capability CAPABILITY_EDIT =
+      Capability._(13, _omitEnumNames ? '' : 'CAPABILITY_EDIT');
+  static const Capability CAPABILITY_DELETE =
+      Capability._(14, _omitEnumNames ? '' : 'CAPABILITY_DELETE');
+  static const Capability CAPABILITY_DELETE_FOR_ME =
+      Capability._(15, _omitEnumNames ? '' : 'CAPABILITY_DELETE_FOR_ME');
+  static const Capability CAPABILITY_MENTIONS =
+      Capability._(16, _omitEnumNames ? '' : 'CAPABILITY_MENTIONS');
+  static const Capability CAPABILITY_CHAT_FOLDERS =
+      Capability._(17, _omitEnumNames ? '' : 'CAPABILITY_CHAT_FOLDERS');
+  static const Capability CAPABILITY_MANAGE_CHATS =
+      Capability._(18, _omitEnumNames ? '' : 'CAPABILITY_MANAGE_CHATS');
 
   static const $core.List<Capability> values = <Capability>[
     CAPABILITY_UNSPECIFIED,
@@ -54,14 +70,60 @@ class Capability extends $pb.ProtobufEnum {
     CAPABILITY_MEDIA,
     CAPABILITY_TOPICS,
     CAPABILITY_FORWARD,
+    CAPABILITY_FILES,
+    CAPABILITY_PROFILES,
+    CAPABILITY_EDIT,
+    CAPABILITY_DELETE,
+    CAPABILITY_DELETE_FOR_ME,
+    CAPABILITY_MENTIONS,
+    CAPABILITY_CHAT_FOLDERS,
+    CAPABILITY_MANAGE_CHATS,
   ];
 
   static final $core.List<Capability?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 10);
+      $pb.ProtobufEnum.$_initByValueList(values, 18);
   static Capability? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const Capability._(super.value, super.name);
+}
+
+/// Something the account does to one of its chats (ManageChat).
+class ChatAction extends $pb.ProtobufEnum {
+  static const ChatAction CHAT_ACTION_UNSPECIFIED =
+      ChatAction._(0, _omitEnumNames ? '' : 'CHAT_ACTION_UNSPECIFIED');
+  static const ChatAction CHAT_ACTION_MUTE =
+      ChatAction._(1, _omitEnumNames ? '' : 'CHAT_ACTION_MUTE');
+  static const ChatAction CHAT_ACTION_UNMUTE =
+      ChatAction._(2, _omitEnumNames ? '' : 'CHAT_ACTION_UNMUTE');
+  static const ChatAction CHAT_ACTION_PIN =
+      ChatAction._(3, _omitEnumNames ? '' : 'CHAT_ACTION_PIN');
+  static const ChatAction CHAT_ACTION_UNPIN =
+      ChatAction._(4, _omitEnumNames ? '' : 'CHAT_ACTION_UNPIN');
+  static const ChatAction CHAT_ACTION_ARCHIVE =
+      ChatAction._(5, _omitEnumNames ? '' : 'CHAT_ACTION_ARCHIVE');
+  static const ChatAction CHAT_ACTION_UNARCHIVE =
+      ChatAction._(6, _omitEnumNames ? '' : 'CHAT_ACTION_UNARCHIVE');
+  static const ChatAction CHAT_ACTION_LEAVE =
+      ChatAction._(7, _omitEnumNames ? '' : 'CHAT_ACTION_LEAVE');
+
+  static const $core.List<ChatAction> values = <ChatAction>[
+    CHAT_ACTION_UNSPECIFIED,
+    CHAT_ACTION_MUTE,
+    CHAT_ACTION_UNMUTE,
+    CHAT_ACTION_PIN,
+    CHAT_ACTION_UNPIN,
+    CHAT_ACTION_ARCHIVE,
+    CHAT_ACTION_UNARCHIVE,
+    CHAT_ACTION_LEAVE,
+  ];
+
+  static final $core.List<ChatAction?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 7);
+  static ChatAction? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ChatAction._(super.value, super.name);
 }
 
 class AccountStatus extends $pb.ProtobufEnum {
@@ -152,6 +214,52 @@ class AttachmentKind extends $pb.ProtobufEnum {
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const AttachmentKind._(super.value, super.name);
+}
+
+class TextStyle extends $pb.ProtobufEnum {
+  static const TextStyle TEXT_STYLE_UNSPECIFIED =
+      TextStyle._(0, _omitEnumNames ? '' : 'TEXT_STYLE_UNSPECIFIED');
+  static const TextStyle TEXT_STYLE_BOLD =
+      TextStyle._(1, _omitEnumNames ? '' : 'TEXT_STYLE_BOLD');
+  static const TextStyle TEXT_STYLE_ITALIC =
+      TextStyle._(2, _omitEnumNames ? '' : 'TEXT_STYLE_ITALIC');
+  static const TextStyle TEXT_STYLE_UNDERLINE =
+      TextStyle._(3, _omitEnumNames ? '' : 'TEXT_STYLE_UNDERLINE');
+  static const TextStyle TEXT_STYLE_STRIKE =
+      TextStyle._(4, _omitEnumNames ? '' : 'TEXT_STYLE_STRIKE');
+  static const TextStyle TEXT_STYLE_SPOILER =
+      TextStyle._(5, _omitEnumNames ? '' : 'TEXT_STYLE_SPOILER');
+  static const TextStyle TEXT_STYLE_CODE =
+      TextStyle._(6, _omitEnumNames ? '' : 'TEXT_STYLE_CODE');
+  static const TextStyle TEXT_STYLE_PRE =
+      TextStyle._(7, _omitEnumNames ? '' : 'TEXT_STYLE_PRE');
+  static const TextStyle TEXT_STYLE_LINK =
+      TextStyle._(8, _omitEnumNames ? '' : 'TEXT_STYLE_LINK');
+  static const TextStyle TEXT_STYLE_QUOTE =
+      TextStyle._(9, _omitEnumNames ? '' : 'TEXT_STYLE_QUOTE');
+  static const TextStyle TEXT_STYLE_HEADING =
+      TextStyle._(10, _omitEnumNames ? '' : 'TEXT_STYLE_HEADING');
+
+  static const $core.List<TextStyle> values = <TextStyle>[
+    TEXT_STYLE_UNSPECIFIED,
+    TEXT_STYLE_BOLD,
+    TEXT_STYLE_ITALIC,
+    TEXT_STYLE_UNDERLINE,
+    TEXT_STYLE_STRIKE,
+    TEXT_STYLE_SPOILER,
+    TEXT_STYLE_CODE,
+    TEXT_STYLE_PRE,
+    TEXT_STYLE_LINK,
+    TEXT_STYLE_QUOTE,
+    TEXT_STYLE_HEADING,
+  ];
+
+  static final $core.List<TextStyle?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 10);
+  static TextStyle? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const TextStyle._(super.value, super.name);
 }
 
 class CallState extends $pb.ProtobufEnum {
@@ -370,6 +478,8 @@ class Event_Kind extends $pb.ProtobufEnum {
       Event_Kind._(10, _omitEnumNames ? '' : 'KIND_CALL');
   static const Event_Kind KIND_CALL_SIGNAL =
       Event_Kind._(11, _omitEnumNames ? '' : 'KIND_CALL_SIGNAL');
+  static const Event_Kind KIND_CHAT_FOLDERS =
+      Event_Kind._(12, _omitEnumNames ? '' : 'KIND_CHAT_FOLDERS');
   static const Event_Kind KIND_MAIL_NEW =
       Event_Kind._(20, _omitEnumNames ? '' : 'KIND_MAIL_NEW');
   static const Event_Kind KIND_MAIL =
@@ -390,6 +500,7 @@ class Event_Kind extends $pb.ProtobufEnum {
     KIND_THREAD_MESSAGE,
     KIND_CALL,
     KIND_CALL_SIGNAL,
+    KIND_CHAT_FOLDERS,
     KIND_MAIL_NEW,
     KIND_MAIL,
     KIND_CALENDAR,

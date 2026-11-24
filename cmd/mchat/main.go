@@ -8,6 +8,7 @@
 //	mchat chats [-n N] [ACCOUNT...]
 //	mchat history ACCOUNT CHAT [-n N] [-before ID]
 //	mchat send ACCOUNT CHAT TEXT...
+//	mchat sendfile ACCOUNT CHAT PATH [TEXT...]
 //	mchat read ACCOUNT CHAT
 //	mchat folders [ACCOUNT...]
 //	mchat mail [-n N] [-before CURSOR] [ACCOUNT...] | mail ACCOUNT FOLDER
@@ -230,6 +231,22 @@ func run(ctx context.Context, c pb.MegaChatClient, cmd string, args []string) er
 			return err
 		}
 		printMessage(m)
+	case "sendfile":
+		if err := need(3); err != nil {
+			return err
+		}
+		data, err := os.ReadFile(args[2])
+		if err != nil {
+			return err
+		}
+		m, err := c.Send(ctx, &pb.SendRequest{AccountId: args[0], ChatId: args[1], Text: strings.Join(args[3:], " "),
+			Files: []*pb.OutFile{{Name: filepath.Base(args[2]), Data: data}}})
+		if err != nil {
+			return err
+		}
+		if m.GetId() != "" {
+			printMessage(m)
+		}
 	case "read":
 		if err := need(2); err != nil {
 			return err

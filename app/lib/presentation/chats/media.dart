@@ -1,6 +1,6 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -9,6 +9,7 @@ import '../../core/i18n.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/typography.dart';
+import '../../data/local_files.dart';
 import '../../data/media_store.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import '../common/hm.dart';
@@ -89,6 +90,7 @@ class MediaAvatar extends StatelessWidget {
     this.size = 36,
     this.corner,
     this.online = false,
+    this.showOffline = false,
   });
 
   final String account;
@@ -99,11 +101,20 @@ class MediaAvatar extends StatelessWidget {
   final double size;
   final Widget? corner;
   final bool online; // see HmAvatar.online
+  final bool showOffline; // see HmAvatar.showOffline
 
   @override
   Widget build(BuildContext context) {
-    HmAvatar plain([ImageProvider? image]) =>
-        HmAvatar(label: label, icon: image == null ? icon : null, color: color, size: size, corner: corner, image: image, online: online);
+    HmAvatar plain([ImageProvider? image]) => HmAvatar(
+      label: label,
+      icon: image == null ? icon : null,
+      color: color,
+      size: size,
+      corner: corner,
+      image: image,
+      online: online,
+      showOffline: showOffline,
+    );
     if (photo.isEmpty) return plain();
     return MediaBytes(account: account, ref: photo, maxBytes: 4 << 20, builder: (context, data, _) => plain(data == null ? null : MemoryImage(data)));
   }
@@ -255,8 +266,18 @@ class _FileRow extends StatelessWidget {
     final a = attachment;
     final (name, size) = attachmentText(a);
     final detail = [if (a.durationMs > 0) formatDuration(a.durationMs), if (size.isNotEmpty) size].join(' · ');
-    final row = HmAttachment(icon: attachmentIcon(a.kind), name: name, detail: detail);
-    if (a.ref.isEmpty) return row;
+    if (a.ref.isEmpty) return HmAttachment(icon: attachmentIcon(a.kind), name: name, detail: detail);
+    final row = HmAttachment(
+      icon: attachmentIcon(a.kind),
+      name: name,
+      detail: detail,
+      trailing: HmIconButton(
+        dense: true,
+        icon: Icons.download_outlined,
+        label: canAskSavePath ? tr('Save as…', 'Сохранить как…') : tr('Save to Downloads', 'Сохранить в «Загрузки»'),
+        onPressed: () => saveAttachment(context, account, a, ask: true),
+      ),
+    );
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -266,7 +287,7 @@ class _FileRow extends StatelessWidget {
         onLongPress: () => saveAttachment(context, account, a),
         onSecondaryTap: () => saveAttachment(context, account, a),
         child: Tooltip(
-          message: tr('Open · right click or hold to save', 'Открыть · правый клик или удержание — сохранить'),
+          message: tr('Open · right click or hold to save to Downloads', 'Открыть · правый клик или удержание — сохранить в «Загрузки»'),
           waitDuration: const Duration(seconds: 1),
           child: row,
         ),
@@ -309,99 +330,272 @@ Future<void> openAttachment(BuildContext context, String account, pb.Attachment 
   }
 }
 
-/// Saves an attachment to Downloads.
-Future<void> saveAttachment(BuildContext context, String account, pb.Attachment a) async {
+/// Saves an attachment to Downloads; with [ask] (desktops) the user picks
+/// where.
+Future<void> saveAttachment(BuildContext context, String account, pb.Attachment a, {bool ask = false}) async {
   final media = context.read<MessengerCubit>().media;
+  final name = attachmentFileName(a);
+  String? path;
+  if (ask && canAskSavePath) {
+    path = await askSavePath(name, directory: await MediaStore.downloadsDir());
+    if (path == null) return; // cancelled
+  }
+  if (a.size > MediaStore.prefetchMax) Toasts.show(tr('Downloading…', 'Скачиваю…'), detail: name);
   try {
-    final f = await media.save(account, a.ref, attachmentFileName(a));
-    if (f == null) {
+    final where = await media.save(account, a.ref, name, path: path, mime: a.mime);
+    if (where == null) {
       Toasts.error(tr('Could not download the file', 'Не удалось скачать файл'));
     } else {
-      Toasts.success(tr('Saved', 'Сохранено'), f.path);
+      Toasts.success(tr('Saved', 'Сохранено'), where);
     }
   } on MediaTooLarge {
     Toasts.error(tr('The file is too large', 'Файл слишком большой'));
+  } catch (e) {
+    Toasts.error(tr('Could not save the file', 'Не удалось сохранить файл'), '$e');
   }
 }
 
-/// A picture over the whole window: zoom and pan, save, open elsewhere.
-Future<void> showImageViewer(BuildContext context, String account, pb.Attachment a) => showGeneralDialog<void>(
-  context: context,
-  barrierDismissible: true,
-  barrierLabel: tr('Close', 'Закрыть'),
-  barrierColor: HmColors.bezel.withValues(alpha: 0.92),
-  pageBuilder: (dialogContext, _, _) => BlocProvider.value(
-    value: context.read<MessengerCubit>(),
-    child: _Viewer(account: account, attachment: a),
-  ),
-);
+/// The messages whose photos the picture viewer pages through: the loaded
+/// history of the chat or thread around it.
+class PhotoGallery extends InheritedWidget {
+  const PhotoGallery({super.key, required this.messages, required super.child});
 
-class _Viewer extends StatelessWidget {
-  const _Viewer({required this.account, required this.attachment});
+  /// Oldest first.
+  final List<pb.Message> messages;
+
+  @override
+  bool updateShouldNotify(PhotoGallery old) => false; // read once, on opening
+}
+
+/// The photos of [messages] in order, without deleted messages.
+List<pb.Attachment> galleryPhotos(Iterable<pb.Message> messages) => [
+  for (final m in messages)
+    if (!m.deleted)
+      for (final a in m.attachments)
+        if (a.kind == pb.AttachmentKind.ATTACHMENT_KIND_IMAGE && a.ref.isNotEmpty && a.thumb.isNotEmpty) a,
+];
+
+/// A picture over the whole window: zoom and pan, save, open elsewhere, and
+/// paging through the other photos of the chat. The list is fixed on
+/// opening, so that a new message does not move it.
+Future<void> showImageViewer(BuildContext context, String account, pb.Attachment a) {
+  final gallery = context.getInheritedWidgetOfExactType<PhotoGallery>();
+  var photos = galleryPhotos(gallery?.messages ?? const []);
+  var start = photos.indexWhere((p) => p.ref == a.ref);
+  if (start < 0) {
+    photos = [a];
+    start = 0;
+  }
+  return showGeneralDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: tr('Close', 'Закрыть'),
+    barrierColor: HmColors.bezel.withValues(alpha: 0.92),
+    pageBuilder: (dialogContext, _, _) => BlocProvider.value(
+      value: context.read<MessengerCubit>(),
+      child: _Viewer(account: account, photos: photos, start: start),
+    ),
+  );
+}
+
+class _Viewer extends StatefulWidget {
+  const _Viewer({required this.account, required this.photos, required this.start});
 
   final String account;
-  final pb.Attachment attachment;
+  final List<pb.Attachment> photos;
+  final int start;
+
+  @override
+  State<_Viewer> createState() => _ViewerState();
+}
+
+class _ViewerState extends State<_Viewer> {
+  // Swiping is for touch screens: on desktops the wheel zooms the picture
+  // and the arrows page.
+  static final bool _swipes = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+
+  late final PageController _pages = PageController(initialPage: widget.start);
+  late int _index = widget.start;
+  bool _zoomed = false;
+  int _pointers = 0;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  void _go(int delta) {
+    final to = _index + delta;
+    if (to < 0 || to >= widget.photos.length) return;
+    _pages.animateToPage(to, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+  }
+
+  void _touch(int delta) {
+    final before = _pointers > 1;
+    _pointers = (_pointers + delta).clamp(0, 10);
+    // A second finger is a pinch: the page must not take the gesture.
+    if (before != _pointers > 1) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    final a = attachment;
+    final account = widget.account;
+    final photos = widget.photos;
+    final a = photos[_index];
+    final many = photos.length > 1;
     void close() => Navigator.of(context).pop();
-    return SafeArea(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: close,
-              child: MediaBytes(
-                account: account,
-                ref: a.ref,
-                maxBytes: 32 << 20,
-                // The preview stays until the full picture arrives.
-                builder: (context, full, failed) => MediaBytes(
-                  account: account,
-                  ref: a.thumb,
-                  builder: (context, thumb, _) {
-                    final data = full ?? thumb;
-                    if (data == null) {
-                      return Center(
-                        child: failed ? Text(tr('Could not load the picture', 'Не удалось загрузить картинку'), style: HmText.small) : const HmSpinner(),
-                      );
-                    }
-                    return InteractiveViewer(
-                      maxScale: 8,
-                      child: Center(
-                        child: GestureDetector(
-                          onTap: () {}, // a tap on the picture does not close
-                          child: Image.memory(data, gaplessPlayback: true, filterQuality: FilterQuality.high),
-                        ),
+    return CallbackShortcuts(
+      bindings: {const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _go(-1), const SingleActivator(LogicalKeyboardKey.arrowRight): () => _go(1)},
+      child: Focus(
+        autofocus: true,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: close,
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _touch(1),
+                    onPointerUp: (_) => _touch(-1),
+                    onPointerCancel: (_) => _touch(-1),
+                    child: PageView.builder(
+                      controller: _pages,
+                      physics: _swipes && !_zoomed && _pointers < 2 ? null : const NeverScrollableScrollPhysics(),
+                      itemCount: photos.length,
+                      onPageChanged: (i) => setState(() {
+                        _index = i;
+                        _zoomed = false;
+                      }),
+                      itemBuilder: (context, i) => _ViewerPage(
+                        key: ValueKey(photos[i].ref),
+                        account: account,
+                        attachment: photos[i],
+                        onZoom: (z) {
+                          if (i == _index && z != _zoomed) setState(() => _zoomed = z);
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Row(
-              children: [
-                if (a.size > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(formatSize(a.size.toInt()), style: HmText.footer),
+              if (many && _index > 0)
+                Positioned(
+                  left: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: HmIconButton(icon: Icons.chevron_left, label: tr('Previous', 'Предыдущее'), onPressed: () => _go(-1)),
                   ),
-                HmIconButton(icon: Icons.download_outlined, label: tr('Save', 'Сохранить'), onPressed: () => saveAttachment(context, account, a)),
-                HmIconButton(
-                  icon: Icons.open_in_new,
-                  label: tr('Open in another app', 'Открыть в другом приложении'),
-                  onPressed: () => openAttachment(context, account, a),
                 ),
-                HmIconButton(icon: Icons.close, label: tr('Close', 'Закрыть'), onPressed: close),
-              ],
-            ),
+              if (many && _index < photos.length - 1)
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: HmIconButton(icon: Icons.chevron_right, label: tr('Next', 'Следующее'), onPressed: () => _go(1)),
+                  ),
+                ),
+              if (many) Positioned(top: 16, left: 16, child: Text('${_index + 1} / ${photos.length}', style: HmText.footer)),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Row(
+                  children: [
+                    if (a.size > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(formatSize(a.size.toInt()), style: HmText.footer),
+                      ),
+                    HmIconButton(icon: Icons.download_outlined, label: tr('Save', 'Сохранить'), onPressed: () => saveAttachment(context, account, a)),
+                    if (canAskSavePath)
+                      HmIconButton(
+                        icon: Icons.save_as_outlined,
+                        label: tr('Save as…', 'Сохранить как…'),
+                        onPressed: () => saveAttachment(context, account, a, ask: true),
+                      ),
+                    HmIconButton(
+                      icon: Icons.open_in_new,
+                      label: tr('Open in another app', 'Открыть в другом приложении'),
+                      onPressed: () => openAttachment(context, account, a),
+                    ),
+                    HmIconButton(icon: Icons.close, label: tr('Close', 'Закрыть'), onPressed: close),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One picture of the viewer; reports whether it is zoomed in.
+class _ViewerPage extends StatefulWidget {
+  const _ViewerPage({super.key, required this.account, required this.attachment, required this.onZoom});
+
+  final String account;
+  final pb.Attachment attachment;
+  final ValueChanged<bool> onZoom;
+
+  @override
+  State<_ViewerPage> createState() => _ViewerPageState();
+}
+
+class _ViewerPageState extends State<_ViewerPage> {
+  final _transform = TransformationController();
+  bool _zoomed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transform.addListener(_changed);
+  }
+
+  @override
+  void dispose() {
+    _transform.dispose();
+    super.dispose();
+  }
+
+  void _changed() {
+    final z = _transform.value.getMaxScaleOnAxis() > 1.01;
+    if (z == _zoomed) return;
+    setState(() => _zoomed = z);
+    widget.onZoom(z);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final a = widget.attachment;
+    return MediaBytes(
+      account: widget.account,
+      ref: a.ref,
+      maxBytes: 32 << 20,
+      // The preview stays until the full picture arrives.
+      builder: (context, full, failed) => MediaBytes(
+        account: widget.account,
+        ref: a.thumb,
+        builder: (context, thumb, _) {
+          final data = full ?? thumb;
+          if (data == null) {
+            return Center(child: failed ? Text(tr('Could not load the picture', 'Не удалось загрузить картинку'), style: HmText.small) : const HmSpinner());
+          }
+          return InteractiveViewer(
+            transformationController: _transform,
+            maxScale: 8,
+            panEnabled: _zoomed, // not zoomed in, a drag turns the page
+            child: Center(
+              child: GestureDetector(
+                onTap: () {}, // a tap on the picture does not close
+                child: Image.memory(data, gaplessPlayback: true, filterQuality: FilterQuality.high),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

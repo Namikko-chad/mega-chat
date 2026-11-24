@@ -121,6 +121,7 @@ mchat accounts
 mchat chats -n 20
 mchat history ACCOUNT CHAT -n 50
 mchat send ACCOUNT CHAT hello
+mchat sendfile ACCOUNT CHAT ./photo.jpg caption...
 mchat login google            # or: mchat login mailru [server]
 mchat folders
 mchat mail -n 20              # all inboxes; mchat mail ACCOUNT FOLDER for one folder

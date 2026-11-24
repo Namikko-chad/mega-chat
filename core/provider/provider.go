@@ -34,6 +34,15 @@ const (
 	CapMedia     Capability = 8  // Media
 	CapTopics    Capability = 9  // Topics
 	CapForward   Capability = 10 // Forwarder
+	CapFiles     Capability = 11 // FileSender
+	CapProfiles  Capability = 12 // Profiles
+	CapEdit      Capability = 13 // Editor
+	CapDelete    Capability = 14 // Deleter
+	// Deleter.DeletesForMe: a message can be deleted for this account only.
+	CapDeleteForMe Capability = 15
+	CapMentions    Capability = 16 // Mentioner
+	CapChatFolders Capability = 17 // ChatFolders
+	CapManageChats Capability = 18 // ChatManager
 )
 
 var (
@@ -240,6 +249,72 @@ type Forwarder interface {
 	// empty when the messenger does not echo the copies (they come as
 	// events then).
 	Forward(ctx context.Context, fromChat string, msgIDs []string, toChat string) ([]model.Message, error)
+}
+
+// FileSender is implemented by sessions that can send files.
+type FileSender interface {
+	// SendFiles sends out.Files (at least one; Name and MIME set) to a
+	// chat with out.Text as the caption; reply, quote and thread work as
+	// in Send. A messenger may make one message per file (an album when
+	// there are several) or one message with them all. It returns what
+	// appeared, oldest first; the result may be empty when the messenger
+	// does not echo the messages (they come as events then).
+	SendFiles(ctx context.Context, chatID string, out model.Outgoing) ([]model.Message, error)
+}
+
+// Editor is implemented by sessions that can change the text of the
+// account's own messages (a caption for a message with files).
+type Editor interface {
+	// Edit replaces the text of msgID and returns the message as it is
+	// now; the result may carry only ID, Text and Edited when the
+	// messenger does not echo the whole message.
+	Edit(ctx context.Context, chatID, msgID, text string) (model.Message, error)
+}
+
+// Deleter is implemented by sessions that can delete the account's own
+// messages.
+type Deleter interface {
+	// Delete deletes msgIDs of a chat for everyone (forAll) or only for
+	// this account; a chat where that is impossible (Telegram channels and
+	// supergroups) fails with an error that says so.
+	Delete(ctx context.Context, chatID string, msgIDs []string, forAll bool) error
+	// DeletesForMe tells whether the messenger deletes for this account
+	// only at all (Delete with forAll false).
+	DeletesForMe() bool
+}
+
+// Mentioner is implemented by sessions whose messages can mention people:
+// the composer offers a chat's members after "@", Send turns
+// Outgoing.Mentions into the messenger's mentions.
+type Mentioner interface {
+	// Members returns up to limit people of a chat that model.MatchUser
+	// query, the account itself left out.
+	Members(ctx context.Context, chatID, query string, limit int) ([]model.User, error)
+}
+
+// Profiles is implemented by sessions that can describe a chat: its
+// person, group or channel (bio, members, links).
+type Profiles interface {
+	Profile(ctx context.Context, chatID string) (model.Profile, error)
+}
+
+// ChatFolders is implemented by sessions whose messenger sorts chats into
+// folders (Telegram). Chats and chat events carry the folders a chat is in
+// by rule (Chat.Folders); a change of the folders comes as EvChatFolders.
+type ChatFolders interface {
+	ChatFolders(ctx context.Context) ([]model.ChatFolder, error)
+}
+
+// ChatManager is implemented by sessions that can change the account's
+// own settings of a chat or leave it.
+type ChatManager interface {
+	// ChatActions lists the actions the messenger supports at all. The hub
+	// keeps ChatLeave away from direct and saved chats.
+	ChatActions() []model.ChatAction
+	// ManageChat does action to a chat. The hub stores the result itself
+	// (flags, or the chat removed after ChatLeave); an echo of it as an
+	// event is harmless.
+	ManageChat(ctx context.Context, chatID string, action model.ChatAction) error
 }
 
 // LogOuter is implemented by sessions that can end the session on the

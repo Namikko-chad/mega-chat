@@ -37,6 +37,7 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.megachat/biometric").setMethodCallHandler(Biometric(this))
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.megachat/files").setMethodCallHandler(Files(this, worker))
         // The video player keeps the screen on while it plays.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.megachat/wakelock").setMethodCallHandler { call, result ->
             if (call.method != "toggle") return@setMethodCallHandler result.notImplemented()

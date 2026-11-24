@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,6 +50,11 @@ type session struct {
 	msgChat map[int]string
 	sink    provider.Sink   // while Run runs
 	online  map[string]bool // "u<id>" → reported online since Run connected
+	contact map[string]bool // "u<id>" → in the account's contacts
+	bots    map[string]bool // "u<id>" → a bot
+	// filters are the account's chat folders (folders.go); filtersOK: loaded.
+	filters   []tg.DialogFilterClass
+	filtersOK bool
 
 	ph phone // 1:1 calls
 }
@@ -70,7 +76,7 @@ func (p *Provider) Open(acct provider.Account, env provider.Env) (provider.Sessi
 		acct: acct, env: env, appID: id, appHash: hash, peers: peers, state: state,
 		users: map[string]model.User{}, titles: map[string]string{}, kinds: map[string]model.ChatKind{}, msgChat: map[int]string{},
 		photos: map[string]int64{}, access: map[string]model.ChatAccess{}, forums: map[string]bool{},
-		outside: map[string]bool{}, online: map[string]bool{},
+		outside: map[string]bool{}, online: map[string]bool{}, contact: map[string]bool{}, bots: map[string]bool{},
 	}
 	s.selfID, _ = strconv.ParseInt(acct.Params["user_id"], 10, 64)
 	return s, nil
@@ -106,6 +112,9 @@ func (s *session) selfUser() model.User {
 // learn records users and chats a response or update brought along.
 func (s *session) learn(users []tg.UserClass, chats []tg.ChatClass) {
 	s.mu.Lock()
+	if s.contact == nil {
+		s.contact, s.bots = map[string]bool{}, map[string]bool{}
+	}
 	var seen []presence
 	for _, uc := range users {
 		if u, ok := uc.(*tg.User); ok {
@@ -113,7 +122,9 @@ func (s *session) learn(users []tg.UserClass, chats []tg.ChatClass) {
 			s.users[key] = userOf(u)
 			if !u.Min {
 				s.peers.set(key, u.AccessHash)
+				s.contact[key] = u.Contact || u.MutualContact
 			}
+			s.bots[key] = u.Bot
 			if st, ok := u.GetStatus(); ok && !u.Self && !u.Bot {
 				seen = append(seen, presence{key, isOnline(st)})
 			}
@@ -268,11 +279,14 @@ func (s *session) chatInfo(key string) *model.Chat {
 			c.Title, c.Avatar = u.Name, u.Avatar
 		}
 		if s.selfID != 0 && key == "u"+strconv.FormatInt(s.selfID, 10) {
-			c.Title, c.Avatar = "Saved Messages", ""
+			c.Title, c.Avatar, c.Saved = "Saved Messages", "", true
 		}
 	}
 	if c.Title == "" {
 		return nil
+	}
+	if s.filtersOK {
+		c.Folders = s.folderIDs(key)
 	}
 	return c
 }
@@ -469,6 +483,7 @@ func (s *session) handle(d tg.UpdateDispatcher, sink provider.Sink) {
 		}})
 		return nil
 	})
+	s.handleChatSettings(d, sink)
 	d.OnUserStatus(func(_ context.Context, _ tg.Entities, u *tg.UpdateUserStatus) error {
 		s.mu.Lock()
 		self := u.UserID == s.selfID
@@ -503,11 +518,41 @@ func (s *session) handle(d tg.UpdateDispatcher, sink provider.Sink) {
 
 // --- Messenger -----------------------------------------------------------
 
+// Chats lists the main chat list and then the archive (folder 1), and the
+// Saved Messages chat when neither has it.
 func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 	api, _, err := s.live()
 	if err != nil {
 		return nil, err
 	}
+	if _, err := s.loadFilters(ctx); err != nil {
+		s.env.Logf("warn", "telegram: chat folders: %v", err)
+	}
+	out, err := s.dialogs(ctx, api, 0, limit)
+	if err != nil {
+		return out, err
+	}
+	archived, err := s.dialogs(ctx, api, 1, max(limit/3, 50))
+	if err != nil {
+		s.env.Logf("warn", "telegram: archive: %v", err)
+	}
+	for i := range archived {
+		archived[i].Archived = true
+	}
+	out = append(out, archived...)
+	if !slices.ContainsFunc(out, func(c model.Chat) bool { return c.Saved }) {
+		if c, err := s.savedChat(ctx, api); err != nil {
+			s.env.Logf("warn", "telegram: saved messages: %v", err)
+		} else if c != nil {
+			out = append(out, *c)
+		}
+	}
+	return out, nil
+}
+
+// dialogs lists up to limit chats of a folder (0: the main list, 1: the
+// archive) with the latest activity.
+func (s *session) dialogs(ctx context.Context, api *tg.Client, folder, limit int) ([]model.Chat, error) {
 	var (
 		out        []model.Chat
 		offsetPeer tg.InputPeerClass = &tg.InputPeerEmpty{}
@@ -516,9 +561,9 @@ func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 	)
 	for len(out) < limit {
 		n := min(100, limit-len(out))
-		res, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
-			OffsetPeer: offsetPeer, OffsetID: offsetID, OffsetDate: offsetDate, Limit: n,
-		})
+		req := &tg.MessagesGetDialogsRequest{OffsetPeer: offsetPeer, OffsetID: offsetID, OffsetDate: offsetDate, Limit: n}
+		req.SetFolderID(folder)
+		res, err := api.MessagesGetDialogs(ctx, req)
 		if err != nil {
 			return out, authErr(err)
 		}
@@ -527,12 +572,7 @@ func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 			break
 		}
 		s.learn(page.GetUsers(), page.GetChats())
-		top := map[string]model.Message{}
-		for _, mc := range page.GetMessages() {
-			if m, ok := s.convert(mc); ok {
-				top[m.ChatID+"/"+m.ID] = m
-			}
-		}
+		top := s.topMessages(page.GetMessages())
 		dialogs := page.GetDialogs()
 		var last *tg.Dialog
 		for _, dc := range dialogs {
@@ -541,17 +581,7 @@ func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 				continue
 			}
 			last = dlg
-			key := peerKey(dlg.Peer)
-			c := s.chatInfo(key)
-			if c == nil {
-				c = &model.Chat{ID: key, Title: key}
-			}
-			c.Unread, c.Pinned = dlg.UnreadCount, dlg.Pinned
-			c.Muted = dlg.NotifySettings.MuteUntil > int(time.Now().Unix())
-			if m, ok := top[key+"/"+strconv.Itoa(dlg.TopMessage)]; ok {
-				c.Last, c.Updated = &m, m.Time
-			}
-			out = append(out, *c)
+			out = append(out, s.dialogChat(dlg, top))
 		}
 		if _, slice := res.(*tg.MessagesDialogsSlice); !slice || len(dialogs) < n || last == nil {
 			break
@@ -566,6 +596,50 @@ func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 		}
 	}
 	return out, nil
+}
+
+// topMessages converts the last messages of a dialog page by "chat/id".
+func (s *session) topMessages(msgs []tg.MessageClass) map[string]model.Message {
+	top := map[string]model.Message{}
+	for _, mc := range msgs {
+		if m, ok := s.convert(mc); ok {
+			top[m.ChatID+"/"+m.ID] = m
+		}
+	}
+	return top
+}
+
+// dialogChat is a dialog of a list as a chat.
+func (s *session) dialogChat(dlg *tg.Dialog, top map[string]model.Message) model.Chat {
+	key := peerKey(dlg.Peer)
+	c := s.chatInfo(key)
+	if c == nil {
+		c = &model.Chat{ID: key, Title: key}
+	}
+	c.Unread, c.Pinned = dlg.UnreadCount, dlg.Pinned
+	c.Muted = dlg.NotifySettings.MuteUntil > int(time.Now().Unix())
+	c.Archived = dlg.FolderID == 1
+	if m, ok := top[key+"/"+strconv.Itoa(dlg.TopMessage)]; ok {
+		c.Last, c.Updated = &m, m.Time
+	}
+	return *c
+}
+
+// savedChat is the Saved Messages dialog (nil: there is none yet).
+func (s *session) savedChat(ctx context.Context, api *tg.Client) (*model.Chat, error) {
+	res, err := api.MessagesGetPeerDialogs(ctx, []tg.InputDialogPeerClass{&tg.InputDialogPeer{Peer: &tg.InputPeerSelf{}}})
+	if err != nil {
+		return nil, authErr(err)
+	}
+	s.learn(res.Users, res.Chats)
+	top := s.topMessages(res.Messages)
+	for _, dc := range res.Dialogs {
+		if dlg, ok := dc.(*tg.Dialog); ok {
+			c := s.dialogChat(dlg, top)
+			return &c, nil
+		}
+	}
+	return nil, nil
 }
 
 func (s *session) History(ctx context.Context, chatID, beforeID string, limit int) ([]model.Message, bool, error) {
@@ -608,62 +682,108 @@ func randomID() int64 {
 	return int64(binary.LittleEndian.Uint64(b[:]))
 }
 
-func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (model.Message, error) {
-	api, gaps, err := s.live()
-	if err != nil {
-		return model.Message{}, err
-	}
-	target := chatID
-	replyTo := o.ReplyTo
-	var top int // the forum topic sent to
+// sendTarget is where a message goes: a chat, a forum topic of it, or the
+// comments of a channel post (the channel's discussion group).
+type sendTarget struct {
+	peer    tg.InputPeerClass
+	chat    string // the chat the message appears in
+	replyTo string
+	top     int    // the forum topic sent to
+	root    string // a comment: the post's copy in the group
+}
+
+func (s *session) target(ctx context.Context, api *tg.Client, chatID string, o model.Outgoing) (sendTarget, error) {
+	t := sendTarget{chat: chatID, replyTo: o.ReplyTo}
 	if o.Thread != "" && s.forum(chatID) {
-		if top, err = strconv.Atoi(o.Thread); err != nil {
-			return model.Message{}, fmt.Errorf("telegram: bad topic id %q", o.Thread)
+		top, err := strconv.Atoi(o.Thread)
+		if err != nil {
+			return t, fmt.Errorf("telegram: bad topic id %q", o.Thread)
 		}
+		t.top = top
 	} else if o.Thread != "" {
 		// A comment goes to the channel's discussion group, as a reply to
 		// the post's copy there (or to another comment).
 		post, err := strconv.Atoi(o.Thread)
 		if err != nil {
-			return model.Message{}, fmt.Errorf("telegram: bad thread id %q", o.Thread)
+			return t, fmt.Errorf("telegram: bad thread id %q", o.Thread)
 		}
 		group, top, err := s.discussion(ctx, api, chatID, post)
 		if err != nil {
-			return model.Message{}, err
+			return t, err
 		}
-		target = group
-		if replyTo == "" {
-			replyTo = strconv.Itoa(top)
+		t.chat, t.root = group, strconv.Itoa(top)
+		if t.replyTo == "" {
+			t.replyTo = t.root
 		}
 	}
-	peer, err := s.inputPeer(target)
+	peer, err := s.inputPeer(t.chat)
+	if err != nil {
+		return t, err
+	}
+	t.peer = peer
+	return t, nil
+}
+
+// reply is the reply header of a message to t (nil: none), quoting quote.
+func (t sendTarget) reply(quote string) tg.InputReplyToClass {
+	if t.replyTo != "" {
+		id, err := strconv.Atoi(t.replyTo)
+		if err != nil {
+			return nil
+		}
+		r := &tg.InputReplyToMessage{ReplyToMsgID: id}
+		if t.top != 0 && t.top != generalTopic {
+			r.SetTopMsgID(t.top)
+		}
+		if quote != "" {
+			r.SetQuoteText(quote)
+		}
+		return r
+	}
+	if t.top != 0 && t.top != generalTopic {
+		// Into a topic: a "reply" to the message that opened it.
+		return &tg.InputReplyToMessage{ReplyToMsgID: t.top}
+	}
+	return nil
+}
+
+// quote is the native quote of o (empty: none).
+func (t sendTarget) quote(o model.Outgoing) string {
+	if t.replyTo == "" {
+		return ""
+	}
+	return strings.TrimSpace(o.Quote)
+}
+
+// caption is o's text, with the quote as "> " lines when it is not sent as
+// a native one.
+func caption(o model.Outgoing, quote string) string {
+	if quote == "" && o.Quote != "" {
+		return o.QuotedText()
+	}
+	return o.Text
+}
+
+func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (model.Message, error) {
+	api, gaps, err := s.live()
 	if err != nil {
 		return model.Message{}, err
 	}
-	quote := ""
-	if replyTo != "" {
-		quote = strings.TrimSpace(o.Quote)
+	t, err := s.target(ctx, api, chatID, o)
+	if err != nil {
+		return model.Message{}, err
 	}
+	quote := t.quote(o)
+	var format []model.TextSpan
 	build := func(quote string) *tg.MessagesSendMessageRequest {
-		text := o.Text
-		if quote == "" && o.Quote != "" {
-			text = o.QuotedText()
+		d, ents := s.outgoingText(o, caption(o, quote))
+		format = d.Spans
+		req := &tg.MessagesSendMessageRequest{Peer: t.peer, Message: d.Text, RandomID: randomID()}
+		if len(ents) > 0 {
+			req.SetEntities(ents)
 		}
-		req := &tg.MessagesSendMessageRequest{Peer: peer, Message: text, RandomID: randomID()}
-		if replyTo != "" {
-			if id, err := strconv.Atoi(replyTo); err == nil {
-				r := &tg.InputReplyToMessage{ReplyToMsgID: id}
-				if top != 0 && top != generalTopic {
-					r.SetTopMsgID(top)
-				}
-				if quote != "" {
-					r.SetQuoteText(quote)
-				}
-				req.SetReplyTo(r)
-			}
-		} else if top != 0 && top != generalTopic {
-			// Into a topic: a "reply" to the message that opened it.
-			req.SetReplyTo(&tg.InputReplyToMessage{ReplyToMsgID: top})
+		if r := t.reply(quote); r != nil {
+			req.SetReplyTo(r)
 		}
 		return req
 	}
@@ -679,7 +799,7 @@ func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (mo
 	if err != nil {
 		return model.Message{}, authErr(err)
 	}
-	m := model.Message{ChatID: chatID, Text: req.Message, ReplyTo: o.ReplyTo, Quote: quote, Outgoing: true, Sender: s.selfUser(), Time: time.Now(), InThread: o.Thread}
+	m := model.Message{ChatID: chatID, Text: req.Message, Format: format, ReplyTo: o.ReplyTo, Quote: quote, Outgoing: true, Sender: s.selfUser(), Time: time.Now(), InThread: o.Thread}
 	switch r := res.(type) {
 	case *tg.UpdateShortSentMessage:
 		m.ID, m.Seq, m.Time = strconv.Itoa(r.ID), int64(r.ID), time.Unix(int64(r.Date), 0)
@@ -699,6 +819,35 @@ func (s *session) Send(ctx context.Context, chatID string, o model.Outgoing) (mo
 		return model.Message{}, errors.New("telegram: sent, but the server returned no message id")
 	}
 	return m, nil
+}
+
+// sent returns the new messages of chat in what a send returned, oldest
+// first.
+func (s *session) sent(res tg.UpdatesClass, chat string) []model.Message {
+	var out []model.Message
+	if u, ok := res.(interface {
+		GetUpdates() []tg.UpdateClass
+		GetUsers() []tg.UserClass
+		GetChats() []tg.ChatClass
+	}); ok {
+		s.learn(u.GetUsers(), u.GetChats())
+		for _, up := range u.GetUpdates() {
+			var mc tg.MessageClass
+			switch x := up.(type) {
+			case *tg.UpdateNewMessage:
+				mc = x.Message
+			case *tg.UpdateNewChannelMessage:
+				mc = x.Message
+			default:
+				continue
+			}
+			if m, ok := s.convert(mc); ok && m.ChatID == chat {
+				out = append(out, m)
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Seq < out[j].Seq })
+	return out
 }
 
 // Forward forwards messages with messages.forwardMessages: attachments go
@@ -729,32 +878,10 @@ func (s *session) Forward(ctx context.Context, fromChat string, msgIDs []string,
 	if err != nil {
 		return nil, authErr(err)
 	}
-	var out []model.Message
-	if u, ok := res.(interface {
-		GetUpdates() []tg.UpdateClass
-		GetUsers() []tg.UserClass
-		GetChats() []tg.ChatClass
-	}); ok {
-		s.learn(u.GetUsers(), u.GetChats())
-		for _, up := range u.GetUpdates() {
-			var mc tg.MessageClass
-			switch x := up.(type) {
-			case *tg.UpdateNewMessage:
-				mc = x.Message
-			case *tg.UpdateNewChannelMessage:
-				mc = x.Message
-			default:
-				continue
-			}
-			if m, ok := s.convert(mc); ok && m.ChatID == toChat {
-				out = append(out, m)
-			}
-		}
-	}
+	out := s.sent(res, toChat)
 	if err := gaps.Handle(ctx, res); err != nil {
 		s.env.Logf("warn", "updates after forward: %v", err)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Seq < out[j].Seq })
 	return out, nil
 }
 

@@ -8,9 +8,13 @@ import '../../core/theme/typography.dart';
 /// A message bubble: own messages on the right in an accent tint, others
 /// on the left on the surface. The corner next to the sender is sharp.
 class HmBubble extends StatelessWidget {
-  const HmBubble({super.key, required this.child, required this.outgoing, this.dim = false});
+  const HmBubble({super.key, required this.child, required this.outgoing, this.dim = false, this.boxKey});
 
   final Widget child;
+
+  /// The key of the bubble's own box (not of the full-width row it is
+  /// aligned in): menus anchor to it.
+  final Key? boxKey;
   final bool outgoing;
 
   /// A deleted message: muted and without the tint.
@@ -25,6 +29,7 @@ class HmBubble extends StatelessWidget {
     return Align(
       alignment: outgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
+        key: boxKey,
         constraints: BoxConstraints(maxWidth: max.clamp(240.0, 720.0)),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
         decoration: BoxDecoration(
@@ -64,11 +69,17 @@ class HmServiceNote extends StatelessWidget {
 
 /// An attachment inside a bubble: kind icon, name and size.
 class HmAttachment extends StatelessWidget {
-  const HmAttachment({super.key, required this.icon, required this.name, this.detail});
+  const HmAttachment({super.key, required this.icon, required this.name, this.detail, this.leading, this.trailing});
 
   final IconData icon;
   final String name;
   final String? detail;
+
+  /// Shown instead of the icon (a small preview of a picture).
+  final Widget? leading;
+
+  /// After the size: an action on the file (download, remove).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -82,12 +93,13 @@ class HmAttachment extends StatelessWidget {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: HmColors.accent),
+        leading ?? Icon(icon, size: 16, color: HmColors.accent),
         const SizedBox(width: 8),
         Flexible(
           child: Text(name, style: HmText.jb(12), maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         if (detail != null && detail!.isNotEmpty) ...[const SizedBox(width: 8), Text(detail!, style: HmText.footer)],
+        if (trailing != null) ...[const SizedBox(width: 4), trailing!],
       ],
     ),
   );

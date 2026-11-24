@@ -7,6 +7,7 @@ import 'package:grpc/grpc.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'local_files.dart';
 import 'rpc/gen/megachat.pbgrpc.dart' as pb;
 
 /// Avatars, previews and files of messages, fetched from the core (which
@@ -110,10 +111,17 @@ class MediaStore {
     return f;
   }
 
-  /// Saves a file to the Downloads folder (desktop) or app documents.
-  Future<File?> save(String account, String ref, String name, {int maxBytes = 512 << 20}) async {
+  /// Saves a file to [path], or without one to the Downloads folder (the
+  /// shared Downloads on Android), under a name not taken yet. Returns
+  /// where it went.
+  Future<String?> save(String account, String ref, String name, {String? path, String mime = '', int maxBytes = 512 << 20}) async {
     final data = await load(account, ref, maxBytes: maxBytes, keep: false);
     if (data == null) return null;
+    if (path != null) {
+      await File(path).writeAsBytes(data, flush: true);
+      return path;
+    }
+    if (Platform.isAndroid) return saveToAndroidDownloads(_safeName(name), mime, data);
     Directory? dir;
     try {
       dir = await getDownloadsDirectory();
@@ -126,7 +134,16 @@ class MediaStore {
       f = File(p.join(dir.path, _safeName('$base ($i)$ext')));
     }
     await f.writeAsBytes(data, flush: true);
-    return f;
+    return f.path;
+  }
+
+  /// Where downloads go by default (desktops), to start a "Save as" there.
+  static Future<String?> downloadsDir() async {
+    try {
+      return (await getDownloadsDirectory())?.path;
+    } catch (_) {
+      return null;
+    }
   }
 
   static String _safeName(String name) {

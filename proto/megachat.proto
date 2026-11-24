@@ -33,6 +33,12 @@ service MegaChat {
   rpc RememberPassword(PasswordRequest) returns (State);
   rpc ForgetPassword(Empty) returns (State);
   rpc UnlockRemembered(Empty) returns (State);
+  // Where the vault file lives (desktops; kept across runs). move: the open
+  // vault goes to path (FailedPrecondition while locked, AlreadyExists if a
+  // file is there), a remembered password follows it. Otherwise path is an
+  // existing vault to use from now on (FailedPrecondition while unlocked,
+  // NotFound if there is no file). A directory means "vault.mc" in it.
+  rpc SetVaultPath(VaultPathRequest) returns (State);
 
   // Providers and accounts.
   rpc Providers(Empty) returns (ProvidersReply);
@@ -51,6 +57,8 @@ service MegaChat {
   rpc SetAccountEnabled(SetEnabledRequest) returns (Account);
   // Signs out and forgets the account and its cached messages.
   rpc RemoveAccount(IdRequest) returns (Empty);
+  // Puts the accounts in this order; accounts not listed follow, as they were.
+  rpc ReorderAccounts(ReorderAccountsRequest) returns (AccountsReply);
 
   // Chats and messages.
   // All chats of the given accounts (all accounts when empty), newest
@@ -74,9 +82,33 @@ service MegaChat {
   // Adds or takes back the account's reaction; returns the message with
   // its new reactions (a KIND_MESSAGE_EDIT follows).
   rpc React(ReactRequest) returns (Message);
+  // Replaces the text of one of the account's own messages; returns the
+  // message as it is now (a KIND_MESSAGE_EDIT follows). CAPABILITY_EDIT.
+  rpc Edit(EditRequest) returns (Message);
+  // Deletes the account's own messages of one chat for everyone
+  // (CAPABILITY_DELETE) or only for this account (for_all false,
+  // CAPABILITY_DELETE_FOR_ME); KIND_MESSAGE_DELETE (KIND_THREAD_MESSAGE
+  // with deleted for thread replies) follows.
+  rpc Delete(DeleteRequest) returns (Empty);
+  // A link's preview from its page's Open Graph tags, fetched by the core
+  // (public addresses only; cached in memory). NotFound: nothing to show.
+  rpc LinkPreview(LinkPreviewRequest) returns (LinkPreviewReply);
+  // People of a chat to mention, for the composer's "@" (CAPABILITY_MENTIONS).
+  rpc Members(MembersRequest) returns (MembersReply);
   // Content of a media ref: an avatar (User/Chat.avatar_url) or an
   // attachment (Attachment.ref, .thumb). Cached in the core.
   rpc Media(MediaRequest) returns (MediaReply);
+  // What a chat is: the person of a direct chat, a group or a channel
+  // (CAPABILITY_PROFILES). Not cached.
+  rpc Profile(ProfileRequest) returns (ChatProfile);
+  // Mutes, pins, archives or leaves a chat (Account.chat_actions,
+  // CAPABILITY_MANAGE_CHATS) and returns it as it is now; a KIND_CHAT (or,
+  // after leaving, KIND_CHAT_REMOVED) follows. Leaving: groups and
+  // channels only.
+  rpc ManageChat(ManageChatRequest) returns (Chat);
+  // Chat folders of the accounts (CAPABILITY_CHAT_FOLDERS: Telegram).
+  // KIND_CHAT_FOLDERS tells they changed.
+  rpc ChatFolders(AccountsRequest) returns (ChatFoldersReply);
 
   // 1:1 calls (CAPABILITY_CALLS). Media runs in the app as a standard
   // WebRTC peer connection: the core passes its offer, answer, candidates
@@ -105,6 +137,8 @@ service MegaChat {
   rpc GetMail(GetMailRequest) returns (Mail);
   rpc SendMail(SendMailRequest) returns (Empty);
   rpc UpdateMail(UpdateMailRequest) returns (Empty);
+  // Moves messages of one account between its folders.
+  rpc MoveMail(MoveMailRequest) returns (Empty);
 
   // Calendars (CAPABILITY_CALENDAR): all calendars of all accounts, and
   // their events of a time range merged by start.
@@ -125,6 +159,11 @@ message Empty {}
 message IdRequest { string id = 1; }
 
 message PasswordRequest { string password = 1; }
+
+message VaultPathRequest {
+  string path = 1; // absolute
+  bool move = 2;
+}
 
 message ChangePasswordRequest {
   string old_password = 1;
@@ -160,6 +199,26 @@ enum Capability {
   CAPABILITY_MEDIA = 8;     // Media
   CAPABILITY_TOPICS = 9;    // Topics, MarkReadRequest.thread_id
   CAPABILITY_FORWARD = 10;  // Forward inside the account (others: send the text)
+  CAPABILITY_FILES = 11;    // SendRequest.files
+  CAPABILITY_PROFILES = 12; // Profile
+  CAPABILITY_EDIT = 13;     // Edit the account's own messages
+  CAPABILITY_DELETE = 14;   // Delete the account's own messages for everyone
+  CAPABILITY_DELETE_FOR_ME = 15; // Delete with for_all false
+  CAPABILITY_MENTIONS = 16; // Members, SendRequest.mentions
+  CAPABILITY_CHAT_FOLDERS = 17; // ChatFolders, Chat.folders
+  CAPABILITY_MANAGE_CHATS = 18; // ManageChat with Account.chat_actions
+}
+
+// Something the account does to one of its chats (ManageChat).
+enum ChatAction {
+  CHAT_ACTION_UNSPECIFIED = 0;
+  CHAT_ACTION_MUTE = 1;
+  CHAT_ACTION_UNMUTE = 2;
+  CHAT_ACTION_PIN = 3;
+  CHAT_ACTION_UNPIN = 4;
+  CHAT_ACTION_ARCHIVE = 5;
+  CHAT_ACTION_UNARCHIVE = 6;
+  CHAT_ACTION_LEAVE = 7; // groups and channels; the chat is removed
 }
 
 message Field {
@@ -235,9 +294,12 @@ message Account {
   int32 unread = 9;
   repeated Capability capabilities = 10;
   int32 mail_unread = 11; // unread in the inbox (CAPABILITY_MAIL)
+  repeated ChatAction chat_actions = 12; // what ManageChat does here
 }
 
 message AccountsReply { repeated Account accounts = 1; }
+
+message ReorderAccountsRequest { repeated string ids = 1; }
 
 message RenameRequest {
   string id = 1;
@@ -254,6 +316,7 @@ message User {
   string name = 2;
   string username = 3;
   string avatar_url = 4; // a media ref (Media), not a URL to open
+  bool online = 5;       // set only in MembersReply: live, never stored
 }
 
 enum ChatKind {
@@ -282,6 +345,40 @@ message Chat {
   // A direct chat whose other person is online now (live, not cached;
   // a change comes as KIND_CHAT).
   bool online = 13;
+  // The account's own notes (Telegram's Saved Messages, the chat with
+  // oneself): the app names it.
+  bool saved = 14;
+  // In the messenger's archive: listed apart from the other chats.
+  bool archived = 15;
+  // Ids of the account's chat folders the chat is in by their rules
+  // (see ChatFolder).
+  repeated string folders = 16;
+}
+
+message ManageChatRequest {
+  string account_id = 1;
+  string chat_id = 2;
+  ChatAction action = 3;
+}
+
+// A folder of an account's chat list. A chat of the account is in it when
+// its id is in always, or Chat.folders names the folder and no exclude_*
+// applies to it.
+message ChatFolder {
+  string account_id = 1;
+  string id = 2;
+  string title = 3;
+  string emoji = 4;
+  repeated string always = 5;
+  repeated string pinned = 6; // first, in this order
+  bool exclude_muted = 7;
+  bool exclude_read = 8;
+  bool exclude_archived = 9;
+}
+
+message ChatFoldersReply {
+  repeated ChatFolder folders = 1; // per account in its order
+  repeated AccountError failed = 2;
 }
 
 message ChatsRequest {
@@ -356,6 +453,34 @@ message Message {
   string forwarded_from = 19;
   // A reply that quotes a fragment of reply_to_id's text (Telegram).
   string quote = 20;
+  // Styles of text, which holds no markup itself.
+  repeated TextSpan format = 21;
+  // The text as Markdown for the composer when it differs from text (the
+  // account's own messages only).
+  string markdown = 22;
+}
+
+enum TextStyle {
+  TEXT_STYLE_UNSPECIFIED = 0;
+  TEXT_STYLE_BOLD = 1;
+  TEXT_STYLE_ITALIC = 2;
+  TEXT_STYLE_UNDERLINE = 3;
+  TEXT_STYLE_STRIKE = 4;
+  TEXT_STYLE_SPOILER = 5;
+  TEXT_STYLE_CODE = 6;
+  TEXT_STYLE_PRE = 7;
+  TEXT_STYLE_LINK = 8;
+  TEXT_STYLE_QUOTE = 9;
+  TEXT_STYLE_HEADING = 10;
+}
+
+// A styled part of a text, in UTF-16 units. Spans may nest and overlap.
+message TextSpan {
+  TextStyle style = 1;
+  int32 offset = 2;
+  int32 length = 3;
+  string url = 4;      // TEXT_STYLE_LINK: http(s) or mailto
+  string language = 5; // TEXT_STYLE_PRE
 }
 
 message ThreadRequest {
@@ -391,6 +516,70 @@ message ReactRequest {
   string message_id = 3;
   string emoji = 4;
   bool on = 5; // false: take the reaction back
+}
+
+message EditRequest {
+  string account_id = 1;
+  string chat_id = 2;
+  string message_id = 3;
+  string text = 4;
+  string thread_id = 5; // a thread reply: the thread it is in
+}
+
+message DeleteRequest {
+  string account_id = 1;
+  string chat_id = 2;
+  repeated string message_ids = 3;
+  bool for_all = 4;
+  string thread_id = 5; // thread replies: the thread they are in
+}
+
+// A span of SendRequest.text naming a person; offsets in UTF-16 code units.
+message Mention {
+  int32 offset = 1;
+  int32 length = 2;
+  User user = 3;
+}
+
+message MembersRequest {
+  string account_id = 1;
+  string chat_id = 2;
+  string query = 3; // typed after "@"
+  int32 limit = 4;
+}
+
+message MembersReply { repeated User users = 1; }
+
+message LinkPreviewRequest { string url = 1; }
+
+message LinkPreviewReply {
+  string url = 1; // after redirects
+  string site_name = 2;
+  string title = 3;
+  string description = 4;
+  bytes image = 5; // empty: none
+  string image_mime = 6;
+}
+
+message ProfileRequest {
+  string account_id = 1;
+  string chat_id = 2;
+}
+
+message ChatProfile {
+  string title = 1;
+  string avatar_url = 2; // a media ref (Media)
+  string username = 3;   // without "@"
+  string about = 4;      // bio, description, purpose
+  string phone = 5;
+  string email = 6;
+  string position = 7;   // job title, status
+  string link = 8;       // a public link to open
+  int32 members = 9;     // groups, channels; 0: unknown
+  repeated User member_list = 10; // some members, may be partial
+  int64 last_seen_ms = 11;        // direct: last online; 0: unknown
+  bool online = 12;
+  bool bot = 13;
 }
 
 message MediaRequest {
@@ -431,6 +620,21 @@ message SendRequest {
   // A fragment of reply_to_id's text this reply quotes: a native quote
   // where the messenger has one, otherwise "> " lines before the text.
   string quote = 6;
+  // Files to send (CAPABILITY_FILES), the text being their caption; at
+  // most 100 MB together. Several files may become several messages (an
+  // album): the reply is the last one, the others come as events. The
+  // reply has an empty id when the messenger does not echo what was sent
+  // (it comes as an event then).
+  repeated OutFile files = 7;
+  // People picked after "@" (CAPABILITY_MENTIONS): spans of text the
+  // messenger turns into its mentions.
+  repeated Mention mentions = 8;
+}
+
+message OutFile {
+  string name = 1;
+  string mime = 2; // empty: guessed from the name and the content
+  bytes data = 3;
 }
 
 // Forwards messages of one chat to another chat of the same account
@@ -468,6 +672,7 @@ message Event {
                            // (chat: the cached chat, when there is one)
     KIND_CALL = 10;          // call offered, changed or ended
     KIND_CALL_SIGNAL = 11;   // signal for the peer connection of call (ids only in call)
+    KIND_CHAT_FOLDERS = 12;  // account_id's chat folders changed: ChatFolders
     KIND_MAIL_NEW = 20;      // mail is a new message in account_id's inbox
     KIND_MAIL = 21;          // account_id's mail changed: reload what is shown
     KIND_CALENDAR = 22;      // account_id's events changed: reload the range
@@ -675,12 +880,13 @@ message Mail {
   bool unread = 12;
   bool starred = 13;
   bool has_attachments = 14;
-  // GetMail only. text is plain text (an HTML-only message turned into
-  // text); html is the original HTML part, if any. Remote content in it
-  // is not loaded by the core.
+  // GetMail only. text is the visible text (of the HTML part when there is
+  // one) and format its styles; html is the original HTML part, if any.
+  // Remote content in it is not loaded by the core.
   string text = 15;
   string html = 16;
   repeated Attachment attachments = 17;
+  repeated TextSpan format = 18;
 }
 
 message MailListRequest {
@@ -728,6 +934,13 @@ message UpdateMailRequest {
   string account_id = 1;
   repeated string ids = 2;
   MailAction action = 3;
+}
+
+message MoveMailRequest {
+  string account_id = 1;
+  repeated string ids = 2;   // listed in from_folder_id (Mail.folder_id)
+  string from_folder_id = 3;
+  string to_folder_id = 4;
 }
 
 // --- calendars ------------------------------------------------------------

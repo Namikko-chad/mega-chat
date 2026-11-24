@@ -1,11 +1,13 @@
 package rpc
 
 import (
+	"sort"
 	"time"
 
 	"megachat/core/hub"
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/richtext"
 	"megachat/core/rpc/pb"
 )
 
@@ -63,12 +65,12 @@ func accountToPB(a hub.AccountInfo) *pb.Account {
 		Id: a.ID, Provider: a.Provider, Name: a.Name, Login: a.Login,
 		Status: statusToPB[a.Status], StatusMessage: a.StatusMsg, Enabled: !a.Disabled,
 		Self: userToPB(a.Self), Unread: int32(a.Unread), Capabilities: capsToPB(a.Caps),
-		MailUnread: int32(a.MailUnread),
+		MailUnread: int32(a.MailUnread), ChatActions: chatActionsToPB(a.ChatActions),
 	}
 }
 
 func userToPB(u model.User) *pb.User {
-	return &pb.User{Id: u.ID, Name: u.Name, Username: u.Username, AvatarUrl: u.Avatar}
+	return &pb.User{Id: u.ID, Name: u.Name, Username: u.Username, AvatarUrl: u.Avatar, Online: u.Online}
 }
 
 func chatToPB(c *model.Chat) *pb.Chat {
@@ -79,6 +81,7 @@ func chatToPB(c *model.Chat) *pb.Chat {
 		AccountId: c.AccountID, Id: c.ID, Kind: pb.ChatKind(c.Kind), Title: c.Title, AvatarUrl: c.Avatar,
 		Unread: int32(max(c.Unread, 0)), Muted: c.Muted, Pinned: c.Pinned, UpdatedMs: ms(c.Updated),
 		ReadOnly: c.Access == model.AccessRead, Forum: c.Forum, Online: c.Online,
+		Saved: c.Saved, Archived: c.Archived, Folders: c.Folders,
 	}
 	if c.Last != nil {
 		out.LastMessage = messageToPB(c.Last)
@@ -95,6 +98,12 @@ func messageToPB(m *model.Message) *pb.Message {
 		TimeMs: ms(m.Time), EditedMs: ms(m.Edited), Outgoing: m.Outgoing, ReplyToId: m.ReplyTo,
 		Deleted: m.Deleted, Service: m.Service, InThread: m.InThread, Group: m.Group,
 		Mentioned: m.Mentioned, Forwarded: m.Forwarded, ForwardedFrom: m.ForwardedFrom, Quote: m.Quote,
+		Format: spansToPB(m.Format),
+	}
+	if m.Outgoing && !m.Deleted && !m.Service && m.Text != "" {
+		if md := richtext.ToMarkdown(m.Text, m.Format); md != m.Text {
+			out.Markdown = md
+		}
 	}
 	for _, a := range m.Attachments {
 		out.Attachments = append(out.Attachments, &pb.Attachment{
@@ -115,6 +124,17 @@ func messageToPB(m *model.Message) *pb.Message {
 	return out
 }
 
+func spansToPB(in []model.TextSpan) []*pb.TextSpan {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]*pb.TextSpan, len(in))
+	for i, s := range in {
+		out[i] = &pb.TextSpan{Style: pb.TextStyle(s.Kind), Offset: int32(s.Offset), Length: int32(s.Length), Url: s.URL, Language: s.Lang}
+	}
+	return out
+}
+
 func topicToPB(t *model.Topic) *pb.Topic {
 	return &pb.Topic{
 		Id: t.ID, Title: t.Title, Unread: int32(max(t.Unread, 0)), Color: int32(t.Color),
@@ -122,8 +142,62 @@ func topicToPB(t *model.Topic) *pb.Topic {
 	}
 }
 
+func profileToPB(p *model.Profile) *pb.ChatProfile {
+	out := &pb.ChatProfile{
+		Title: p.Title, AvatarUrl: p.Avatar, Username: p.Username, About: p.About, Phone: p.Phone,
+		Email: p.Email, Position: p.Position, Link: p.Link, Members: int32(max(p.Members, 0)),
+		LastSeenMs: ms(p.LastSeen), Online: p.Online, Bot: p.Bot,
+	}
+	for _, u := range p.MemberList {
+		out.MemberList = append(out.MemberList, userToPB(u))
+	}
+	return out
+}
+
 func outgoing(r *pb.SendRequest) model.Outgoing {
-	return model.Outgoing{Text: r.Text, ReplyTo: r.ReplyToId, Thread: r.ThreadId, Quote: r.Quote}
+	o := model.Outgoing{Text: r.Text, ReplyTo: r.ReplyToId, Thread: r.ThreadId, Quote: r.Quote}
+	for _, f := range r.Files {
+		o.Files = append(o.Files, model.OutFile{Name: f.Name, MIME: f.Mime, Data: f.Data})
+	}
+	o.Mentions = mentions(r.Text, r.Mentions)
+	return o
+}
+
+// mentions turns the app's UTF-16 spans into byte spans of text, sorted;
+// a span off the text, empty, without a person or overlapping another is
+// dropped (its text goes as it is).
+func mentions(text string, in []*pb.Mention) []model.Mention {
+	if len(in) == 0 {
+		return nil
+	}
+	// byteAt[i] is the byte offset of UTF-16 unit i (len(text) at the end);
+	// -1 inside a surrogate pair.
+	byteAt := make([]int, 0, len(text)+1)
+	for i, r := range text {
+		byteAt = append(byteAt, i)
+		if r >= 0x10000 {
+			byteAt = append(byteAt, -1)
+		}
+	}
+	byteAt = append(byteAt, len(text))
+	var out []model.Mention
+	for _, m := range in {
+		start, end := int(m.Offset), int(m.Offset)+int(m.Length)
+		if m.User == nil || m.User.Id == "" || m.Length <= 0 || start < 0 || end >= len(byteAt) || byteAt[start] < 0 || byteAt[end] < 0 {
+			continue
+		}
+		u := model.User{ID: m.User.Id, Name: m.User.Name, Username: m.User.Username}
+		out = append(out, model.Mention{Offset: byteAt[start], Length: byteAt[end] - byteAt[start], User: u})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Offset < out[j].Offset })
+	kept := out[:0]
+	for _, m := range out {
+		if len(kept) > 0 && m.Offset < kept[len(kept)-1].Offset+kept[len(kept)-1].Length {
+			continue
+		}
+		kept = append(kept, m)
+	}
+	return kept
 }
 
 var eventKindToPB = map[hub.EventKind]pb.Event_Kind{

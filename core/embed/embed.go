@@ -91,7 +91,14 @@ func Start(o Options) (*Core, error) {
 		}
 		return nil, err
 	}
-	svc := rpc.NewService(filepath.Join(o.Dir, "vault.mc"), o.Dir, o.Platform, all.Registry(o.Demo))
+	// The vault may live elsewhere (Settings → move): vault.path says where.
+	pointer := filepath.Join(o.Dir, "vault.path")
+	vaultPath := rpc.ReadVaultPointer(pointer)
+	if vaultPath == "" {
+		vaultPath = filepath.Join(o.Dir, "vault.mc")
+	}
+	svc := rpc.NewService(vaultPath, o.Dir, o.Platform, all.Registry(o.Demo))
+	svc.VaultPointer = pointer
 	if out != nil {
 		svc.Log = eventlog.New(1000, out)
 	}

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n.dart';
+import '../../core/theme/typography.dart';
+import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../common/hm.dart';
+import '../core/core_cubit.dart';
 
 IconData attachmentIcon(pb.AttachmentKind k) => switch (k) {
   pb.AttachmentKind.ATTACHMENT_KIND_IMAGE => Icons.image_outlined,
@@ -59,13 +64,24 @@ class MessageGroup {
         live.where((p) => p.text.isNotEmpty).firstOrNull ??
         live.where((p) => p.reactions.isNotEmpty || (p.hasThread() && p.thread.replies > 0)).firstOrNull ??
         live.first;
+    // The captions are joined: each one's styles move with it.
+    final texts = <String>[];
+    final format = <pb.TextSpan>[];
+    var at = 0;
+    for (final p in live) {
+      if (p.text.isEmpty) continue;
+      for (final s in p.format) {
+        format.add(s.deepCopy()..offset = s.offset + at);
+      }
+      texts.add(p.text);
+      at += p.text.length + 1;
+    }
     return main.deepCopy()
       ..attachments.clear()
       ..attachments.addAll([for (final p in live) ...p.attachments])
-      ..text = [
-        for (final p in live)
-          if (p.text.isNotEmpty) p.text,
-      ].join('\n');
+      ..text = texts.join('\n')
+      ..format.clear()
+      ..format.addAll(format);
   }
 }
 
@@ -106,4 +122,66 @@ String copyText(List<pb.Message> msgs, String Function(pb.Message) stamp) {
 String forwardText(pb.Message m, {String? fragment}) {
   final from = m.forwarded && m.forwardedFrom.isNotEmpty ? m.forwardedFrom : authorName(m);
   return '${tr('Forwarded from', 'Переслано от')} $from:\n${fragment ?? messageBody(m)}';
+}
+
+/// What the composer shows when [m] is edited: its text with the formatting
+/// written as Markdown.
+String editSource(pb.Message m) => m.markdown.isNotEmpty ? m.markdown : m.text;
+
+/// The account may change the text of [m] here: its own, not forwarded,
+/// with text, and the messenger edits (CAPABILITY_EDIT).
+bool canEditMessage(pb.Account? account, pb.Message m) =>
+    (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_EDIT) &&
+    m.outgoing &&
+    !m.deleted &&
+    !m.service &&
+    !m.forwarded &&
+    m.id.isNotEmpty &&
+    m.text.isNotEmpty;
+
+/// The account's own message that it can delete (CAPABILITY_DELETE).
+bool canDeleteMessage(pb.Account? account, pb.Message m) =>
+    (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_DELETE) &&
+    m.outgoing &&
+    !m.deleted &&
+    !m.service &&
+    m.id.isNotEmpty;
+
+/// Deletes the account's own messages of one chat (an album: all its
+/// parts) after asking how: for everyone, or only here when the messenger
+/// can (CAPABILITY_DELETE_FOR_ME). [thread]: they are replies in it.
+Future<void> deleteMessages(BuildContext context, pb.Account? account, List<pb.Message> msgs, {String thread = ''}) async {
+  if (msgs.isEmpty) return;
+  final forMe = (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_DELETE_FOR_ME);
+  final api = context.read<CoreCubit>().api;
+  final v = await showHmModal<String>(
+    context,
+    title: tr('Delete the message?', 'Удалить сообщение?'),
+    size: HmModalSize.sm,
+    body: (_) => Text(
+      forMe
+          ? tr('Delete it for everyone in the chat, or only for you.', 'Удалить его у всех в чате или только у себя.')
+          : tr('It is deleted for everyone in the chat.', 'Оно удалится у всех в чате.'),
+      style: HmText.body.copyWith(height: 1.5),
+    ),
+    actions: (ctx) => [
+      HmButton(tr('Cancel', 'Отмена'), variant: HmVariant.neutral, onPressed: () => Navigator.pop(ctx)),
+      if (forMe) HmButton(tr('Only for me', 'Только у себя'), variant: HmVariant.neutral, onPressed: () => Navigator.pop(ctx, 'me')),
+      HmButton(tr('For everyone', 'У всех'), variant: HmVariant.red, onPressed: () => Navigator.pop(ctx, 'all')),
+    ],
+  );
+  if (v == null) return;
+  try {
+    await api.delete(
+      pb.DeleteRequest(
+        accountId: msgs.first.accountId,
+        chatId: msgs.first.chatId,
+        messageIds: [for (final m in msgs) m.id],
+        forAll: v == 'all',
+        threadId: thread,
+      ),
+    );
+  } catch (e) {
+    Toasts.error('${tr('Could not delete the message', 'Не удалось удалить сообщение')}: ${errorText(e)}');
+  }
 }

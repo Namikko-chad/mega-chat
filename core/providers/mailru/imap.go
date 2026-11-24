@@ -546,6 +546,43 @@ func (s *session) UpdateMail(ctx context.Context, ids []string, action model.Mai
 	})
 }
 
+// MoveMail moves messages to folder to (the folder each is in comes from
+// its id).
+func (s *session) MoveMail(ctx context.Context, ids []string, _, to string) error {
+	byFolder := map[string][]string{}
+	for _, id := range ids {
+		_, _, folder, err := parseID(id)
+		if err != nil {
+			return err
+		}
+		if folder != to {
+			byFolder[folder] = append(byFolder[folder], id)
+		}
+	}
+	if len(byFolder) == 0 {
+		return nil
+	}
+	return s.imapDo(func(c *client.Client) error {
+		for _, fids := range byFolder {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			set := new(imap.SeqSet)
+			for _, id := range fids {
+				uid, _, err := selectID(c, id, false)
+				if err != nil {
+					return err
+				}
+				set.AddNum(uid)
+			}
+			if err := move(c, set, to); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // pollInbox looks at the inbox's counters: new UIDs are new mail, other
 // changes of the counters a change.
 func (s *session) pollInbox(sink provider.Sink) error {

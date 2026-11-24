@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -19,6 +20,7 @@ import (
 	"megachat/core/eventlog"
 	"megachat/core/hub"
 	"megachat/core/keychain"
+	"megachat/core/linkpreview"
 	"megachat/core/model"
 	"megachat/core/provider"
 	"megachat/core/rpc/pb"
@@ -29,10 +31,13 @@ import (
 // Service implements pb.MegaChatServer.
 type Service struct {
 	pb.UnimplementedMegaChatServer
-	VaultPath string
-	DataRoot  string // the cache lives here
-	Platform  string
-	Registry  *provider.Registry
+	VaultPath string // read through vaultPath(): SetVaultPath changes it
+	// VaultPointer keeps a vault path set by SetVaultPath for the next run;
+	// "" keeps it for this run only.
+	VaultPointer string
+	DataRoot     string // the cache lives here
+	Platform     string
+	Registry     *provider.Registry
 	// Log keeps recent events for the app (connection failures, ...).
 	Log *eventlog.Log
 	// KDF for new vaults and password changes.
@@ -40,6 +45,11 @@ type Service struct {
 	// Keychain remembers the vault's unlock key on this machine; nil: the
 	// platform has none (can_remember is false).
 	Keychain keychain.Keychain
+
+	pathMu sync.Mutex
+
+	previewOnce sync.Once
+	previews    *linkpreview.Fetcher
 
 	mu    sync.Mutex
 	v     *vault.Vault
@@ -79,6 +89,8 @@ func TokenAuth(token string) []grpc.ServerOption {
 		return status.Error(codes.Unauthenticated, "bad token")
 	}
 	return []grpc.ServerOption{
+		// A Send with files carries them whole (hub.MaxUpload).
+		grpc.MaxRecvMsgSize(hub.MaxUpload + 1<<20),
 		grpc.UnaryInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) {
 			if err := check(ctx); err != nil {
 				return nil, err
@@ -185,9 +197,9 @@ func toStatus(err error) error {
 // --- vault lifecycle -----------------------------------------------------
 
 func (s *Service) state() *pb.State {
-	_, err := os.Stat(s.VaultPath)
+	_, err := os.Stat(s.vaultPath())
 	st := &pb.State{
-		VaultExists: err == nil, VaultPath: s.VaultPath, Platform: s.Platform,
+		VaultExists: err == nil, VaultPath: s.vaultPath(), Platform: s.Platform,
 		CoreVersion: Version, CoreBuild: Build,
 		CanRemember: s.Keychain != nil,
 	}
@@ -217,7 +229,7 @@ func (s *Service) CreateVault(_ context.Context, r *pb.PasswordRequest) (*pb.Sta
 	if err != nil {
 		return nil, toStatus(err)
 	}
-	v, err := vault.Create(s.VaultPath, []byte(r.Password), c, s.KDF)
+	v, err := vault.Create(s.vaultPath(), []byte(r.Password), c, s.KDF)
 	if err != nil {
 		return nil, toStatus(err)
 	}
@@ -232,7 +244,7 @@ func (s *Service) Unlock(_ context.Context, r *pb.PasswordRequest) (*pb.State, e
 		return s.state(), nil
 	}
 	s.mu.Unlock()
-	v, err := vault.Open(s.VaultPath, []byte(r.Password))
+	v, err := vault.Open(s.vaultPath(), []byte(r.Password))
 	if err != nil {
 		return nil, toStatus(err)
 	}
@@ -292,7 +304,7 @@ func (s *Service) ChangePassword(_ context.Context, r *pb.ChangePasswordRequest)
 	if r.NewPassword == "" {
 		return nil, status.Error(codes.InvalidArgument, "empty password")
 	}
-	if _, err := vault.Open(s.VaultPath, []byte(r.OldPassword)); err != nil {
+	if _, err := vault.Open(s.vaultPath(), []byte(r.OldPassword)); err != nil {
 		return nil, toStatus(err)
 	}
 	if err := v.ChangePassword([]byte(r.NewPassword), s.KDF); err != nil {
@@ -309,7 +321,7 @@ func (s *Service) ChangePassword(_ context.Context, r *pb.ChangePasswordRequest)
 }
 
 func (s *Service) CheckPassword(_ context.Context, r *pb.PasswordRequest) (*pb.Empty, error) {
-	if _, err := vault.Open(s.VaultPath, []byte(r.Password)); err != nil {
+	if _, err := vault.Open(s.vaultPath(), []byte(r.Password)); err != nil {
 		return nil, toStatus(err)
 	}
 	return &pb.Empty{}, nil
@@ -319,13 +331,13 @@ func (s *Service) CheckPassword(_ context.Context, r *pb.PasswordRequest) (*pb.E
 
 // rememberedMark is a file that says a key is kept in the keychain, so
 // GetState does not ask the keychain (it may prompt to unlock itself).
-func (s *Service) rememberedMark() string { return s.VaultPath + ".remembered" }
+func (s *Service) rememberedMark() string { return s.vaultPath() + ".remembered" }
 
 // keychainName names the vault's key in the keychain: one per vault file.
 func (s *Service) keychainName() string {
-	p, err := filepath.Abs(s.VaultPath)
+	p, err := filepath.Abs(s.vaultPath())
 	if err != nil {
-		p = s.VaultPath
+		p = s.vaultPath()
 	}
 	return "vault:" + p
 }
@@ -356,7 +368,7 @@ func (s *Service) RememberPassword(_ context.Context, r *pb.PasswordRequest) (*p
 	if s.Keychain == nil {
 		return nil, s.noKeychain()
 	}
-	v, err := vault.Open(s.VaultPath, []byte(r.Password))
+	v, err := vault.Open(s.vaultPath(), []byte(r.Password))
 	if err != nil {
 		return nil, toStatus(err)
 	}
@@ -403,7 +415,7 @@ func (s *Service) UnlockRemembered(context.Context, *pb.Empty) (*pb.State, error
 	}
 	var k crypto.Key
 	copy(k[:], b)
-	v, err := vault.OpenWithKey(s.VaultPath, k)
+	v, err := vault.OpenWithKey(s.vaultPath(), k)
 	if errors.Is(err, vault.ErrBadPassword) {
 		s.forget()
 		return nil, status.Error(codes.PermissionDenied, "the remembered password no longer opens the vault")
@@ -412,6 +424,118 @@ func (s *Service) UnlockRemembered(context.Context, *pb.Empty) (*pb.State, error
 		return nil, toStatus(err)
 	}
 	return s.open(v)
+}
+
+// --- where the vault lives -------------------------------------------------
+
+func (s *Service) vaultPath() string {
+	s.pathMu.Lock()
+	defer s.pathMu.Unlock()
+	return s.VaultPath
+}
+
+// setVaultPath switches to path and keeps it for the next run.
+func (s *Service) setVaultPath(path string) error {
+	s.pathMu.Lock()
+	s.VaultPath = path
+	s.pathMu.Unlock()
+	if s.VaultPointer == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(s.VaultPointer), 0o700); err != nil {
+		return err
+	}
+	tmp := s.VaultPointer + ".tmp"
+	if err := os.WriteFile(tmp, []byte(path+"\n"), 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, s.VaultPointer)
+}
+
+// ReadVaultPointer returns the vault path kept by SetVaultPath at pointer,
+// or "" when there is none.
+func ReadVaultPointer(pointer string) string {
+	b, err := os.ReadFile(pointer)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+func (s *Service) SetVaultPath(_ context.Context, r *pb.VaultPathRequest) (*pb.State, error) {
+	if r.Path == "" || !filepath.IsAbs(r.Path) {
+		return nil, status.Error(codes.InvalidArgument, "the vault path must be absolute")
+	}
+	path := filepath.Clean(r.Path)
+	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
+		path = filepath.Join(path, "vault.mc")
+	}
+	if old, err := filepath.Abs(s.vaultPath()); err == nil && old == path {
+		return s.GetState(context.Background(), &pb.Empty{})
+	}
+	if r.Move {
+		if err := s.moveVault(path); err != nil {
+			return nil, err
+		}
+	} else if err := s.useVault(path); err != nil {
+		return nil, err
+	}
+	s.publish(&pb.Event{Kind: pb.Event_KIND_STATE})
+	return s.GetState(context.Background(), &pb.Empty{})
+}
+
+// moveVault moves the open vault to path; a remembered key follows it
+// (the keychain names it by the file's path).
+func (s *Service) moveVault(path string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.v == nil {
+		return status.Error(codes.FailedPrecondition, "vault is locked")
+	}
+	if _, err := os.Stat(path); err == nil {
+		return status.Errorf(codes.AlreadyExists, "%s already exists", path)
+	}
+	_, err := os.Stat(s.rememberedMark())
+	remembered := err == nil && s.Keychain != nil
+	if err := s.v.MoveTo(path); err != nil {
+		return toStatus(err)
+	}
+	old := s.vaultPath()
+	var forgetErr error
+	if remembered {
+		forgetErr = s.forget()
+	}
+	if err := s.setVaultPath(path); err != nil {
+		s.Log.Addf(eventlog.Warn, "vault", "", "the new vault place is not kept for the next start: %v", err)
+	}
+	if remembered {
+		if err := s.remember(s.v.UnlockKey()); err != nil {
+			s.Log.Addf(eventlog.Warn, "vault", "", "the password is not remembered at the new place: %v", err)
+		}
+	}
+	if forgetErr != nil {
+		s.Log.Addf(eventlog.Warn, "vault", "", "the key of the old place stays in the keychain: %v", forgetErr)
+	}
+	s.Log.Addf(eventlog.Info, "vault", "", "moved from %s to %s", old, path)
+	return nil
+}
+
+// useVault opens the vault at path from now on (locked only).
+func (s *Service) useVault(path string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.h != nil {
+		return status.Error(codes.FailedPrecondition, "lock the vault first")
+	}
+	fi, err := os.Stat(path)
+	if err != nil || !fi.Mode().IsRegular() {
+		return status.Errorf(codes.NotFound, "no vault file at %s", path)
+	}
+	if err := s.setVaultPath(path); err != nil {
+		return status.Errorf(codes.Internal, "keep the vault place: %v", err)
+	}
+	s.Log.Addf(eventlog.Info, "vault", "", "using the vault at %s", path)
+	return nil
 }
 
 // --- providers and accounts ----------------------------------------------
@@ -513,6 +637,21 @@ func (s *Service) RemoveAccount(ctx context.Context, r *pb.IdRequest) (*pb.Empty
 	return &pb.Empty{}, toStatus(h.Remove(ctx, r.Id))
 }
 
+func (s *Service) ReorderAccounts(_ context.Context, r *pb.ReorderAccountsRequest) (*pb.AccountsReply, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	if err := h.Reorder(r.Ids); err != nil {
+		return nil, toStatus(err)
+	}
+	out := &pb.AccountsReply{}
+	for _, a := range h.Accounts() {
+		out.Accounts = append(out.Accounts, accountToPB(a))
+	}
+	return out, nil
+}
+
 // --- chats and messages --------------------------------------------------
 
 func (s *Service) Chats(_ context.Context, r *pb.ChatsRequest) (*pb.ChatsReply, error) {
@@ -566,7 +705,7 @@ func (s *Service) Send(ctx context.Context, r *pb.SendRequest) (*pb.Message, err
 	if err != nil {
 		return nil, err
 	}
-	if r.Text == "" {
+	if r.Text == "" && len(r.Files) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "empty message")
 	}
 	m, err := h.Send(ctx, r.AccountId, r.ChatId, outgoing(r))
@@ -620,6 +759,73 @@ func (s *Service) Topics(ctx context.Context, r *pb.TopicsRequest) (*pb.TopicsRe
 		out.Topics[i] = topicToPB(&ts[i])
 	}
 	return out, nil
+}
+
+func (s *Service) Edit(ctx context.Context, r *pb.EditRequest) (*pb.Message, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	m, err := h.Edit(ctx, r.AccountId, r.ChatId, r.ThreadId, r.MessageId, r.Text)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	return messageToPB(&m), nil
+}
+
+func (s *Service) Delete(ctx context.Context, r *pb.DeleteRequest) (*pb.Empty, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	if err := h.Delete(ctx, r.AccountId, r.ChatId, r.ThreadId, r.MessageIds, r.ForAll); err != nil {
+		return nil, toStatus(err)
+	}
+	return &pb.Empty{}, nil
+}
+
+func (s *Service) Members(ctx context.Context, r *pb.MembersRequest) (*pb.MembersReply, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	us, err := h.Members(ctx, r.AccountId, r.ChatId, r.Query, int(r.Limit))
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	out := &pb.MembersReply{}
+	for _, u := range us {
+		out.Users = append(out.Users, userToPB(u))
+	}
+	return out, nil
+}
+
+func (s *Service) LinkPreview(ctx context.Context, r *pb.LinkPreviewRequest) (*pb.LinkPreviewReply, error) {
+	if _, err := s.hub(); err != nil {
+		return nil, err
+	}
+	s.previewOnce.Do(func() { s.previews = linkpreview.New() })
+	p, err := s.previews.Fetch(ctx, r.Url)
+	if err != nil {
+		// Not an error of the app: the page just has no preview.
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return &pb.LinkPreviewReply{
+		Url: p.URL, SiteName: p.SiteName, Title: p.Title, Description: p.Description,
+		Image: p.Image, ImageMime: p.ImageMIME,
+	}, nil
+}
+
+func (s *Service) Profile(ctx context.Context, r *pb.ProfileRequest) (*pb.ChatProfile, error) {
+	h, err := s.hub()
+	if err != nil {
+		return nil, err
+	}
+	p, err := h.Profile(ctx, r.AccountId, r.ChatId)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	return profileToPB(&p), nil
 }
 
 func (s *Service) Thread(ctx context.Context, r *pb.ThreadRequest) (*pb.HistoryReply, error) {

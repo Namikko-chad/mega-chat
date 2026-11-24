@@ -22,6 +22,7 @@ import (
 	xhtml "golang.org/x/net/html"
 
 	"megachat/core/model"
+	"megachat/core/richtext"
 )
 
 var dec = &mime.WordDecoder{CharsetReader: charset.Reader}
@@ -97,8 +98,10 @@ func ReplySubject(s string) string {
 	return "Re: " + s
 }
 
-// Compose builds a text/plain UTF-8 message. Bcc is not written into it:
-// the sender passes those recipients to the server separately.
+// Compose builds a UTF-8 message: text/plain, or multipart/alternative with
+// an HTML part when the text has Markdown formatting (the plain part keeps
+// the source). Bcc is not written into it: the sender passes those
+// recipients to the server separately.
 func Compose(from model.Address, out model.OutMail, reply *Reply, now time.Time) []byte {
 	var b bytes.Buffer
 	h := func(k, v string) {
@@ -117,13 +120,33 @@ func Compose(from model.Address, out model.OutMail, reply *Reply, now time.Time)
 		h("References", strings.TrimSpace(reply.References+" "+reply.MessageID))
 	}
 	h("MIME-Version", "1.0")
-	h("Content-Type", "text/plain; charset=utf-8")
-	h("Content-Transfer-Encoding", "quoted-printable")
-	b.WriteString("\r\n")
-	w := quotedprintable.NewWriter(&b)
 	text := strings.ReplaceAll(strings.ReplaceAll(out.Text, "\r\n", "\n"), "\n", "\r\n")
-	w.Write([]byte(text))
-	w.Close()
+	part := func(body string) {
+		w := quotedprintable.NewWriter(&b)
+		w.Write([]byte(body))
+		w.Close()
+	}
+	doc := richtext.Parse(out.Text, richtext.Markdown)
+	if len(doc.Spans) == 0 {
+		h("Content-Type", "text/plain; charset=utf-8")
+		h("Content-Transfer-Encoding", "quoted-printable")
+		b.WriteString("\r\n")
+		part(text)
+		return b.Bytes()
+	}
+	var r [12]byte
+	rand.Read(r[:])
+	boundary := "mc-" + hex.EncodeToString(r[:])
+	h("Content-Type", `multipart/alternative; boundary="`+boundary+`"`)
+	b.WriteString("\r\n")
+	section := func(mimeType, body string) {
+		fmt.Fprintf(&b, "--%s\r\nContent-Type: %s; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", boundary, mimeType)
+		part(body)
+		b.WriteString("\r\n")
+	}
+	section("text/plain", text)
+	section("text/html", "<!doctype html><html><body>"+richtext.ToHTML(doc)+"</body></html>")
+	fmt.Fprintf(&b, "--%s--\r\n", boundary)
 	return b.Bytes()
 }
 

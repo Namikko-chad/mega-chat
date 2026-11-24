@@ -450,6 +450,29 @@ func (h *Hub) UpdateMail(ctx context.Context, acct string, ids []string, action 
 	return nil
 }
 
+// MoveMail moves messages of an account from one folder to another.
+func (h *Hub) MoveMail(ctx context.Context, acct string, ids []string, from, to string) error {
+	if len(ids) == 0 || from == to {
+		return nil
+	}
+	if to == "" {
+		return fmt.Errorf("no folder to move to")
+	}
+	m, err := h.mailer(acct)
+	if err != nil {
+		return err
+	}
+	mv, ok := m.(provider.MailMover)
+	if !ok {
+		return provider.ErrUnsupported
+	}
+	if err := mv.MoveMail(ctx, ids, from, to); err != nil {
+		return err
+	}
+	h.mailChanged(acct)
+	return nil
+}
+
 // mailChanged drops the folder list and tells subscribers to reload. The
 // new unread count follows in the background.
 func (h *Hub) mailChanged(acct string) {

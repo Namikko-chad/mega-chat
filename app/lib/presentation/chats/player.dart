@@ -197,13 +197,16 @@ class _VideoViewer extends StatefulWidget {
 
 class _VideoViewerState extends State<_VideoViewer> {
   final _player = Player();
-  late final _video = VideoController(_player);
+  // Made with the player, before open(): a controller attached to a player
+  // that already plays gets no frames (a black screen on Linux).
+  late final VideoController _video;
   String? _error;
   bool _ready = false;
 
   @override
   void initState() {
     super.initState();
+    _video = VideoController(_player);
     unawaited(_open());
   }
 

@@ -33,11 +33,19 @@ const (
 	Capability_CAPABILITY_MAIL        Capability = 4
 	Capability_CAPABILITY_CALENDAR    Capability = 5
 	// Sessions: Account.capabilities tells what an account's session does.
-	Capability_CAPABILITY_THREADS   Capability = 6  // Thread, SendRequest.thread_id
-	Capability_CAPABILITY_REACTIONS Capability = 7  // React
-	Capability_CAPABILITY_MEDIA     Capability = 8  // Media
-	Capability_CAPABILITY_TOPICS    Capability = 9  // Topics, MarkReadRequest.thread_id
-	Capability_CAPABILITY_FORWARD   Capability = 10 // Forward inside the account (others: send the text)
+	Capability_CAPABILITY_THREADS       Capability = 6  // Thread, SendRequest.thread_id
+	Capability_CAPABILITY_REACTIONS     Capability = 7  // React
+	Capability_CAPABILITY_MEDIA         Capability = 8  // Media
+	Capability_CAPABILITY_TOPICS        Capability = 9  // Topics, MarkReadRequest.thread_id
+	Capability_CAPABILITY_FORWARD       Capability = 10 // Forward inside the account (others: send the text)
+	Capability_CAPABILITY_FILES         Capability = 11 // SendRequest.files
+	Capability_CAPABILITY_PROFILES      Capability = 12 // Profile
+	Capability_CAPABILITY_EDIT          Capability = 13 // Edit the account's own messages
+	Capability_CAPABILITY_DELETE        Capability = 14 // Delete the account's own messages for everyone
+	Capability_CAPABILITY_DELETE_FOR_ME Capability = 15 // Delete with for_all false
+	Capability_CAPABILITY_MENTIONS      Capability = 16 // Members, SendRequest.mentions
+	Capability_CAPABILITY_CHAT_FOLDERS  Capability = 17 // ChatFolders, Chat.folders
+	Capability_CAPABILITY_MANAGE_CHATS  Capability = 18 // ManageChat with Account.chat_actions
 )
 
 // Enum value maps for Capability.
@@ -54,19 +62,35 @@ var (
 		8:  "CAPABILITY_MEDIA",
 		9:  "CAPABILITY_TOPICS",
 		10: "CAPABILITY_FORWARD",
+		11: "CAPABILITY_FILES",
+		12: "CAPABILITY_PROFILES",
+		13: "CAPABILITY_EDIT",
+		14: "CAPABILITY_DELETE",
+		15: "CAPABILITY_DELETE_FOR_ME",
+		16: "CAPABILITY_MENTIONS",
+		17: "CAPABILITY_CHAT_FOLDERS",
+		18: "CAPABILITY_MANAGE_CHATS",
 	}
 	Capability_value = map[string]int32{
-		"CAPABILITY_UNSPECIFIED": 0,
-		"CAPABILITY_MESSAGES":    1,
-		"CAPABILITY_CALLS":       2,
-		"CAPABILITY_GROUP_CALLS": 3,
-		"CAPABILITY_MAIL":        4,
-		"CAPABILITY_CALENDAR":    5,
-		"CAPABILITY_THREADS":     6,
-		"CAPABILITY_REACTIONS":   7,
-		"CAPABILITY_MEDIA":       8,
-		"CAPABILITY_TOPICS":      9,
-		"CAPABILITY_FORWARD":     10,
+		"CAPABILITY_UNSPECIFIED":   0,
+		"CAPABILITY_MESSAGES":      1,
+		"CAPABILITY_CALLS":         2,
+		"CAPABILITY_GROUP_CALLS":   3,
+		"CAPABILITY_MAIL":          4,
+		"CAPABILITY_CALENDAR":      5,
+		"CAPABILITY_THREADS":       6,
+		"CAPABILITY_REACTIONS":     7,
+		"CAPABILITY_MEDIA":         8,
+		"CAPABILITY_TOPICS":        9,
+		"CAPABILITY_FORWARD":       10,
+		"CAPABILITY_FILES":         11,
+		"CAPABILITY_PROFILES":      12,
+		"CAPABILITY_EDIT":          13,
+		"CAPABILITY_DELETE":        14,
+		"CAPABILITY_DELETE_FOR_ME": 15,
+		"CAPABILITY_MENTIONS":      16,
+		"CAPABILITY_CHAT_FOLDERS":  17,
+		"CAPABILITY_MANAGE_CHATS":  18,
 	}
 )
 
@@ -95,6 +119,71 @@ func (x Capability) Number() protoreflect.EnumNumber {
 // Deprecated: Use Capability.Descriptor instead.
 func (Capability) EnumDescriptor() ([]byte, []int) {
 	return file_megachat_proto_rawDescGZIP(), []int{0}
+}
+
+// Something the account does to one of its chats (ManageChat).
+type ChatAction int32
+
+const (
+	ChatAction_CHAT_ACTION_UNSPECIFIED ChatAction = 0
+	ChatAction_CHAT_ACTION_MUTE        ChatAction = 1
+	ChatAction_CHAT_ACTION_UNMUTE      ChatAction = 2
+	ChatAction_CHAT_ACTION_PIN         ChatAction = 3
+	ChatAction_CHAT_ACTION_UNPIN       ChatAction = 4
+	ChatAction_CHAT_ACTION_ARCHIVE     ChatAction = 5
+	ChatAction_CHAT_ACTION_UNARCHIVE   ChatAction = 6
+	ChatAction_CHAT_ACTION_LEAVE       ChatAction = 7 // groups and channels; the chat is removed
+)
+
+// Enum value maps for ChatAction.
+var (
+	ChatAction_name = map[int32]string{
+		0: "CHAT_ACTION_UNSPECIFIED",
+		1: "CHAT_ACTION_MUTE",
+		2: "CHAT_ACTION_UNMUTE",
+		3: "CHAT_ACTION_PIN",
+		4: "CHAT_ACTION_UNPIN",
+		5: "CHAT_ACTION_ARCHIVE",
+		6: "CHAT_ACTION_UNARCHIVE",
+		7: "CHAT_ACTION_LEAVE",
+	}
+	ChatAction_value = map[string]int32{
+		"CHAT_ACTION_UNSPECIFIED": 0,
+		"CHAT_ACTION_MUTE":        1,
+		"CHAT_ACTION_UNMUTE":      2,
+		"CHAT_ACTION_PIN":         3,
+		"CHAT_ACTION_UNPIN":       4,
+		"CHAT_ACTION_ARCHIVE":     5,
+		"CHAT_ACTION_UNARCHIVE":   6,
+		"CHAT_ACTION_LEAVE":       7,
+	}
+)
+
+func (x ChatAction) Enum() *ChatAction {
+	p := new(ChatAction)
+	*p = x
+	return p
+}
+
+func (x ChatAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChatAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_megachat_proto_enumTypes[1].Descriptor()
+}
+
+func (ChatAction) Type() protoreflect.EnumType {
+	return &file_megachat_proto_enumTypes[1]
+}
+
+func (x ChatAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChatAction.Descriptor instead.
+func (ChatAction) EnumDescriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{1}
 }
 
 type AccountStatus int32
@@ -139,11 +228,11 @@ func (x AccountStatus) String() string {
 }
 
 func (AccountStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[1].Descriptor()
+	return file_megachat_proto_enumTypes[2].Descriptor()
 }
 
 func (AccountStatus) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[1]
+	return &file_megachat_proto_enumTypes[2]
 }
 
 func (x AccountStatus) Number() protoreflect.EnumNumber {
@@ -152,7 +241,7 @@ func (x AccountStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AccountStatus.Descriptor instead.
 func (AccountStatus) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{1}
+	return file_megachat_proto_rawDescGZIP(), []int{2}
 }
 
 type ChatKind int32
@@ -191,11 +280,11 @@ func (x ChatKind) String() string {
 }
 
 func (ChatKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[2].Descriptor()
+	return file_megachat_proto_enumTypes[3].Descriptor()
 }
 
 func (ChatKind) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[2]
+	return &file_megachat_proto_enumTypes[3]
 }
 
 func (x ChatKind) Number() protoreflect.EnumNumber {
@@ -204,7 +293,7 @@ func (x ChatKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ChatKind.Descriptor instead.
 func (ChatKind) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{2}
+	return file_megachat_proto_rawDescGZIP(), []int{3}
 }
 
 type AttachmentKind int32
@@ -252,11 +341,11 @@ func (x AttachmentKind) String() string {
 }
 
 func (AttachmentKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[3].Descriptor()
+	return file_megachat_proto_enumTypes[4].Descriptor()
 }
 
 func (AttachmentKind) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[3]
+	return &file_megachat_proto_enumTypes[4]
 }
 
 func (x AttachmentKind) Number() protoreflect.EnumNumber {
@@ -265,7 +354,80 @@ func (x AttachmentKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AttachmentKind.Descriptor instead.
 func (AttachmentKind) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{3}
+	return file_megachat_proto_rawDescGZIP(), []int{4}
+}
+
+type TextStyle int32
+
+const (
+	TextStyle_TEXT_STYLE_UNSPECIFIED TextStyle = 0
+	TextStyle_TEXT_STYLE_BOLD        TextStyle = 1
+	TextStyle_TEXT_STYLE_ITALIC      TextStyle = 2
+	TextStyle_TEXT_STYLE_UNDERLINE   TextStyle = 3
+	TextStyle_TEXT_STYLE_STRIKE      TextStyle = 4
+	TextStyle_TEXT_STYLE_SPOILER     TextStyle = 5
+	TextStyle_TEXT_STYLE_CODE        TextStyle = 6
+	TextStyle_TEXT_STYLE_PRE         TextStyle = 7
+	TextStyle_TEXT_STYLE_LINK        TextStyle = 8
+	TextStyle_TEXT_STYLE_QUOTE       TextStyle = 9
+	TextStyle_TEXT_STYLE_HEADING     TextStyle = 10
+)
+
+// Enum value maps for TextStyle.
+var (
+	TextStyle_name = map[int32]string{
+		0:  "TEXT_STYLE_UNSPECIFIED",
+		1:  "TEXT_STYLE_BOLD",
+		2:  "TEXT_STYLE_ITALIC",
+		3:  "TEXT_STYLE_UNDERLINE",
+		4:  "TEXT_STYLE_STRIKE",
+		5:  "TEXT_STYLE_SPOILER",
+		6:  "TEXT_STYLE_CODE",
+		7:  "TEXT_STYLE_PRE",
+		8:  "TEXT_STYLE_LINK",
+		9:  "TEXT_STYLE_QUOTE",
+		10: "TEXT_STYLE_HEADING",
+	}
+	TextStyle_value = map[string]int32{
+		"TEXT_STYLE_UNSPECIFIED": 0,
+		"TEXT_STYLE_BOLD":        1,
+		"TEXT_STYLE_ITALIC":      2,
+		"TEXT_STYLE_UNDERLINE":   3,
+		"TEXT_STYLE_STRIKE":      4,
+		"TEXT_STYLE_SPOILER":     5,
+		"TEXT_STYLE_CODE":        6,
+		"TEXT_STYLE_PRE":         7,
+		"TEXT_STYLE_LINK":        8,
+		"TEXT_STYLE_QUOTE":       9,
+		"TEXT_STYLE_HEADING":     10,
+	}
+)
+
+func (x TextStyle) Enum() *TextStyle {
+	p := new(TextStyle)
+	*p = x
+	return p
+}
+
+func (x TextStyle) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TextStyle) Descriptor() protoreflect.EnumDescriptor {
+	return file_megachat_proto_enumTypes[5].Descriptor()
+}
+
+func (TextStyle) Type() protoreflect.EnumType {
+	return &file_megachat_proto_enumTypes[5]
+}
+
+func (x TextStyle) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TextStyle.Descriptor instead.
+func (TextStyle) EnumDescriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{5}
 }
 
 type CallState int32
@@ -310,11 +472,11 @@ func (x CallState) String() string {
 }
 
 func (CallState) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[4].Descriptor()
+	return file_megachat_proto_enumTypes[6].Descriptor()
 }
 
 func (CallState) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[4]
+	return &file_megachat_proto_enumTypes[6]
 }
 
 func (x CallState) Number() protoreflect.EnumNumber {
@@ -323,7 +485,7 @@ func (x CallState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CallState.Descriptor instead.
 func (CallState) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{4}
+	return file_megachat_proto_rawDescGZIP(), []int{6}
 }
 
 type CallEnd int32
@@ -368,11 +530,11 @@ func (x CallEnd) String() string {
 }
 
 func (CallEnd) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[5].Descriptor()
+	return file_megachat_proto_enumTypes[7].Descriptor()
 }
 
 func (CallEnd) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[5]
+	return &file_megachat_proto_enumTypes[7]
 }
 
 func (x CallEnd) Number() protoreflect.EnumNumber {
@@ -381,7 +543,7 @@ func (x CallEnd) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CallEnd.Descriptor instead.
 func (CallEnd) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{5}
+	return file_megachat_proto_rawDescGZIP(), []int{7}
 }
 
 type SignalKind int32
@@ -429,11 +591,11 @@ func (x SignalKind) String() string {
 }
 
 func (SignalKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[6].Descriptor()
+	return file_megachat_proto_enumTypes[8].Descriptor()
 }
 
 func (SignalKind) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[6]
+	return &file_megachat_proto_enumTypes[8]
 }
 
 func (x SignalKind) Number() protoreflect.EnumNumber {
@@ -442,7 +604,7 @@ func (x SignalKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SignalKind.Descriptor instead.
 func (SignalKind) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{6}
+	return file_megachat_proto_rawDescGZIP(), []int{8}
 }
 
 type FolderRole int32
@@ -490,11 +652,11 @@ func (x FolderRole) String() string {
 }
 
 func (FolderRole) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[7].Descriptor()
+	return file_megachat_proto_enumTypes[9].Descriptor()
 }
 
 func (FolderRole) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[7]
+	return &file_megachat_proto_enumTypes[9]
 }
 
 func (x FolderRole) Number() protoreflect.EnumNumber {
@@ -503,7 +665,7 @@ func (x FolderRole) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FolderRole.Descriptor instead.
 func (FolderRole) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{7}
+	return file_megachat_proto_rawDescGZIP(), []int{9}
 }
 
 type MailAction int32
@@ -548,11 +710,11 @@ func (x MailAction) String() string {
 }
 
 func (MailAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[8].Descriptor()
+	return file_megachat_proto_enumTypes[10].Descriptor()
 }
 
 func (MailAction) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[8]
+	return &file_megachat_proto_enumTypes[10]
 }
 
 func (x MailAction) Number() protoreflect.EnumNumber {
@@ -561,7 +723,7 @@ func (x MailAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MailAction.Descriptor instead.
 func (MailAction) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{8}
+	return file_megachat_proto_rawDescGZIP(), []int{10}
 }
 
 type Rsvp int32
@@ -603,11 +765,11 @@ func (x Rsvp) String() string {
 }
 
 func (Rsvp) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[9].Descriptor()
+	return file_megachat_proto_enumTypes[11].Descriptor()
 }
 
 func (Rsvp) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[9]
+	return &file_megachat_proto_enumTypes[11]
 }
 
 func (x Rsvp) Number() protoreflect.EnumNumber {
@@ -616,7 +778,7 @@ func (x Rsvp) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Rsvp.Descriptor instead.
 func (Rsvp) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{9}
+	return file_megachat_proto_rawDescGZIP(), []int{11}
 }
 
 type Event_Kind int32
@@ -633,11 +795,12 @@ const (
 	Event_KIND_CHAT_REMOVED   Event_Kind = 8 // chat carries account and id only
 	Event_KIND_THREAD_MESSAGE Event_Kind = 9 // message (new or edited) inside thread message.in_thread
 	// (chat: the cached chat, when there is one)
-	Event_KIND_CALL        Event_Kind = 10 // call offered, changed or ended
-	Event_KIND_CALL_SIGNAL Event_Kind = 11 // signal for the peer connection of call (ids only in call)
-	Event_KIND_MAIL_NEW    Event_Kind = 20 // mail is a new message in account_id's inbox
-	Event_KIND_MAIL        Event_Kind = 21 // account_id's mail changed: reload what is shown
-	Event_KIND_CALENDAR    Event_Kind = 22 // account_id's events changed: reload the range
+	Event_KIND_CALL         Event_Kind = 10 // call offered, changed or ended
+	Event_KIND_CALL_SIGNAL  Event_Kind = 11 // signal for the peer connection of call (ids only in call)
+	Event_KIND_CHAT_FOLDERS Event_Kind = 12 // account_id's chat folders changed: ChatFolders
+	Event_KIND_MAIL_NEW     Event_Kind = 20 // mail is a new message in account_id's inbox
+	Event_KIND_MAIL         Event_Kind = 21 // account_id's mail changed: reload what is shown
+	Event_KIND_CALENDAR     Event_Kind = 22 // account_id's events changed: reload the range
 )
 
 // Enum value maps for Event_Kind.
@@ -655,6 +818,7 @@ var (
 		9:  "KIND_THREAD_MESSAGE",
 		10: "KIND_CALL",
 		11: "KIND_CALL_SIGNAL",
+		12: "KIND_CHAT_FOLDERS",
 		20: "KIND_MAIL_NEW",
 		21: "KIND_MAIL",
 		22: "KIND_CALENDAR",
@@ -672,6 +836,7 @@ var (
 		"KIND_THREAD_MESSAGE": 9,
 		"KIND_CALL":           10,
 		"KIND_CALL_SIGNAL":    11,
+		"KIND_CHAT_FOLDERS":   12,
 		"KIND_MAIL_NEW":       20,
 		"KIND_MAIL":           21,
 		"KIND_CALENDAR":       22,
@@ -689,11 +854,11 @@ func (x Event_Kind) String() string {
 }
 
 func (Event_Kind) Descriptor() protoreflect.EnumDescriptor {
-	return file_megachat_proto_enumTypes[10].Descriptor()
+	return file_megachat_proto_enumTypes[12].Descriptor()
 }
 
 func (Event_Kind) Type() protoreflect.EnumType {
-	return &file_megachat_proto_enumTypes[10]
+	return &file_megachat_proto_enumTypes[12]
 }
 
 func (x Event_Kind) Number() protoreflect.EnumNumber {
@@ -702,7 +867,7 @@ func (x Event_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Event_Kind.Descriptor instead.
 func (Event_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{37, 0}
+	return file_megachat_proto_rawDescGZIP(), []int{53, 0}
 }
 
 type Empty struct {
@@ -829,6 +994,58 @@ func (x *PasswordRequest) GetPassword() string {
 	return ""
 }
 
+type VaultPathRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"` // absolute
+	Move          bool                   `protobuf:"varint,2,opt,name=move,proto3" json:"move,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VaultPathRequest) Reset() {
+	*x = VaultPathRequest{}
+	mi := &file_megachat_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VaultPathRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VaultPathRequest) ProtoMessage() {}
+
+func (x *VaultPathRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VaultPathRequest.ProtoReflect.Descriptor instead.
+func (*VaultPathRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *VaultPathRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *VaultPathRequest) GetMove() bool {
+	if x != nil {
+		return x.Move
+	}
+	return false
+}
+
 type ChangePasswordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OldPassword   string                 `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
@@ -839,7 +1056,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_megachat_proto_msgTypes[3]
+	mi := &file_megachat_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +1068,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[3]
+	mi := &file_megachat_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +1081,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{3}
+	return file_megachat_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ChangePasswordRequest) GetOldPassword() string {
@@ -899,7 +1116,7 @@ type State struct {
 
 func (x *State) Reset() {
 	*x = State{}
-	mi := &file_megachat_proto_msgTypes[4]
+	mi := &file_megachat_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -911,7 +1128,7 @@ func (x *State) String() string {
 func (*State) ProtoMessage() {}
 
 func (x *State) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[4]
+	mi := &file_megachat_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -924,7 +1141,7 @@ func (x *State) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use State.ProtoReflect.Descriptor instead.
 func (*State) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{4}
+	return file_megachat_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *State) GetVaultExists() bool {
@@ -1012,7 +1229,7 @@ type Field struct {
 
 func (x *Field) Reset() {
 	*x = Field{}
-	mi := &file_megachat_proto_msgTypes[5]
+	mi := &file_megachat_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1024,7 +1241,7 @@ func (x *Field) String() string {
 func (*Field) ProtoMessage() {}
 
 func (x *Field) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[5]
+	mi := &file_megachat_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1037,7 +1254,7 @@ func (x *Field) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Field.ProtoReflect.Descriptor instead.
 func (*Field) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{5}
+	return file_megachat_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Field) GetKey() string {
@@ -1100,7 +1317,7 @@ type AuthMethod struct {
 
 func (x *AuthMethod) Reset() {
 	*x = AuthMethod{}
-	mi := &file_megachat_proto_msgTypes[6]
+	mi := &file_megachat_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1112,7 +1329,7 @@ func (x *AuthMethod) String() string {
 func (*AuthMethod) ProtoMessage() {}
 
 func (x *AuthMethod) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[6]
+	mi := &file_megachat_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1125,7 +1342,7 @@ func (x *AuthMethod) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthMethod.ProtoReflect.Descriptor instead.
 func (*AuthMethod) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{6}
+	return file_megachat_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AuthMethod) GetId() string {
@@ -1161,7 +1378,7 @@ type ProviderInfo struct {
 
 func (x *ProviderInfo) Reset() {
 	*x = ProviderInfo{}
-	mi := &file_megachat_proto_msgTypes[7]
+	mi := &file_megachat_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1173,7 +1390,7 @@ func (x *ProviderInfo) String() string {
 func (*ProviderInfo) ProtoMessage() {}
 
 func (x *ProviderInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[7]
+	mi := &file_megachat_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1186,7 +1403,7 @@ func (x *ProviderInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderInfo.ProtoReflect.Descriptor instead.
 func (*ProviderInfo) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{7}
+	return file_megachat_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ProviderInfo) GetType() string {
@@ -1226,7 +1443,7 @@ type ProvidersReply struct {
 
 func (x *ProvidersReply) Reset() {
 	*x = ProvidersReply{}
-	mi := &file_megachat_proto_msgTypes[8]
+	mi := &file_megachat_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1238,7 +1455,7 @@ func (x *ProvidersReply) String() string {
 func (*ProvidersReply) ProtoMessage() {}
 
 func (x *ProvidersReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[8]
+	mi := &file_megachat_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1251,7 +1468,7 @@ func (x *ProvidersReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProvidersReply.ProtoReflect.Descriptor instead.
 func (*ProvidersReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{8}
+	return file_megachat_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ProvidersReply) GetProviders() []*ProviderInfo {
@@ -1271,7 +1488,7 @@ type StartLoginRequest struct {
 
 func (x *StartLoginRequest) Reset() {
 	*x = StartLoginRequest{}
-	mi := &file_megachat_proto_msgTypes[9]
+	mi := &file_megachat_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1283,7 +1500,7 @@ func (x *StartLoginRequest) String() string {
 func (*StartLoginRequest) ProtoMessage() {}
 
 func (x *StartLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[9]
+	mi := &file_megachat_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +1513,7 @@ func (x *StartLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLoginRequest.ProtoReflect.Descriptor instead.
 func (*StartLoginRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{9}
+	return file_megachat_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StartLoginRequest) GetProvider() string {
@@ -1323,7 +1540,7 @@ type LoginStepRequest struct {
 
 func (x *LoginStepRequest) Reset() {
 	*x = LoginStepRequest{}
-	mi := &file_megachat_proto_msgTypes[10]
+	mi := &file_megachat_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1335,7 +1552,7 @@ func (x *LoginStepRequest) String() string {
 func (*LoginStepRequest) ProtoMessage() {}
 
 func (x *LoginStepRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[10]
+	mi := &file_megachat_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1348,7 +1565,7 @@ func (x *LoginStepRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginStepRequest.ProtoReflect.Descriptor instead.
 func (*LoginStepRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{10}
+	return file_megachat_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LoginStepRequest) GetLoginId() string {
@@ -1387,7 +1604,7 @@ type LoginStepReply struct {
 
 func (x *LoginStepReply) Reset() {
 	*x = LoginStepReply{}
-	mi := &file_megachat_proto_msgTypes[11]
+	mi := &file_megachat_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1399,7 +1616,7 @@ func (x *LoginStepReply) String() string {
 func (*LoginStepReply) ProtoMessage() {}
 
 func (x *LoginStepReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[11]
+	mi := &file_megachat_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1412,7 +1629,7 @@ func (x *LoginStepReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginStepReply.ProtoReflect.Descriptor instead.
 func (*LoginStepReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{11}
+	return file_megachat_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LoginStepReply) GetLoginId() string {
@@ -1490,14 +1707,15 @@ type Account struct {
 	Self          *User                  `protobuf:"bytes,8,opt,name=self,proto3" json:"self,omitempty"`
 	Unread        int32                  `protobuf:"varint,9,opt,name=unread,proto3" json:"unread,omitempty"`
 	Capabilities  []Capability           `protobuf:"varint,10,rep,packed,name=capabilities,proto3,enum=megachat.v1.Capability" json:"capabilities,omitempty"`
-	MailUnread    int32                  `protobuf:"varint,11,opt,name=mail_unread,json=mailUnread,proto3" json:"mail_unread,omitempty"` // unread in the inbox (CAPABILITY_MAIL)
+	MailUnread    int32                  `protobuf:"varint,11,opt,name=mail_unread,json=mailUnread,proto3" json:"mail_unread,omitempty"`                                       // unread in the inbox (CAPABILITY_MAIL)
+	ChatActions   []ChatAction           `protobuf:"varint,12,rep,packed,name=chat_actions,json=chatActions,proto3,enum=megachat.v1.ChatAction" json:"chat_actions,omitempty"` // what ManageChat does here
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Account) Reset() {
 	*x = Account{}
-	mi := &file_megachat_proto_msgTypes[12]
+	mi := &file_megachat_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1509,7 +1727,7 @@ func (x *Account) String() string {
 func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[12]
+	mi := &file_megachat_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1522,7 +1740,7 @@ func (x *Account) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Account.ProtoReflect.Descriptor instead.
 func (*Account) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{12}
+	return file_megachat_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Account) GetId() string {
@@ -1602,6 +1820,13 @@ func (x *Account) GetMailUnread() int32 {
 	return 0
 }
 
+func (x *Account) GetChatActions() []ChatAction {
+	if x != nil {
+		return x.ChatActions
+	}
+	return nil
+}
+
 type AccountsReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Accounts      []*Account             `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
@@ -1611,7 +1836,7 @@ type AccountsReply struct {
 
 func (x *AccountsReply) Reset() {
 	*x = AccountsReply{}
-	mi := &file_megachat_proto_msgTypes[13]
+	mi := &file_megachat_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1623,7 +1848,7 @@ func (x *AccountsReply) String() string {
 func (*AccountsReply) ProtoMessage() {}
 
 func (x *AccountsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[13]
+	mi := &file_megachat_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1636,12 +1861,56 @@ func (x *AccountsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountsReply.ProtoReflect.Descriptor instead.
 func (*AccountsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{13}
+	return file_megachat_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AccountsReply) GetAccounts() []*Account {
 	if x != nil {
 		return x.Accounts
+	}
+	return nil
+}
+
+type ReorderAccountsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReorderAccountsRequest) Reset() {
+	*x = ReorderAccountsRequest{}
+	mi := &file_megachat_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReorderAccountsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReorderAccountsRequest) ProtoMessage() {}
+
+func (x *ReorderAccountsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReorderAccountsRequest.ProtoReflect.Descriptor instead.
+func (*ReorderAccountsRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ReorderAccountsRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
 	}
 	return nil
 }
@@ -1656,7 +1925,7 @@ type RenameRequest struct {
 
 func (x *RenameRequest) Reset() {
 	*x = RenameRequest{}
-	mi := &file_megachat_proto_msgTypes[14]
+	mi := &file_megachat_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1668,7 +1937,7 @@ func (x *RenameRequest) String() string {
 func (*RenameRequest) ProtoMessage() {}
 
 func (x *RenameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[14]
+	mi := &file_megachat_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1681,7 +1950,7 @@ func (x *RenameRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameRequest.ProtoReflect.Descriptor instead.
 func (*RenameRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{14}
+	return file_megachat_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RenameRequest) GetId() string {
@@ -1708,7 +1977,7 @@ type SetEnabledRequest struct {
 
 func (x *SetEnabledRequest) Reset() {
 	*x = SetEnabledRequest{}
-	mi := &file_megachat_proto_msgTypes[15]
+	mi := &file_megachat_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1720,7 +1989,7 @@ func (x *SetEnabledRequest) String() string {
 func (*SetEnabledRequest) ProtoMessage() {}
 
 func (x *SetEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[15]
+	mi := &file_megachat_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1733,7 +2002,7 @@ func (x *SetEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{15}
+	return file_megachat_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SetEnabledRequest) GetId() string {
@@ -1756,13 +2025,14 @@ type User struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
 	AvatarUrl     string                 `protobuf:"bytes,4,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"` // a media ref (Media), not a URL to open
+	Online        bool                   `protobuf:"varint,5,opt,name=online,proto3" json:"online,omitempty"`                       // set only in MembersReply: live, never stored
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_megachat_proto_msgTypes[16]
+	mi := &file_megachat_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1774,7 +2044,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[16]
+	mi := &file_megachat_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1787,7 +2057,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{16}
+	return file_megachat_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *User) GetId() string {
@@ -1818,6 +2088,13 @@ func (x *User) GetAvatarUrl() string {
 	return ""
 }
 
+func (x *User) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
+}
+
 type Chat struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	AccountId   string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -1837,14 +2114,22 @@ type Chat struct {
 	Forum bool `protobuf:"varint,12,opt,name=forum,proto3" json:"forum,omitempty"`
 	// A direct chat whose other person is online now (live, not cached;
 	// a change comes as KIND_CHAT).
-	Online        bool `protobuf:"varint,13,opt,name=online,proto3" json:"online,omitempty"`
+	Online bool `protobuf:"varint,13,opt,name=online,proto3" json:"online,omitempty"`
+	// The account's own notes (Telegram's Saved Messages, the chat with
+	// oneself): the app names it.
+	Saved bool `protobuf:"varint,14,opt,name=saved,proto3" json:"saved,omitempty"`
+	// In the messenger's archive: listed apart from the other chats.
+	Archived bool `protobuf:"varint,15,opt,name=archived,proto3" json:"archived,omitempty"`
+	// Ids of the account's chat folders the chat is in by their rules
+	// (see ChatFolder).
+	Folders       []string `protobuf:"bytes,16,rep,name=folders,proto3" json:"folders,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Chat) Reset() {
 	*x = Chat{}
-	mi := &file_megachat_proto_msgTypes[17]
+	mi := &file_megachat_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1856,7 +2141,7 @@ func (x *Chat) String() string {
 func (*Chat) ProtoMessage() {}
 
 func (x *Chat) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[17]
+	mi := &file_megachat_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1869,7 +2154,7 @@ func (x *Chat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Chat.ProtoReflect.Descriptor instead.
 func (*Chat) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{17}
+	return file_megachat_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Chat) GetAccountId() string {
@@ -1963,6 +2248,250 @@ func (x *Chat) GetOnline() bool {
 	return false
 }
 
+func (x *Chat) GetSaved() bool {
+	if x != nil {
+		return x.Saved
+	}
+	return false
+}
+
+func (x *Chat) GetArchived() bool {
+	if x != nil {
+		return x.Archived
+	}
+	return false
+}
+
+func (x *Chat) GetFolders() []string {
+	if x != nil {
+		return x.Folders
+	}
+	return nil
+}
+
+type ManageChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ChatId        string                 `protobuf:"bytes,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Action        ChatAction             `protobuf:"varint,3,opt,name=action,proto3,enum=megachat.v1.ChatAction" json:"action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ManageChatRequest) Reset() {
+	*x = ManageChatRequest{}
+	mi := &file_megachat_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ManageChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ManageChatRequest) ProtoMessage() {}
+
+func (x *ManageChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ManageChatRequest.ProtoReflect.Descriptor instead.
+func (*ManageChatRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ManageChatRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ManageChatRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+func (x *ManageChatRequest) GetAction() ChatAction {
+	if x != nil {
+		return x.Action
+	}
+	return ChatAction_CHAT_ACTION_UNSPECIFIED
+}
+
+// A folder of an account's chat list. A chat of the account is in it when
+// its id is in always, or Chat.folders names the folder and no exclude_*
+// applies to it.
+type ChatFolder struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AccountId       string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Id              string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Title           string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Emoji           string                 `protobuf:"bytes,4,opt,name=emoji,proto3" json:"emoji,omitempty"`
+	Always          []string               `protobuf:"bytes,5,rep,name=always,proto3" json:"always,omitempty"`
+	Pinned          []string               `protobuf:"bytes,6,rep,name=pinned,proto3" json:"pinned,omitempty"` // first, in this order
+	ExcludeMuted    bool                   `protobuf:"varint,7,opt,name=exclude_muted,json=excludeMuted,proto3" json:"exclude_muted,omitempty"`
+	ExcludeRead     bool                   `protobuf:"varint,8,opt,name=exclude_read,json=excludeRead,proto3" json:"exclude_read,omitempty"`
+	ExcludeArchived bool                   `protobuf:"varint,9,opt,name=exclude_archived,json=excludeArchived,proto3" json:"exclude_archived,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ChatFolder) Reset() {
+	*x = ChatFolder{}
+	mi := &file_megachat_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatFolder) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatFolder) ProtoMessage() {}
+
+func (x *ChatFolder) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatFolder.ProtoReflect.Descriptor instead.
+func (*ChatFolder) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ChatFolder) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ChatFolder) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ChatFolder) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ChatFolder) GetEmoji() string {
+	if x != nil {
+		return x.Emoji
+	}
+	return ""
+}
+
+func (x *ChatFolder) GetAlways() []string {
+	if x != nil {
+		return x.Always
+	}
+	return nil
+}
+
+func (x *ChatFolder) GetPinned() []string {
+	if x != nil {
+		return x.Pinned
+	}
+	return nil
+}
+
+func (x *ChatFolder) GetExcludeMuted() bool {
+	if x != nil {
+		return x.ExcludeMuted
+	}
+	return false
+}
+
+func (x *ChatFolder) GetExcludeRead() bool {
+	if x != nil {
+		return x.ExcludeRead
+	}
+	return false
+}
+
+func (x *ChatFolder) GetExcludeArchived() bool {
+	if x != nil {
+		return x.ExcludeArchived
+	}
+	return false
+}
+
+type ChatFoldersReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Folders       []*ChatFolder          `protobuf:"bytes,1,rep,name=folders,proto3" json:"folders,omitempty"` // per account in its order
+	Failed        []*AccountError        `protobuf:"bytes,2,rep,name=failed,proto3" json:"failed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatFoldersReply) Reset() {
+	*x = ChatFoldersReply{}
+	mi := &file_megachat_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatFoldersReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatFoldersReply) ProtoMessage() {}
+
+func (x *ChatFoldersReply) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatFoldersReply.ProtoReflect.Descriptor instead.
+func (*ChatFoldersReply) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ChatFoldersReply) GetFolders() []*ChatFolder {
+	if x != nil {
+		return x.Folders
+	}
+	return nil
+}
+
+func (x *ChatFoldersReply) GetFailed() []*AccountError {
+	if x != nil {
+		return x.Failed
+	}
+	return nil
+}
+
 type ChatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountIds    []string               `protobuf:"bytes,1,rep,name=account_ids,json=accountIds,proto3" json:"account_ids,omitempty"`
@@ -1973,7 +2502,7 @@ type ChatsRequest struct {
 
 func (x *ChatsRequest) Reset() {
 	*x = ChatsRequest{}
-	mi := &file_megachat_proto_msgTypes[18]
+	mi := &file_megachat_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1985,7 +2514,7 @@ func (x *ChatsRequest) String() string {
 func (*ChatsRequest) ProtoMessage() {}
 
 func (x *ChatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[18]
+	mi := &file_megachat_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1998,7 +2527,7 @@ func (x *ChatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatsRequest.ProtoReflect.Descriptor instead.
 func (*ChatsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{18}
+	return file_megachat_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ChatsRequest) GetAccountIds() []string {
@@ -2024,7 +2553,7 @@ type ChatsReply struct {
 
 func (x *ChatsReply) Reset() {
 	*x = ChatsReply{}
-	mi := &file_megachat_proto_msgTypes[19]
+	mi := &file_megachat_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2036,7 +2565,7 @@ func (x *ChatsReply) String() string {
 func (*ChatsReply) ProtoMessage() {}
 
 func (x *ChatsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[19]
+	mi := &file_megachat_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2049,7 +2578,7 @@ func (x *ChatsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatsReply.ProtoReflect.Descriptor instead.
 func (*ChatsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{19}
+	return file_megachat_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ChatsReply) GetChats() []*Chat {
@@ -2076,7 +2605,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_megachat_proto_msgTypes[20]
+	mi := &file_megachat_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2088,7 +2617,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[20]
+	mi := &file_megachat_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2101,7 +2630,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{20}
+	return file_megachat_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Attachment) GetKind() AttachmentKind {
@@ -2179,7 +2708,7 @@ type Reaction struct {
 
 func (x *Reaction) Reset() {
 	*x = Reaction{}
-	mi := &file_megachat_proto_msgTypes[21]
+	mi := &file_megachat_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2191,7 +2720,7 @@ func (x *Reaction) String() string {
 func (*Reaction) ProtoMessage() {}
 
 func (x *Reaction) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[21]
+	mi := &file_megachat_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2204,7 +2733,7 @@ func (x *Reaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reaction.ProtoReflect.Descriptor instead.
 func (*Reaction) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{21}
+	return file_megachat_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Reaction) GetEmoji() string {
@@ -2240,7 +2769,7 @@ type Thread struct {
 
 func (x *Thread) Reset() {
 	*x = Thread{}
-	mi := &file_megachat_proto_msgTypes[22]
+	mi := &file_megachat_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2252,7 +2781,7 @@ func (x *Thread) String() string {
 func (*Thread) ProtoMessage() {}
 
 func (x *Thread) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[22]
+	mi := &file_megachat_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2265,7 +2794,7 @@ func (x *Thread) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Thread.ProtoReflect.Descriptor instead.
 func (*Thread) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{22}
+	return file_megachat_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Thread) GetId() string {
@@ -2325,14 +2854,19 @@ type Message struct {
 	Forwarded     bool   `protobuf:"varint,18,opt,name=forwarded,proto3" json:"forwarded,omitempty"`
 	ForwardedFrom string `protobuf:"bytes,19,opt,name=forwarded_from,json=forwardedFrom,proto3" json:"forwarded_from,omitempty"`
 	// A reply that quotes a fragment of reply_to_id's text (Telegram).
-	Quote         string `protobuf:"bytes,20,opt,name=quote,proto3" json:"quote,omitempty"`
+	Quote string `protobuf:"bytes,20,opt,name=quote,proto3" json:"quote,omitempty"`
+	// Styles of text, which holds no markup itself.
+	Format []*TextSpan `protobuf:"bytes,21,rep,name=format,proto3" json:"format,omitempty"`
+	// The text as Markdown for the composer when it differs from text (the
+	// account's own messages only).
+	Markdown      string `protobuf:"bytes,22,opt,name=markdown,proto3" json:"markdown,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_megachat_proto_msgTypes[23]
+	mi := &file_megachat_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2344,7 +2878,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[23]
+	mi := &file_megachat_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2357,7 +2891,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{23}
+	return file_megachat_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Message) GetAccountId() string {
@@ -2500,6 +3034,97 @@ func (x *Message) GetQuote() string {
 	return ""
 }
 
+func (x *Message) GetFormat() []*TextSpan {
+	if x != nil {
+		return x.Format
+	}
+	return nil
+}
+
+func (x *Message) GetMarkdown() string {
+	if x != nil {
+		return x.Markdown
+	}
+	return ""
+}
+
+// A styled part of a text, in UTF-16 units. Spans may nest and overlap.
+type TextSpan struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Style         TextStyle              `protobuf:"varint,1,opt,name=style,proto3,enum=megachat.v1.TextStyle" json:"style,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Length        int32                  `protobuf:"varint,3,opt,name=length,proto3" json:"length,omitempty"`
+	Url           string                 `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`           // TEXT_STYLE_LINK: http(s) or mailto
+	Language      string                 `protobuf:"bytes,5,opt,name=language,proto3" json:"language,omitempty"` // TEXT_STYLE_PRE
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TextSpan) Reset() {
+	*x = TextSpan{}
+	mi := &file_megachat_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TextSpan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TextSpan) ProtoMessage() {}
+
+func (x *TextSpan) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TextSpan.ProtoReflect.Descriptor instead.
+func (*TextSpan) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *TextSpan) GetStyle() TextStyle {
+	if x != nil {
+		return x.Style
+	}
+	return TextStyle_TEXT_STYLE_UNSPECIFIED
+}
+
+func (x *TextSpan) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *TextSpan) GetLength() int32 {
+	if x != nil {
+		return x.Length
+	}
+	return 0
+}
+
+func (x *TextSpan) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *TextSpan) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
 type ThreadRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -2513,7 +3138,7 @@ type ThreadRequest struct {
 
 func (x *ThreadRequest) Reset() {
 	*x = ThreadRequest{}
-	mi := &file_megachat_proto_msgTypes[24]
+	mi := &file_megachat_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2525,7 +3150,7 @@ func (x *ThreadRequest) String() string {
 func (*ThreadRequest) ProtoMessage() {}
 
 func (x *ThreadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[24]
+	mi := &file_megachat_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2538,7 +3163,7 @@ func (x *ThreadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreadRequest.ProtoReflect.Descriptor instead.
 func (*ThreadRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{24}
+	return file_megachat_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ThreadRequest) GetAccountId() string {
@@ -2586,7 +3211,7 @@ type TopicsRequest struct {
 
 func (x *TopicsRequest) Reset() {
 	*x = TopicsRequest{}
-	mi := &file_megachat_proto_msgTypes[25]
+	mi := &file_megachat_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2598,7 +3223,7 @@ func (x *TopicsRequest) String() string {
 func (*TopicsRequest) ProtoMessage() {}
 
 func (x *TopicsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[25]
+	mi := &file_megachat_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2611,7 +3236,7 @@ func (x *TopicsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicsRequest.ProtoReflect.Descriptor instead.
 func (*TopicsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{25}
+	return file_megachat_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TopicsRequest) GetAccountId() string {
@@ -2645,7 +3270,7 @@ type Topic struct {
 
 func (x *Topic) Reset() {
 	*x = Topic{}
-	mi := &file_megachat_proto_msgTypes[26]
+	mi := &file_megachat_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2657,7 +3282,7 @@ func (x *Topic) String() string {
 func (*Topic) ProtoMessage() {}
 
 func (x *Topic) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[26]
+	mi := &file_megachat_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2670,7 +3295,7 @@ func (x *Topic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topic.ProtoReflect.Descriptor instead.
 func (*Topic) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{26}
+	return file_megachat_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *Topic) GetId() string {
@@ -2745,7 +3370,7 @@ type TopicsReply struct {
 
 func (x *TopicsReply) Reset() {
 	*x = TopicsReply{}
-	mi := &file_megachat_proto_msgTypes[27]
+	mi := &file_megachat_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2757,7 +3382,7 @@ func (x *TopicsReply) String() string {
 func (*TopicsReply) ProtoMessage() {}
 
 func (x *TopicsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[27]
+	mi := &file_megachat_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2770,7 +3395,7 @@ func (x *TopicsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicsReply.ProtoReflect.Descriptor instead.
 func (*TopicsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{27}
+	return file_megachat_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *TopicsReply) GetTopics() []*Topic {
@@ -2793,7 +3418,7 @@ type ReactRequest struct {
 
 func (x *ReactRequest) Reset() {
 	*x = ReactRequest{}
-	mi := &file_megachat_proto_msgTypes[28]
+	mi := &file_megachat_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2805,7 +3430,7 @@ func (x *ReactRequest) String() string {
 func (*ReactRequest) ProtoMessage() {}
 
 func (x *ReactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[28]
+	mi := &file_megachat_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2818,7 +3443,7 @@ func (x *ReactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactRequest.ProtoReflect.Descriptor instead.
 func (*ReactRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{28}
+	return file_megachat_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ReactRequest) GetAccountId() string {
@@ -2856,6 +3481,651 @@ func (x *ReactRequest) GetOn() bool {
 	return false
 }
 
+type EditRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ChatId        string                 `protobuf:"bytes,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	MessageId     string                 `protobuf:"bytes,3,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	Text          string                 `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
+	ThreadId      string                 `protobuf:"bytes,5,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"` // a thread reply: the thread it is in
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditRequest) Reset() {
+	*x = EditRequest{}
+	mi := &file_megachat_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditRequest) ProtoMessage() {}
+
+func (x *EditRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditRequest.ProtoReflect.Descriptor instead.
+func (*EditRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *EditRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *EditRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+func (x *EditRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *EditRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *EditRequest) GetThreadId() string {
+	if x != nil {
+		return x.ThreadId
+	}
+	return ""
+}
+
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ChatId        string                 `protobuf:"bytes,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	MessageIds    []string               `protobuf:"bytes,3,rep,name=message_ids,json=messageIds,proto3" json:"message_ids,omitempty"`
+	ForAll        bool                   `protobuf:"varint,4,opt,name=for_all,json=forAll,proto3" json:"for_all,omitempty"`
+	ThreadId      string                 `protobuf:"bytes,5,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"` // thread replies: the thread they are in
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_megachat_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *DeleteRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *DeleteRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+func (x *DeleteRequest) GetMessageIds() []string {
+	if x != nil {
+		return x.MessageIds
+	}
+	return nil
+}
+
+func (x *DeleteRequest) GetForAll() bool {
+	if x != nil {
+		return x.ForAll
+	}
+	return false
+}
+
+func (x *DeleteRequest) GetThreadId() string {
+	if x != nil {
+		return x.ThreadId
+	}
+	return ""
+}
+
+// A span of SendRequest.text naming a person; offsets in UTF-16 code units.
+type Mention struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Offset        int32                  `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	Length        int32                  `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
+	User          *User                  `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Mention) Reset() {
+	*x = Mention{}
+	mi := &file_megachat_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Mention) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Mention) ProtoMessage() {}
+
+func (x *Mention) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Mention.ProtoReflect.Descriptor instead.
+func (*Mention) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *Mention) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *Mention) GetLength() int32 {
+	if x != nil {
+		return x.Length
+	}
+	return 0
+}
+
+func (x *Mention) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type MembersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ChatId        string                 `protobuf:"bytes,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Query         string                 `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"` // typed after "@"
+	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MembersRequest) Reset() {
+	*x = MembersRequest{}
+	mi := &file_megachat_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MembersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MembersRequest) ProtoMessage() {}
+
+func (x *MembersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MembersRequest.ProtoReflect.Descriptor instead.
+func (*MembersRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *MembersRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *MembersRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+func (x *MembersRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *MembersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type MembersReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MembersReply) Reset() {
+	*x = MembersReply{}
+	mi := &file_megachat_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MembersReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MembersReply) ProtoMessage() {}
+
+func (x *MembersReply) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MembersReply.ProtoReflect.Descriptor instead.
+func (*MembersReply) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *MembersReply) GetUsers() []*User {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+type LinkPreviewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkPreviewRequest) Reset() {
+	*x = LinkPreviewRequest{}
+	mi := &file_megachat_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkPreviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkPreviewRequest) ProtoMessage() {}
+
+func (x *LinkPreviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkPreviewRequest.ProtoReflect.Descriptor instead.
+func (*LinkPreviewRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *LinkPreviewRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type LinkPreviewReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"` // after redirects
+	SiteName      string                 `protobuf:"bytes,2,opt,name=site_name,json=siteName,proto3" json:"site_name,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Image         []byte                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"` // empty: none
+	ImageMime     string                 `protobuf:"bytes,6,opt,name=image_mime,json=imageMime,proto3" json:"image_mime,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkPreviewReply) Reset() {
+	*x = LinkPreviewReply{}
+	mi := &file_megachat_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkPreviewReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkPreviewReply) ProtoMessage() {}
+
+func (x *LinkPreviewReply) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkPreviewReply.ProtoReflect.Descriptor instead.
+func (*LinkPreviewReply) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *LinkPreviewReply) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *LinkPreviewReply) GetSiteName() string {
+	if x != nil {
+		return x.SiteName
+	}
+	return ""
+}
+
+func (x *LinkPreviewReply) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *LinkPreviewReply) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LinkPreviewReply) GetImage() []byte {
+	if x != nil {
+		return x.Image
+	}
+	return nil
+}
+
+func (x *LinkPreviewReply) GetImageMime() string {
+	if x != nil {
+		return x.ImageMime
+	}
+	return ""
+}
+
+type ProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ChatId        string                 `protobuf:"bytes,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProfileRequest) Reset() {
+	*x = ProfileRequest{}
+	mi := &file_megachat_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProfileRequest) ProtoMessage() {}
+
+func (x *ProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProfileRequest.ProtoReflect.Descriptor instead.
+func (*ProfileRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ProfileRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ProfileRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+type ChatProfile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	AvatarUrl     string                 `protobuf:"bytes,2,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"` // a media ref (Media)
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`                    // without "@"
+	About         string                 `protobuf:"bytes,4,opt,name=about,proto3" json:"about,omitempty"`                          // bio, description, purpose
+	Phone         string                 `protobuf:"bytes,5,opt,name=phone,proto3" json:"phone,omitempty"`
+	Email         string                 `protobuf:"bytes,6,opt,name=email,proto3" json:"email,omitempty"`
+	Position      string                 `protobuf:"bytes,7,opt,name=position,proto3" json:"position,omitempty"`                           // job title, status
+	Link          string                 `protobuf:"bytes,8,opt,name=link,proto3" json:"link,omitempty"`                                   // a public link to open
+	Members       int32                  `protobuf:"varint,9,opt,name=members,proto3" json:"members,omitempty"`                            // groups, channels; 0: unknown
+	MemberList    []*User                `protobuf:"bytes,10,rep,name=member_list,json=memberList,proto3" json:"member_list,omitempty"`    // some members, may be partial
+	LastSeenMs    int64                  `protobuf:"varint,11,opt,name=last_seen_ms,json=lastSeenMs,proto3" json:"last_seen_ms,omitempty"` // direct: last online; 0: unknown
+	Online        bool                   `protobuf:"varint,12,opt,name=online,proto3" json:"online,omitempty"`
+	Bot           bool                   `protobuf:"varint,13,opt,name=bot,proto3" json:"bot,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatProfile) Reset() {
+	*x = ChatProfile{}
+	mi := &file_megachat_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatProfile) ProtoMessage() {}
+
+func (x *ChatProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatProfile.ProtoReflect.Descriptor instead.
+func (*ChatProfile) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ChatProfile) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetAbout() string {
+	if x != nil {
+		return x.About
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetPosition() string {
+	if x != nil {
+		return x.Position
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetLink() string {
+	if x != nil {
+		return x.Link
+	}
+	return ""
+}
+
+func (x *ChatProfile) GetMembers() int32 {
+	if x != nil {
+		return x.Members
+	}
+	return 0
+}
+
+func (x *ChatProfile) GetMemberList() []*User {
+	if x != nil {
+		return x.MemberList
+	}
+	return nil
+}
+
+func (x *ChatProfile) GetLastSeenMs() int64 {
+	if x != nil {
+		return x.LastSeenMs
+	}
+	return 0
+}
+
+func (x *ChatProfile) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
+}
+
+func (x *ChatProfile) GetBot() bool {
+	if x != nil {
+		return x.Bot
+	}
+	return false
+}
+
 type MediaRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	AccountId string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -2870,7 +4140,7 @@ type MediaRequest struct {
 
 func (x *MediaRequest) Reset() {
 	*x = MediaRequest{}
-	mi := &file_megachat_proto_msgTypes[29]
+	mi := &file_megachat_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2882,7 +4152,7 @@ func (x *MediaRequest) String() string {
 func (*MediaRequest) ProtoMessage() {}
 
 func (x *MediaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[29]
+	mi := &file_megachat_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2895,7 +4165,7 @@ func (x *MediaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaRequest.ProtoReflect.Descriptor instead.
 func (*MediaRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{29}
+	return file_megachat_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *MediaRequest) GetAccountId() string {
@@ -2936,7 +4206,7 @@ type MediaReply struct {
 
 func (x *MediaReply) Reset() {
 	*x = MediaReply{}
-	mi := &file_megachat_proto_msgTypes[30]
+	mi := &file_megachat_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2948,7 +4218,7 @@ func (x *MediaReply) String() string {
 func (*MediaReply) ProtoMessage() {}
 
 func (x *MediaReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[30]
+	mi := &file_megachat_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2961,7 +4231,7 @@ func (x *MediaReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaReply.ProtoReflect.Descriptor instead.
 func (*MediaReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{30}
+	return file_megachat_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *MediaReply) GetData() []byte {
@@ -2993,7 +4263,7 @@ type HistoryRequest struct {
 
 func (x *HistoryRequest) Reset() {
 	*x = HistoryRequest{}
-	mi := &file_megachat_proto_msgTypes[31]
+	mi := &file_megachat_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3005,7 +4275,7 @@ func (x *HistoryRequest) String() string {
 func (*HistoryRequest) ProtoMessage() {}
 
 func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[31]
+	mi := &file_megachat_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3018,7 +4288,7 @@ func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRequest.ProtoReflect.Descriptor instead.
 func (*HistoryRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{31}
+	return file_megachat_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *HistoryRequest) GetAccountId() string {
@@ -3066,7 +4336,7 @@ type HistoryReply struct {
 
 func (x *HistoryReply) Reset() {
 	*x = HistoryReply{}
-	mi := &file_megachat_proto_msgTypes[32]
+	mi := &file_megachat_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3078,7 +4348,7 @@ func (x *HistoryReply) String() string {
 func (*HistoryReply) ProtoMessage() {}
 
 func (x *HistoryReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[32]
+	mi := &file_megachat_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3091,7 +4361,7 @@ func (x *HistoryReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryReply.ProtoReflect.Descriptor instead.
 func (*HistoryReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{32}
+	return file_megachat_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *HistoryReply) GetMessages() []*Message {
@@ -3117,14 +4387,23 @@ type SendRequest struct {
 	ThreadId  string                 `protobuf:"bytes,5,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"` // send into this thread
 	// A fragment of reply_to_id's text this reply quotes: a native quote
 	// where the messenger has one, otherwise "> " lines before the text.
-	Quote         string `protobuf:"bytes,6,opt,name=quote,proto3" json:"quote,omitempty"`
+	Quote string `protobuf:"bytes,6,opt,name=quote,proto3" json:"quote,omitempty"`
+	// Files to send (CAPABILITY_FILES), the text being their caption; at
+	// most 100 MB together. Several files may become several messages (an
+	// album): the reply is the last one, the others come as events. The
+	// reply has an empty id when the messenger does not echo what was sent
+	// (it comes as an event then).
+	Files []*OutFile `protobuf:"bytes,7,rep,name=files,proto3" json:"files,omitempty"`
+	// People picked after "@" (CAPABILITY_MENTIONS): spans of text the
+	// messenger turns into its mentions.
+	Mentions      []*Mention `protobuf:"bytes,8,rep,name=mentions,proto3" json:"mentions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendRequest) Reset() {
 	*x = SendRequest{}
-	mi := &file_megachat_proto_msgTypes[33]
+	mi := &file_megachat_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3136,7 +4415,7 @@ func (x *SendRequest) String() string {
 func (*SendRequest) ProtoMessage() {}
 
 func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[33]
+	mi := &file_megachat_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3149,7 +4428,7 @@ func (x *SendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
 func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{33}
+	return file_megachat_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *SendRequest) GetAccountId() string {
@@ -3194,6 +4473,80 @@ func (x *SendRequest) GetQuote() string {
 	return ""
 }
 
+func (x *SendRequest) GetFiles() []*OutFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *SendRequest) GetMentions() []*Mention {
+	if x != nil {
+		return x.Mentions
+	}
+	return nil
+}
+
+type OutFile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Mime          string                 `protobuf:"bytes,2,opt,name=mime,proto3" json:"mime,omitempty"` // empty: guessed from the name and the content
+	Data          []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OutFile) Reset() {
+	*x = OutFile{}
+	mi := &file_megachat_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OutFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OutFile) ProtoMessage() {}
+
+func (x *OutFile) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OutFile.ProtoReflect.Descriptor instead.
+func (*OutFile) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *OutFile) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OutFile) GetMime() string {
+	if x != nil {
+		return x.Mime
+	}
+	return ""
+}
+
+func (x *OutFile) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 // Forwards messages of one chat to another chat of the same account
 // (CAPABILITY_FORWARD), attachments and the "forwarded" mark included.
 type ForwardRequest struct {
@@ -3208,7 +4561,7 @@ type ForwardRequest struct {
 
 func (x *ForwardRequest) Reset() {
 	*x = ForwardRequest{}
-	mi := &file_megachat_proto_msgTypes[34]
+	mi := &file_megachat_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3220,7 +4573,7 @@ func (x *ForwardRequest) String() string {
 func (*ForwardRequest) ProtoMessage() {}
 
 func (x *ForwardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[34]
+	mi := &file_megachat_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3233,7 +4586,7 @@ func (x *ForwardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardRequest.ProtoReflect.Descriptor instead.
 func (*ForwardRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{34}
+	return file_megachat_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ForwardRequest) GetAccountId() string {
@@ -3273,7 +4626,7 @@ type ForwardReply struct {
 
 func (x *ForwardReply) Reset() {
 	*x = ForwardReply{}
-	mi := &file_megachat_proto_msgTypes[35]
+	mi := &file_megachat_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3285,7 +4638,7 @@ func (x *ForwardReply) String() string {
 func (*ForwardReply) ProtoMessage() {}
 
 func (x *ForwardReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[35]
+	mi := &file_megachat_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3298,7 +4651,7 @@ func (x *ForwardReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardReply.ProtoReflect.Descriptor instead.
 func (*ForwardReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{35}
+	return file_megachat_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ForwardReply) GetMessages() []*Message {
@@ -3320,7 +4673,7 @@ type MarkReadRequest struct {
 
 func (x *MarkReadRequest) Reset() {
 	*x = MarkReadRequest{}
-	mi := &file_megachat_proto_msgTypes[36]
+	mi := &file_megachat_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3332,7 +4685,7 @@ func (x *MarkReadRequest) String() string {
 func (*MarkReadRequest) ProtoMessage() {}
 
 func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[36]
+	mi := &file_megachat_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3345,7 +4698,7 @@ func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkReadRequest.ProtoReflect.Descriptor instead.
 func (*MarkReadRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{36}
+	return file_megachat_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *MarkReadRequest) GetAccountId() string {
@@ -3396,7 +4749,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_megachat_proto_msgTypes[37]
+	mi := &file_megachat_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3408,7 +4761,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[37]
+	mi := &file_megachat_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3421,7 +4774,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{37}
+	return file_megachat_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *Event) GetKind() Event_Kind {
@@ -3497,7 +4850,7 @@ type LogsRequest struct {
 
 func (x *LogsRequest) Reset() {
 	*x = LogsRequest{}
-	mi := &file_megachat_proto_msgTypes[38]
+	mi := &file_megachat_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3509,7 +4862,7 @@ func (x *LogsRequest) String() string {
 func (*LogsRequest) ProtoMessage() {}
 
 func (x *LogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[38]
+	mi := &file_megachat_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3522,7 +4875,7 @@ func (x *LogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogsRequest.ProtoReflect.Descriptor instead.
 func (*LogsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{38}
+	return file_megachat_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *LogsRequest) GetAccountId() string {
@@ -3555,7 +4908,7 @@ type LogEntry struct {
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_megachat_proto_msgTypes[39]
+	mi := &file_megachat_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3567,7 +4920,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[39]
+	mi := &file_megachat_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3580,7 +4933,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{39}
+	return file_megachat_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *LogEntry) GetSeq() uint64 {
@@ -3648,7 +5001,7 @@ type LogsReply struct {
 
 func (x *LogsReply) Reset() {
 	*x = LogsReply{}
-	mi := &file_megachat_proto_msgTypes[40]
+	mi := &file_megachat_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3660,7 +5013,7 @@ func (x *LogsReply) String() string {
 func (*LogsReply) ProtoMessage() {}
 
 func (x *LogsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[40]
+	mi := &file_megachat_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3673,7 +5026,7 @@ func (x *LogsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogsReply.ProtoReflect.Descriptor instead.
 func (*LogsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{40}
+	return file_megachat_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *LogsReply) GetEntries() []*LogEntry {
@@ -3694,7 +5047,7 @@ type IceServer struct {
 
 func (x *IceServer) Reset() {
 	*x = IceServer{}
-	mi := &file_megachat_proto_msgTypes[41]
+	mi := &file_megachat_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3706,7 +5059,7 @@ func (x *IceServer) String() string {
 func (*IceServer) ProtoMessage() {}
 
 func (x *IceServer) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[41]
+	mi := &file_megachat_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3719,7 +5072,7 @@ func (x *IceServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IceServer.ProtoReflect.Descriptor instead.
 func (*IceServer) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{41}
+	return file_megachat_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *IceServer) GetUrls() []string {
@@ -3754,7 +5107,7 @@ type CallMedia struct {
 
 func (x *CallMedia) Reset() {
 	*x = CallMedia{}
-	mi := &file_megachat_proto_msgTypes[42]
+	mi := &file_megachat_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3766,7 +5119,7 @@ func (x *CallMedia) String() string {
 func (*CallMedia) ProtoMessage() {}
 
 func (x *CallMedia) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[42]
+	mi := &file_megachat_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3779,7 +5132,7 @@ func (x *CallMedia) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallMedia.ProtoReflect.Descriptor instead.
 func (*CallMedia) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{42}
+	return file_megachat_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *CallMedia) GetMuted() bool {
@@ -3830,7 +5183,7 @@ type Call struct {
 
 func (x *Call) Reset() {
 	*x = Call{}
-	mi := &file_megachat_proto_msgTypes[43]
+	mi := &file_megachat_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3842,7 +5195,7 @@ func (x *Call) String() string {
 func (*Call) ProtoMessage() {}
 
 func (x *Call) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[43]
+	mi := &file_megachat_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3855,7 +5208,7 @@ func (x *Call) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Call.ProtoReflect.Descriptor instead.
 func (*Call) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{43}
+	return file_megachat_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *Call) GetAccountId() string {
@@ -3998,7 +5351,7 @@ type CallSignal struct {
 
 func (x *CallSignal) Reset() {
 	*x = CallSignal{}
-	mi := &file_megachat_proto_msgTypes[44]
+	mi := &file_megachat_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4010,7 +5363,7 @@ func (x *CallSignal) String() string {
 func (*CallSignal) ProtoMessage() {}
 
 func (x *CallSignal) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[44]
+	mi := &file_megachat_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4023,7 +5376,7 @@ func (x *CallSignal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallSignal.ProtoReflect.Descriptor instead.
 func (*CallSignal) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{44}
+	return file_megachat_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *CallSignal) GetKind() SignalKind {
@@ -4079,7 +5432,7 @@ type StartCallRequest struct {
 
 func (x *StartCallRequest) Reset() {
 	*x = StartCallRequest{}
-	mi := &file_megachat_proto_msgTypes[45]
+	mi := &file_megachat_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4091,7 +5444,7 @@ func (x *StartCallRequest) String() string {
 func (*StartCallRequest) ProtoMessage() {}
 
 func (x *StartCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[45]
+	mi := &file_megachat_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4104,7 +5457,7 @@ func (x *StartCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartCallRequest.ProtoReflect.Descriptor instead.
 func (*StartCallRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{45}
+	return file_megachat_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *StartCallRequest) GetAccountId() string {
@@ -4139,7 +5492,7 @@ type CallRequest struct {
 
 func (x *CallRequest) Reset() {
 	*x = CallRequest{}
-	mi := &file_megachat_proto_msgTypes[46]
+	mi := &file_megachat_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4151,7 +5504,7 @@ func (x *CallRequest) String() string {
 func (*CallRequest) ProtoMessage() {}
 
 func (x *CallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[46]
+	mi := &file_megachat_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4164,7 +5517,7 @@ func (x *CallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallRequest.ProtoReflect.Descriptor instead.
 func (*CallRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{46}
+	return file_megachat_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *CallRequest) GetAccountId() string {
@@ -4199,7 +5552,7 @@ type EndCallRequest struct {
 
 func (x *EndCallRequest) Reset() {
 	*x = EndCallRequest{}
-	mi := &file_megachat_proto_msgTypes[47]
+	mi := &file_megachat_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4211,7 +5564,7 @@ func (x *EndCallRequest) String() string {
 func (*EndCallRequest) ProtoMessage() {}
 
 func (x *EndCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[47]
+	mi := &file_megachat_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4224,7 +5577,7 @@ func (x *EndCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EndCallRequest.ProtoReflect.Descriptor instead.
 func (*EndCallRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{47}
+	return file_megachat_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *EndCallRequest) GetAccountId() string {
@@ -4259,7 +5612,7 @@ type CallSignalRequest struct {
 
 func (x *CallSignalRequest) Reset() {
 	*x = CallSignalRequest{}
-	mi := &file_megachat_proto_msgTypes[48]
+	mi := &file_megachat_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4271,7 +5624,7 @@ func (x *CallSignalRequest) String() string {
 func (*CallSignalRequest) ProtoMessage() {}
 
 func (x *CallSignalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[48]
+	mi := &file_megachat_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4284,7 +5637,7 @@ func (x *CallSignalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallSignalRequest.ProtoReflect.Descriptor instead.
 func (*CallSignalRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{48}
+	return file_megachat_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *CallSignalRequest) GetAccountId() string {
@@ -4319,7 +5672,7 @@ type CallMediaRequest struct {
 
 func (x *CallMediaRequest) Reset() {
 	*x = CallMediaRequest{}
-	mi := &file_megachat_proto_msgTypes[49]
+	mi := &file_megachat_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4331,7 +5684,7 @@ func (x *CallMediaRequest) String() string {
 func (*CallMediaRequest) ProtoMessage() {}
 
 func (x *CallMediaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[49]
+	mi := &file_megachat_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4344,7 +5697,7 @@ func (x *CallMediaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallMediaRequest.ProtoReflect.Descriptor instead.
 func (*CallMediaRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{49}
+	return file_megachat_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *CallMediaRequest) GetAccountId() string {
@@ -4377,7 +5730,7 @@ type CallsReply struct {
 
 func (x *CallsReply) Reset() {
 	*x = CallsReply{}
-	mi := &file_megachat_proto_msgTypes[50]
+	mi := &file_megachat_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4389,7 +5742,7 @@ func (x *CallsReply) String() string {
 func (*CallsReply) ProtoMessage() {}
 
 func (x *CallsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[50]
+	mi := &file_megachat_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4402,7 +5755,7 @@ func (x *CallsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallsReply.ProtoReflect.Descriptor instead.
 func (*CallsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{50}
+	return file_megachat_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *CallsReply) GetCalls() []*Call {
@@ -4423,7 +5776,7 @@ type CallSignalsRequest struct {
 
 func (x *CallSignalsRequest) Reset() {
 	*x = CallSignalsRequest{}
-	mi := &file_megachat_proto_msgTypes[51]
+	mi := &file_megachat_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4435,7 +5788,7 @@ func (x *CallSignalsRequest) String() string {
 func (*CallSignalsRequest) ProtoMessage() {}
 
 func (x *CallSignalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[51]
+	mi := &file_megachat_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4448,7 +5801,7 @@ func (x *CallSignalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallSignalsRequest.ProtoReflect.Descriptor instead.
 func (*CallSignalsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{51}
+	return file_megachat_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *CallSignalsRequest) GetAccountId() string {
@@ -4481,7 +5834,7 @@ type CallSignalsReply struct {
 
 func (x *CallSignalsReply) Reset() {
 	*x = CallSignalsReply{}
-	mi := &file_megachat_proto_msgTypes[52]
+	mi := &file_megachat_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4493,7 +5846,7 @@ func (x *CallSignalsReply) String() string {
 func (*CallSignalsReply) ProtoMessage() {}
 
 func (x *CallSignalsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[52]
+	mi := &file_megachat_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4506,7 +5859,7 @@ func (x *CallSignalsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallSignalsReply.ProtoReflect.Descriptor instead.
 func (*CallSignalsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{52}
+	return file_megachat_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *CallSignalsReply) GetSignals() []*CallSignal {
@@ -4525,7 +5878,7 @@ type AccountsRequest struct {
 
 func (x *AccountsRequest) Reset() {
 	*x = AccountsRequest{}
-	mi := &file_megachat_proto_msgTypes[53]
+	mi := &file_megachat_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4537,7 +5890,7 @@ func (x *AccountsRequest) String() string {
 func (*AccountsRequest) ProtoMessage() {}
 
 func (x *AccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[53]
+	mi := &file_megachat_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4550,7 +5903,7 @@ func (x *AccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountsRequest.ProtoReflect.Descriptor instead.
 func (*AccountsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{53}
+	return file_megachat_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *AccountsRequest) GetAccountIds() []string {
@@ -4571,7 +5924,7 @@ type AccountError struct {
 
 func (x *AccountError) Reset() {
 	*x = AccountError{}
-	mi := &file_megachat_proto_msgTypes[54]
+	mi := &file_megachat_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4583,7 +5936,7 @@ func (x *AccountError) String() string {
 func (*AccountError) ProtoMessage() {}
 
 func (x *AccountError) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[54]
+	mi := &file_megachat_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4596,7 +5949,7 @@ func (x *AccountError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountError.ProtoReflect.Descriptor instead.
 func (*AccountError) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{54}
+	return file_megachat_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *AccountError) GetAccountId() string {
@@ -4627,7 +5980,7 @@ type Folder struct {
 
 func (x *Folder) Reset() {
 	*x = Folder{}
-	mi := &file_megachat_proto_msgTypes[55]
+	mi := &file_megachat_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4639,7 +5992,7 @@ func (x *Folder) String() string {
 func (*Folder) ProtoMessage() {}
 
 func (x *Folder) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[55]
+	mi := &file_megachat_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4652,7 +6005,7 @@ func (x *Folder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Folder.ProtoReflect.Descriptor instead.
 func (*Folder) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{55}
+	return file_megachat_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *Folder) GetAccountId() string {
@@ -4707,7 +6060,7 @@ type FoldersReply struct {
 
 func (x *FoldersReply) Reset() {
 	*x = FoldersReply{}
-	mi := &file_megachat_proto_msgTypes[56]
+	mi := &file_megachat_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4719,7 +6072,7 @@ func (x *FoldersReply) String() string {
 func (*FoldersReply) ProtoMessage() {}
 
 func (x *FoldersReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[56]
+	mi := &file_megachat_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4732,7 +6085,7 @@ func (x *FoldersReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FoldersReply.ProtoReflect.Descriptor instead.
 func (*FoldersReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{56}
+	return file_megachat_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *FoldersReply) GetFolders() []*Folder {
@@ -4759,7 +6112,7 @@ type Address struct {
 
 func (x *Address) Reset() {
 	*x = Address{}
-	mi := &file_megachat_proto_msgTypes[57]
+	mi := &file_megachat_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4771,7 +6124,7 @@ func (x *Address) String() string {
 func (*Address) ProtoMessage() {}
 
 func (x *Address) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[57]
+	mi := &file_megachat_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4784,7 +6137,7 @@ func (x *Address) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Address.ProtoReflect.Descriptor instead.
 func (*Address) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{57}
+	return file_megachat_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *Address) GetName() string {
@@ -4817,19 +6170,20 @@ type Mail struct {
 	Unread         bool                   `protobuf:"varint,12,opt,name=unread,proto3" json:"unread,omitempty"`
 	Starred        bool                   `protobuf:"varint,13,opt,name=starred,proto3" json:"starred,omitempty"`
 	HasAttachments bool                   `protobuf:"varint,14,opt,name=has_attachments,json=hasAttachments,proto3" json:"has_attachments,omitempty"`
-	// GetMail only. text is plain text (an HTML-only message turned into
-	// text); html is the original HTML part, if any. Remote content in it
-	// is not loaded by the core.
+	// GetMail only. text is the visible text (of the HTML part when there is
+	// one) and format its styles; html is the original HTML part, if any.
+	// Remote content in it is not loaded by the core.
 	Text          string        `protobuf:"bytes,15,opt,name=text,proto3" json:"text,omitempty"`
 	Html          string        `protobuf:"bytes,16,opt,name=html,proto3" json:"html,omitempty"`
 	Attachments   []*Attachment `protobuf:"bytes,17,rep,name=attachments,proto3" json:"attachments,omitempty"`
+	Format        []*TextSpan   `protobuf:"bytes,18,rep,name=format,proto3" json:"format,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Mail) Reset() {
 	*x = Mail{}
-	mi := &file_megachat_proto_msgTypes[58]
+	mi := &file_megachat_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4841,7 +6195,7 @@ func (x *Mail) String() string {
 func (*Mail) ProtoMessage() {}
 
 func (x *Mail) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[58]
+	mi := &file_megachat_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4854,7 +6208,7 @@ func (x *Mail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Mail.ProtoReflect.Descriptor instead.
 func (*Mail) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{58}
+	return file_megachat_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *Mail) GetAccountId() string {
@@ -4976,6 +6330,13 @@ func (x *Mail) GetAttachments() []*Attachment {
 	return nil
 }
 
+func (x *Mail) GetFormat() []*TextSpan {
+	if x != nil {
+		return x.Format
+	}
+	return nil
+}
+
 type MailListRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	AccountIds []string               `protobuf:"bytes,1,rep,name=account_ids,json=accountIds,proto3" json:"account_ids,omitempty"` // empty: every mail account
@@ -4991,7 +6352,7 @@ type MailListRequest struct {
 
 func (x *MailListRequest) Reset() {
 	*x = MailListRequest{}
-	mi := &file_megachat_proto_msgTypes[59]
+	mi := &file_megachat_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5003,7 +6364,7 @@ func (x *MailListRequest) String() string {
 func (*MailListRequest) ProtoMessage() {}
 
 func (x *MailListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[59]
+	mi := &file_megachat_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5016,7 +6377,7 @@ func (x *MailListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailListRequest.ProtoReflect.Descriptor instead.
 func (*MailListRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{59}
+	return file_megachat_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *MailListRequest) GetAccountIds() []string {
@@ -5066,7 +6427,7 @@ type MailListReply struct {
 
 func (x *MailListReply) Reset() {
 	*x = MailListReply{}
-	mi := &file_megachat_proto_msgTypes[60]
+	mi := &file_megachat_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5078,7 +6439,7 @@ func (x *MailListReply) String() string {
 func (*MailListReply) ProtoMessage() {}
 
 func (x *MailListReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[60]
+	mi := &file_megachat_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5091,7 +6452,7 @@ func (x *MailListReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailListReply.ProtoReflect.Descriptor instead.
 func (*MailListReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{60}
+	return file_megachat_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *MailListReply) GetMails() []*Mail {
@@ -5132,7 +6493,7 @@ type GetMailRequest struct {
 
 func (x *GetMailRequest) Reset() {
 	*x = GetMailRequest{}
-	mi := &file_megachat_proto_msgTypes[61]
+	mi := &file_megachat_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5144,7 +6505,7 @@ func (x *GetMailRequest) String() string {
 func (*GetMailRequest) ProtoMessage() {}
 
 func (x *GetMailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[61]
+	mi := &file_megachat_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5157,7 +6518,7 @@ func (x *GetMailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMailRequest.ProtoReflect.Descriptor instead.
 func (*GetMailRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{61}
+	return file_megachat_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *GetMailRequest) GetAccountId() string {
@@ -5189,7 +6550,7 @@ type SendMailRequest struct {
 
 func (x *SendMailRequest) Reset() {
 	*x = SendMailRequest{}
-	mi := &file_megachat_proto_msgTypes[62]
+	mi := &file_megachat_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5201,7 +6562,7 @@ func (x *SendMailRequest) String() string {
 func (*SendMailRequest) ProtoMessage() {}
 
 func (x *SendMailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[62]
+	mi := &file_megachat_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5214,7 +6575,7 @@ func (x *SendMailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMailRequest.ProtoReflect.Descriptor instead.
 func (*SendMailRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{62}
+	return file_megachat_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *SendMailRequest) GetAccountId() string {
@@ -5277,7 +6638,7 @@ type UpdateMailRequest struct {
 
 func (x *UpdateMailRequest) Reset() {
 	*x = UpdateMailRequest{}
-	mi := &file_megachat_proto_msgTypes[63]
+	mi := &file_megachat_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5289,7 +6650,7 @@ func (x *UpdateMailRequest) String() string {
 func (*UpdateMailRequest) ProtoMessage() {}
 
 func (x *UpdateMailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[63]
+	mi := &file_megachat_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5302,7 +6663,7 @@ func (x *UpdateMailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMailRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMailRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{63}
+	return file_megachat_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *UpdateMailRequest) GetAccountId() string {
@@ -5326,6 +6687,74 @@ func (x *UpdateMailRequest) GetAction() MailAction {
 	return MailAction_MAIL_ACTION_UNSPECIFIED
 }
 
+type MoveMailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Ids           []string               `protobuf:"bytes,2,rep,name=ids,proto3" json:"ids,omitempty"` // listed in from_folder_id (Mail.folder_id)
+	FromFolderId  string                 `protobuf:"bytes,3,opt,name=from_folder_id,json=fromFolderId,proto3" json:"from_folder_id,omitempty"`
+	ToFolderId    string                 `protobuf:"bytes,4,opt,name=to_folder_id,json=toFolderId,proto3" json:"to_folder_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MoveMailRequest) Reset() {
+	*x = MoveMailRequest{}
+	mi := &file_megachat_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MoveMailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MoveMailRequest) ProtoMessage() {}
+
+func (x *MoveMailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_megachat_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MoveMailRequest.ProtoReflect.Descriptor instead.
+func (*MoveMailRequest) Descriptor() ([]byte, []int) {
+	return file_megachat_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *MoveMailRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *MoveMailRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+func (x *MoveMailRequest) GetFromFolderId() string {
+	if x != nil {
+		return x.FromFolderId
+	}
+	return ""
+}
+
+func (x *MoveMailRequest) GetToFolderId() string {
+	if x != nil {
+		return x.ToFolderId
+	}
+	return ""
+}
+
 type Calendar struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -5340,7 +6769,7 @@ type Calendar struct {
 
 func (x *Calendar) Reset() {
 	*x = Calendar{}
-	mi := &file_megachat_proto_msgTypes[64]
+	mi := &file_megachat_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5352,7 +6781,7 @@ func (x *Calendar) String() string {
 func (*Calendar) ProtoMessage() {}
 
 func (x *Calendar) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[64]
+	mi := &file_megachat_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5365,7 +6794,7 @@ func (x *Calendar) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Calendar.ProtoReflect.Descriptor instead.
 func (*Calendar) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{64}
+	return file_megachat_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *Calendar) GetAccountId() string {
@@ -5420,7 +6849,7 @@ type CalendarsReply struct {
 
 func (x *CalendarsReply) Reset() {
 	*x = CalendarsReply{}
-	mi := &file_megachat_proto_msgTypes[65]
+	mi := &file_megachat_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5432,7 +6861,7 @@ func (x *CalendarsReply) String() string {
 func (*CalendarsReply) ProtoMessage() {}
 
 func (x *CalendarsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[65]
+	mi := &file_megachat_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5445,7 +6874,7 @@ func (x *CalendarsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CalendarsReply.ProtoReflect.Descriptor instead.
 func (*CalendarsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{65}
+	return file_megachat_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *CalendarsReply) GetCalendars() []*Calendar {
@@ -5473,7 +6902,7 @@ type Attendee struct {
 
 func (x *Attendee) Reset() {
 	*x = Attendee{}
-	mi := &file_megachat_proto_msgTypes[66]
+	mi := &file_megachat_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5485,7 +6914,7 @@ func (x *Attendee) String() string {
 func (*Attendee) ProtoMessage() {}
 
 func (x *Attendee) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[66]
+	mi := &file_megachat_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5498,7 +6927,7 @@ func (x *Attendee) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attendee.ProtoReflect.Descriptor instead.
 func (*Attendee) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{66}
+	return file_megachat_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *Attendee) GetAddress() *Address {
@@ -5544,7 +6973,7 @@ type CalendarEvent struct {
 
 func (x *CalendarEvent) Reset() {
 	*x = CalendarEvent{}
-	mi := &file_megachat_proto_msgTypes[67]
+	mi := &file_megachat_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5556,7 +6985,7 @@ func (x *CalendarEvent) String() string {
 func (*CalendarEvent) ProtoMessage() {}
 
 func (x *CalendarEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[67]
+	mi := &file_megachat_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5569,7 +6998,7 @@ func (x *CalendarEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CalendarEvent.ProtoReflect.Descriptor instead.
 func (*CalendarEvent) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{67}
+	return file_megachat_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *CalendarEvent) GetAccountId() string {
@@ -5673,7 +7102,7 @@ type CalendarRef struct {
 
 func (x *CalendarRef) Reset() {
 	*x = CalendarRef{}
-	mi := &file_megachat_proto_msgTypes[68]
+	mi := &file_megachat_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5685,7 +7114,7 @@ func (x *CalendarRef) String() string {
 func (*CalendarRef) ProtoMessage() {}
 
 func (x *CalendarRef) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[68]
+	mi := &file_megachat_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5698,7 +7127,7 @@ func (x *CalendarRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CalendarRef.ProtoReflect.Descriptor instead.
 func (*CalendarRef) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{68}
+	return file_megachat_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *CalendarRef) GetAccountId() string {
@@ -5727,7 +7156,7 @@ type EventsRequest struct {
 
 func (x *EventsRequest) Reset() {
 	*x = EventsRequest{}
-	mi := &file_megachat_proto_msgTypes[69]
+	mi := &file_megachat_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5739,7 +7168,7 @@ func (x *EventsRequest) String() string {
 func (*EventsRequest) ProtoMessage() {}
 
 func (x *EventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[69]
+	mi := &file_megachat_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5752,7 +7181,7 @@ func (x *EventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsRequest.ProtoReflect.Descriptor instead.
 func (*EventsRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{69}
+	return file_megachat_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *EventsRequest) GetAccountIds() []string {
@@ -5793,7 +7222,7 @@ type EventsReply struct {
 
 func (x *EventsReply) Reset() {
 	*x = EventsReply{}
-	mi := &file_megachat_proto_msgTypes[70]
+	mi := &file_megachat_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5805,7 +7234,7 @@ func (x *EventsReply) String() string {
 func (*EventsReply) ProtoMessage() {}
 
 func (x *EventsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[70]
+	mi := &file_megachat_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5818,7 +7247,7 @@ func (x *EventsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventsReply.ProtoReflect.Descriptor instead.
 func (*EventsReply) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{70}
+	return file_megachat_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *EventsReply) GetEvents() []*CalendarEvent {
@@ -5846,7 +7275,7 @@ type DeleteEventRequest struct {
 
 func (x *DeleteEventRequest) Reset() {
 	*x = DeleteEventRequest{}
-	mi := &file_megachat_proto_msgTypes[71]
+	mi := &file_megachat_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5858,7 +7287,7 @@ func (x *DeleteEventRequest) String() string {
 func (*DeleteEventRequest) ProtoMessage() {}
 
 func (x *DeleteEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_megachat_proto_msgTypes[71]
+	mi := &file_megachat_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5871,7 +7300,7 @@ func (x *DeleteEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEventRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEventRequest) Descriptor() ([]byte, []int) {
-	return file_megachat_proto_rawDescGZIP(), []int{71}
+	return file_megachat_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *DeleteEventRequest) GetAccountId() string {
@@ -5904,7 +7333,10 @@ const file_megachat_proto_rawDesc = "" +
 	"\tIdRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"-\n" +
 	"\x0fPasswordRequest\x12\x1a\n" +
-	"\bpassword\x18\x01 \x01(\tR\bpassword\"]\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\":\n" +
+	"\x10VaultPathRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
+	"\x04move\x18\x02 \x01(\bR\x04move\"]\n" +
 	"\x15ChangePasswordRequest\x12!\n" +
 	"\fold_password\x18\x01 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\xd1\x02\n" +
@@ -5963,7 +7395,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\bopen_url\x18\x06 \x01(\tR\aopenUrl\x12\x12\n" +
 	"\x04done\x18\a \x01(\bR\x04done\x12.\n" +
 	"\aaccount\x18\b \x01(\v2\x14.megachat.v1.AccountR\aaccount\x12\x0e\n" +
-	"\x02qr\x18\t \x01(\tR\x02qr\"\xf1\x02\n" +
+	"\x02qr\x18\t \x01(\tR\x02qr\"\xad\x03\n" +
 	"\aAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x12\n" +
@@ -5977,21 +7409,25 @@ const file_megachat_proto_rawDesc = "" +
 	"\fcapabilities\x18\n" +
 	" \x03(\x0e2\x17.megachat.v1.CapabilityR\fcapabilities\x12\x1f\n" +
 	"\vmail_unread\x18\v \x01(\x05R\n" +
-	"mailUnread\"A\n" +
+	"mailUnread\x12:\n" +
+	"\fchat_actions\x18\f \x03(\x0e2\x17.megachat.v1.ChatActionR\vchatActions\"A\n" +
 	"\rAccountsReply\x120\n" +
-	"\baccounts\x18\x01 \x03(\v2\x14.megachat.v1.AccountR\baccounts\"3\n" +
+	"\baccounts\x18\x01 \x03(\v2\x14.megachat.v1.AccountR\baccounts\"*\n" +
+	"\x16ReorderAccountsRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\"3\n" +
 	"\rRenameRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"=\n" +
 	"\x11SetEnabledRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aenabled\x18\x02 \x01(\bR\aenabled\"e\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\"}\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\busername\x18\x03 \x01(\tR\busername\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x04 \x01(\tR\tavatarUrl\"\xfe\x02\n" +
+	"avatar_url\x18\x04 \x01(\tR\tavatarUrl\x12\x16\n" +
+	"\x06online\x18\x05 \x01(\bR\x06online\"\xca\x03\n" +
 	"\x04Chat\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x0e\n" +
@@ -6009,7 +7445,30 @@ const file_megachat_proto_rawDesc = "" +
 	" \x01(\bR\x06pinned\x12\x1b\n" +
 	"\tread_only\x18\v \x01(\bR\breadOnly\x12\x14\n" +
 	"\x05forum\x18\f \x01(\bR\x05forum\x12\x16\n" +
-	"\x06online\x18\r \x01(\bR\x06online\"E\n" +
+	"\x06online\x18\r \x01(\bR\x06online\x12\x14\n" +
+	"\x05saved\x18\x0e \x01(\bR\x05saved\x12\x1a\n" +
+	"\barchived\x18\x0f \x01(\bR\barchived\x12\x18\n" +
+	"\afolders\x18\x10 \x03(\tR\afolders\"|\n" +
+	"\x11ManageChatRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\tR\x06chatId\x12/\n" +
+	"\x06action\x18\x03 \x01(\x0e2\x17.megachat.v1.ChatActionR\x06action\"\x8a\x02\n" +
+	"\n" +
+	"ChatFolder\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x14\n" +
+	"\x05emoji\x18\x04 \x01(\tR\x05emoji\x12\x16\n" +
+	"\x06always\x18\x05 \x03(\tR\x06always\x12\x16\n" +
+	"\x06pinned\x18\x06 \x03(\tR\x06pinned\x12#\n" +
+	"\rexclude_muted\x18\a \x01(\bR\fexcludeMuted\x12!\n" +
+	"\fexclude_read\x18\b \x01(\bR\vexcludeRead\x12)\n" +
+	"\x10exclude_archived\x18\t \x01(\bR\x0fexcludeArchived\"x\n" +
+	"\x10ChatFoldersReply\x121\n" +
+	"\afolders\x18\x01 \x03(\v2\x17.megachat.v1.ChatFolderR\afolders\x121\n" +
+	"\x06failed\x18\x02 \x03(\v2\x19.megachat.v1.AccountErrorR\x06failed\"E\n" +
 	"\fChatsRequest\x12\x1f\n" +
 	"\vaccount_ids\x18\x01 \x03(\tR\n" +
 	"accountIds\x12\x14\n" +
@@ -6037,7 +7496,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\areplies\x18\x02 \x01(\x05R\areplies\x12\x17\n" +
 	"\alast_ms\x18\x03 \x01(\x03R\x06lastMs\x12'\n" +
-	"\x05users\x18\x04 \x03(\v2\x11.megachat.v1.UserR\x05users\"\xff\x04\n" +
+	"\x05users\x18\x04 \x03(\v2\x11.megachat.v1.UserR\x05users\"\xca\x05\n" +
 	"\aMessage\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
@@ -6060,7 +7519,15 @@ const file_megachat_proto_rawDesc = "" +
 	"\tmentioned\x18\x11 \x01(\bR\tmentioned\x12\x1c\n" +
 	"\tforwarded\x18\x12 \x01(\bR\tforwarded\x12%\n" +
 	"\x0eforwarded_from\x18\x13 \x01(\tR\rforwardedFrom\x12\x14\n" +
-	"\x05quote\x18\x14 \x01(\tR\x05quote\"\x97\x01\n" +
+	"\x05quote\x18\x14 \x01(\tR\x05quote\x12-\n" +
+	"\x06format\x18\x15 \x03(\v2\x15.megachat.v1.TextSpanR\x06format\x12\x1a\n" +
+	"\bmarkdown\x18\x16 \x01(\tR\bmarkdown\"\x96\x01\n" +
+	"\bTextSpan\x12,\n" +
+	"\x05style\x18\x01 \x01(\x0e2\x16.megachat.v1.TextStyleR\x05style\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06length\x18\x03 \x01(\x05R\x06length\x12\x10\n" +
+	"\x03url\x18\x04 \x01(\tR\x03url\x12\x1a\n" +
+	"\blanguage\x18\x05 \x01(\tR\blanguage\"\x97\x01\n" +
 	"\rThreadRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
@@ -6092,7 +7559,67 @@ const file_megachat_proto_rawDesc = "" +
 	"\n" +
 	"message_id\x18\x03 \x01(\tR\tmessageId\x12\x14\n" +
 	"\x05emoji\x18\x04 \x01(\tR\x05emoji\x12\x0e\n" +
-	"\x02on\x18\x05 \x01(\bR\x02on\"x\n" +
+	"\x02on\x18\x05 \x01(\bR\x02on\"\x95\x01\n" +
+	"\vEditRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\tR\x06chatId\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x03 \x01(\tR\tmessageId\x12\x12\n" +
+	"\x04text\x18\x04 \x01(\tR\x04text\x12\x1b\n" +
+	"\tthread_id\x18\x05 \x01(\tR\bthreadId\"\x9e\x01\n" +
+	"\rDeleteRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\tR\x06chatId\x12\x1f\n" +
+	"\vmessage_ids\x18\x03 \x03(\tR\n" +
+	"messageIds\x12\x17\n" +
+	"\afor_all\x18\x04 \x01(\bR\x06forAll\x12\x1b\n" +
+	"\tthread_id\x18\x05 \x01(\tR\bthreadId\"`\n" +
+	"\aMention\x12\x16\n" +
+	"\x06offset\x18\x01 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06length\x18\x02 \x01(\x05R\x06length\x12%\n" +
+	"\x04user\x18\x03 \x01(\v2\x11.megachat.v1.UserR\x04user\"t\n" +
+	"\x0eMembersRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\tR\x06chatId\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"7\n" +
+	"\fMembersReply\x12'\n" +
+	"\x05users\x18\x01 \x03(\v2\x11.megachat.v1.UserR\x05users\"&\n" +
+	"\x12LinkPreviewRequest\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\"\xae\x01\n" +
+	"\x10LinkPreviewReply\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
+	"\tsite_name\x18\x02 \x01(\tR\bsiteName\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x14\n" +
+	"\x05image\x18\x05 \x01(\fR\x05image\x12\x1d\n" +
+	"\n" +
+	"image_mime\x18\x06 \x01(\tR\timageMime\"H\n" +
+	"\x0eProfileRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\tR\x06chatId\"\xea\x02\n" +
+	"\vChatProfile\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\x02 \x01(\tR\tavatarUrl\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12\x14\n" +
+	"\x05about\x18\x04 \x01(\tR\x05about\x12\x14\n" +
+	"\x05phone\x18\x05 \x01(\tR\x05phone\x12\x14\n" +
+	"\x05email\x18\x06 \x01(\tR\x05email\x12\x1a\n" +
+	"\bposition\x18\a \x01(\tR\bposition\x12\x12\n" +
+	"\x04link\x18\b \x01(\tR\x04link\x12\x18\n" +
+	"\amembers\x18\t \x01(\x05R\amembers\x122\n" +
+	"\vmember_list\x18\n" +
+	" \x03(\v2\x11.megachat.v1.UserR\n" +
+	"memberList\x12 \n" +
+	"\flast_seen_ms\x18\v \x01(\x03R\n" +
+	"lastSeenMs\x12\x16\n" +
+	"\x06online\x18\f \x01(\bR\x06online\x12\x10\n" +
+	"\x03bot\x18\r \x01(\bR\x03bot\"x\n" +
 	"\fMediaRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x10\n" +
@@ -6113,7 +7640,7 @@ const file_megachat_proto_rawDesc = "" +
 	"cachedOnly\"T\n" +
 	"\fHistoryReply\x120\n" +
 	"\bmessages\x18\x01 \x03(\v2\x14.megachat.v1.MessageR\bmessages\x12\x12\n" +
-	"\x04more\x18\x02 \x01(\bR\x04more\"\xac\x01\n" +
+	"\x04more\x18\x02 \x01(\bR\x04more\"\x8a\x02\n" +
 	"\vSendRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
@@ -6121,7 +7648,13 @@ const file_megachat_proto_rawDesc = "" +
 	"\x04text\x18\x03 \x01(\tR\x04text\x12\x1e\n" +
 	"\vreply_to_id\x18\x04 \x01(\tR\treplyToId\x12\x1b\n" +
 	"\tthread_id\x18\x05 \x01(\tR\bthreadId\x12\x14\n" +
-	"\x05quote\x18\x06 \x01(\tR\x05quote\"\x87\x01\n" +
+	"\x05quote\x18\x06 \x01(\tR\x05quote\x12*\n" +
+	"\x05files\x18\a \x03(\v2\x14.megachat.v1.OutFileR\x05files\x120\n" +
+	"\bmentions\x18\b \x03(\v2\x14.megachat.v1.MentionR\bmentions\"E\n" +
+	"\aOutFile\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04mime\x18\x02 \x01(\tR\x04mime\x12\x12\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\"\x87\x01\n" +
 	"\x0eForwardRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
@@ -6138,7 +7671,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\achat_id\x18\x02 \x01(\tR\x06chatId\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x03 \x01(\tR\tmessageId\x12\x1b\n" +
-	"\tthread_id\x18\x04 \x01(\tR\bthreadId\"\xa2\x05\n" +
+	"\tthread_id\x18\x04 \x01(\tR\bthreadId\"\xb9\x05\n" +
 	"\x05Event\x12+\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x17.megachat.v1.Event.KindR\x04kind\x12.\n" +
 	"\aaccount\x18\x02 \x01(\v2\x14.megachat.v1.AccountR\aaccount\x12%\n" +
@@ -6149,7 +7682,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\x04call\x18\x06 \x01(\v2\x11.megachat.v1.CallR\x04call\x12/\n" +
 	"\x06signal\x18\a \x01(\v2\x17.megachat.v1.CallSignalR\x06signal\x12%\n" +
 	"\x04mail\x18\b \x01(\v2\x11.megachat.v1.MailR\x04mail\x12\x16\n" +
-	"\x06notify\x18\t \x01(\bR\x06notify\"\xae\x02\n" +
+	"\x06notify\x18\t \x01(\bR\x06notify\"\xc5\x02\n" +
 	"\x04Kind\x12\x14\n" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -6164,7 +7697,8 @@ const file_megachat_proto_rawDesc = "" +
 	"\x13KIND_THREAD_MESSAGE\x10\t\x12\r\n" +
 	"\tKIND_CALL\x10\n" +
 	"\x12\x14\n" +
-	"\x10KIND_CALL_SIGNAL\x10\v\x12\x11\n" +
+	"\x10KIND_CALL_SIGNAL\x10\v\x12\x15\n" +
+	"\x11KIND_CHAT_FOLDERS\x10\f\x12\x11\n" +
 	"\rKIND_MAIL_NEW\x10\x14\x12\r\n" +
 	"\tKIND_MAIL\x10\x15\x12\x11\n" +
 	"\rKIND_CALENDAR\x10\x16\"B\n" +
@@ -6280,7 +7814,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\x06failed\x18\x02 \x03(\v2\x19.megachat.v1.AccountErrorR\x06failed\"3\n" +
 	"\aAddress\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"\xa1\x04\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"\xd0\x04\n" +
 	"\x04Mail\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x0e\n" +
@@ -6300,7 +7834,8 @@ const file_megachat_proto_rawDesc = "" +
 	"\x0fhas_attachments\x18\x0e \x01(\bR\x0ehasAttachments\x12\x12\n" +
 	"\x04text\x18\x0f \x01(\tR\x04text\x12\x12\n" +
 	"\x04html\x18\x10 \x01(\tR\x04html\x129\n" +
-	"\vattachments\x18\x11 \x03(\v2\x17.megachat.v1.AttachmentR\vattachments\"\xaa\x01\n" +
+	"\vattachments\x18\x11 \x03(\v2\x17.megachat.v1.AttachmentR\vattachments\x12-\n" +
+	"\x06format\x18\x12 \x03(\v2\x15.megachat.v1.TextSpanR\x06format\"\xaa\x01\n" +
 	"\x0fMailListRequest\x12\x1f\n" +
 	"\vaccount_ids\x18\x01 \x03(\tR\n" +
 	"accountIds\x12+\n" +
@@ -6330,7 +7865,14 @@ const file_megachat_proto_rawDesc = "" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x10\n" +
 	"\x03ids\x18\x02 \x03(\tR\x03ids\x12/\n" +
-	"\x06action\x18\x03 \x01(\x0e2\x17.megachat.v1.MailActionR\x06action\"\x9a\x01\n" +
+	"\x06action\x18\x03 \x01(\x0e2\x17.megachat.v1.MailActionR\x06action\"\x8a\x01\n" +
+	"\x0fMoveMailRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x10\n" +
+	"\x03ids\x18\x02 \x03(\tR\x03ids\x12$\n" +
+	"\x0efrom_folder_id\x18\x03 \x01(\tR\ffromFolderId\x12 \n" +
+	"\fto_folder_id\x18\x04 \x01(\tR\n" +
+	"toFolderId\"\x9a\x01\n" +
 	"\bCalendar\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x0e\n" +
@@ -6382,7 +7924,7 @@ const file_megachat_proto_rawDesc = "" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1f\n" +
 	"\vcalendar_id\x18\x02 \x01(\tR\n" +
 	"calendarId\x12\x0e\n" +
-	"\x02id\x18\x03 \x01(\tR\x02id*\x98\x02\n" +
+	"\x02id\x18\x03 \x01(\tR\x02id*\xe4\x03\n" +
 	"\n" +
 	"Capability\x12\x1a\n" +
 	"\x16CAPABILITY_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -6396,7 +7938,25 @@ const file_megachat_proto_rawDesc = "" +
 	"\x10CAPABILITY_MEDIA\x10\b\x12\x15\n" +
 	"\x11CAPABILITY_TOPICS\x10\t\x12\x16\n" +
 	"\x12CAPABILITY_FORWARD\x10\n" +
-	"*\xc2\x01\n" +
+	"\x12\x14\n" +
+	"\x10CAPABILITY_FILES\x10\v\x12\x17\n" +
+	"\x13CAPABILITY_PROFILES\x10\f\x12\x13\n" +
+	"\x0fCAPABILITY_EDIT\x10\r\x12\x15\n" +
+	"\x11CAPABILITY_DELETE\x10\x0e\x12\x1c\n" +
+	"\x18CAPABILITY_DELETE_FOR_ME\x10\x0f\x12\x17\n" +
+	"\x13CAPABILITY_MENTIONS\x10\x10\x12\x1b\n" +
+	"\x17CAPABILITY_CHAT_FOLDERS\x10\x11\x12\x1b\n" +
+	"\x17CAPABILITY_MANAGE_CHATS\x10\x12*\xce\x01\n" +
+	"\n" +
+	"ChatAction\x12\x1b\n" +
+	"\x17CHAT_ACTION_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10CHAT_ACTION_MUTE\x10\x01\x12\x16\n" +
+	"\x12CHAT_ACTION_UNMUTE\x10\x02\x12\x13\n" +
+	"\x0fCHAT_ACTION_PIN\x10\x03\x12\x15\n" +
+	"\x11CHAT_ACTION_UNPIN\x10\x04\x12\x17\n" +
+	"\x13CHAT_ACTION_ARCHIVE\x10\x05\x12\x19\n" +
+	"\x15CHAT_ACTION_UNARCHIVE\x10\x06\x12\x15\n" +
+	"\x11CHAT_ACTION_LEAVE\x10\a*\xc2\x01\n" +
 	"\rAccountStatus\x12\x1e\n" +
 	"\x1aACCOUNT_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ACCOUNT_STATUS_DISABLED\x10\x01\x12\x1d\n" +
@@ -6416,7 +7976,20 @@ const file_megachat_proto_rawDesc = "" +
 	"\x15ATTACHMENT_KIND_VIDEO\x10\x03\x12\x19\n" +
 	"\x15ATTACHMENT_KIND_AUDIO\x10\x04\x12\x19\n" +
 	"\x15ATTACHMENT_KIND_VOICE\x10\x05\x12\x1b\n" +
-	"\x17ATTACHMENT_KIND_STICKER\x10\x06*\x9f\x01\n" +
+	"\x17ATTACHMENT_KIND_STICKER\x10\x06*\x88\x02\n" +
+	"\tTextStyle\x12\x1a\n" +
+	"\x16TEXT_STYLE_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fTEXT_STYLE_BOLD\x10\x01\x12\x15\n" +
+	"\x11TEXT_STYLE_ITALIC\x10\x02\x12\x18\n" +
+	"\x14TEXT_STYLE_UNDERLINE\x10\x03\x12\x15\n" +
+	"\x11TEXT_STYLE_STRIKE\x10\x04\x12\x16\n" +
+	"\x12TEXT_STYLE_SPOILER\x10\x05\x12\x13\n" +
+	"\x0fTEXT_STYLE_CODE\x10\x06\x12\x12\n" +
+	"\x0eTEXT_STYLE_PRE\x10\a\x12\x13\n" +
+	"\x0fTEXT_STYLE_LINK\x10\b\x12\x14\n" +
+	"\x10TEXT_STYLE_QUOTE\x10\t\x12\x16\n" +
+	"\x12TEXT_STYLE_HEADING\x10\n" +
+	"*\x9f\x01\n" +
 	"\tCallState\x12\x1a\n" +
 	"\x16CALL_STATE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CALL_STATE_WAITING\x10\x01\x12\x16\n" +
@@ -6462,7 +8035,7 @@ const file_megachat_proto_rawDesc = "" +
 	"\x11RSVP_NEEDS_ACTION\x10\x01\x12\x11\n" +
 	"\rRSVP_ACCEPTED\x10\x02\x12\x12\n" +
 	"\x0eRSVP_TENTATIVE\x10\x03\x12\x11\n" +
-	"\rRSVP_DECLINED\x10\x042\xb6\x17\n" +
+	"\rRSVP_DECLINED\x10\x042\xde\x1c\n" +
 	"\bMegaChat\x122\n" +
 	"\bGetState\x12\x12.megachat.v1.Empty\x1a\x12.megachat.v1.State\x12?\n" +
 	"\vCreateVault\x12\x1c.megachat.v1.PasswordRequest\x1a\x12.megachat.v1.State\x12:\n" +
@@ -6472,7 +8045,8 @@ const file_megachat_proto_rawDesc = "" +
 	"\rCheckPassword\x12\x1c.megachat.v1.PasswordRequest\x1a\x12.megachat.v1.Empty\x12D\n" +
 	"\x10RememberPassword\x12\x1c.megachat.v1.PasswordRequest\x1a\x12.megachat.v1.State\x128\n" +
 	"\x0eForgetPassword\x12\x12.megachat.v1.Empty\x1a\x12.megachat.v1.State\x12:\n" +
-	"\x10UnlockRemembered\x12\x12.megachat.v1.Empty\x1a\x12.megachat.v1.State\x12<\n" +
+	"\x10UnlockRemembered\x12\x12.megachat.v1.Empty\x1a\x12.megachat.v1.State\x12A\n" +
+	"\fSetVaultPath\x12\x1d.megachat.v1.VaultPathRequest\x1a\x12.megachat.v1.State\x12<\n" +
 	"\tProviders\x12\x12.megachat.v1.Empty\x1a\x1b.megachat.v1.ProvidersReply\x12I\n" +
 	"\n" +
 	"StartLogin\x12\x1e.megachat.v1.StartLoginRequest\x1a\x1b.megachat.v1.LoginStepReply\x12G\n" +
@@ -6482,7 +8056,8 @@ const file_megachat_proto_rawDesc = "" +
 	"\bAccounts\x12\x12.megachat.v1.Empty\x1a\x1a.megachat.v1.AccountsReply\x12A\n" +
 	"\rRenameAccount\x12\x1a.megachat.v1.RenameRequest\x1a\x14.megachat.v1.Account\x12I\n" +
 	"\x11SetAccountEnabled\x12\x1e.megachat.v1.SetEnabledRequest\x1a\x14.megachat.v1.Account\x12;\n" +
-	"\rRemoveAccount\x12\x16.megachat.v1.IdRequest\x1a\x12.megachat.v1.Empty\x12;\n" +
+	"\rRemoveAccount\x12\x16.megachat.v1.IdRequest\x1a\x12.megachat.v1.Empty\x12R\n" +
+	"\x0fReorderAccounts\x12#.megachat.v1.ReorderAccountsRequest\x1a\x1a.megachat.v1.AccountsReply\x12;\n" +
 	"\x05Chats\x12\x19.megachat.v1.ChatsRequest\x1a\x17.megachat.v1.ChatsReply\x12=\n" +
 	"\fRefreshChats\x12\x19.megachat.v1.ChatsRequest\x1a\x12.megachat.v1.Empty\x12A\n" +
 	"\aHistory\x12\x1b.megachat.v1.HistoryRequest\x1a\x19.megachat.v1.HistoryReply\x126\n" +
@@ -6491,8 +8066,16 @@ const file_megachat_proto_rawDesc = "" +
 	"\bMarkRead\x12\x1c.megachat.v1.MarkReadRequest\x1a\x12.megachat.v1.Empty\x12?\n" +
 	"\x06Thread\x12\x1a.megachat.v1.ThreadRequest\x1a\x19.megachat.v1.HistoryReply\x12>\n" +
 	"\x06Topics\x12\x1a.megachat.v1.TopicsRequest\x1a\x18.megachat.v1.TopicsReply\x128\n" +
-	"\x05React\x12\x19.megachat.v1.ReactRequest\x1a\x14.megachat.v1.Message\x12;\n" +
-	"\x05Media\x12\x19.megachat.v1.MediaRequest\x1a\x17.megachat.v1.MediaReply\x12=\n" +
+	"\x05React\x12\x19.megachat.v1.ReactRequest\x1a\x14.megachat.v1.Message\x126\n" +
+	"\x04Edit\x12\x18.megachat.v1.EditRequest\x1a\x14.megachat.v1.Message\x128\n" +
+	"\x06Delete\x12\x1a.megachat.v1.DeleteRequest\x1a\x12.megachat.v1.Empty\x12M\n" +
+	"\vLinkPreview\x12\x1f.megachat.v1.LinkPreviewRequest\x1a\x1d.megachat.v1.LinkPreviewReply\x12A\n" +
+	"\aMembers\x12\x1b.megachat.v1.MembersRequest\x1a\x19.megachat.v1.MembersReply\x12;\n" +
+	"\x05Media\x12\x19.megachat.v1.MediaRequest\x1a\x17.megachat.v1.MediaReply\x12@\n" +
+	"\aProfile\x12\x1b.megachat.v1.ProfileRequest\x1a\x18.megachat.v1.ChatProfile\x12?\n" +
+	"\n" +
+	"ManageChat\x12\x1e.megachat.v1.ManageChatRequest\x1a\x11.megachat.v1.Chat\x12J\n" +
+	"\vChatFolders\x12\x1c.megachat.v1.AccountsRequest\x1a\x1d.megachat.v1.ChatFoldersReply\x12=\n" +
 	"\tStartCall\x12\x1d.megachat.v1.StartCallRequest\x1a\x11.megachat.v1.Call\x12:\n" +
 	"\n" +
 	"AcceptCall\x12\x18.megachat.v1.CallRequest\x1a\x12.megachat.v1.Empty\x12:\n" +
@@ -6507,7 +8090,8 @@ const file_megachat_proto_rawDesc = "" +
 	"\aGetMail\x12\x1b.megachat.v1.GetMailRequest\x1a\x11.megachat.v1.Mail\x12<\n" +
 	"\bSendMail\x12\x1c.megachat.v1.SendMailRequest\x1a\x12.megachat.v1.Empty\x12@\n" +
 	"\n" +
-	"UpdateMail\x12\x1e.megachat.v1.UpdateMailRequest\x1a\x12.megachat.v1.Empty\x12F\n" +
+	"UpdateMail\x12\x1e.megachat.v1.UpdateMailRequest\x1a\x12.megachat.v1.Empty\x12<\n" +
+	"\bMoveMail\x12\x1c.megachat.v1.MoveMailRequest\x1a\x12.megachat.v1.Empty\x12F\n" +
 	"\tCalendars\x12\x1c.megachat.v1.AccountsRequest\x1a\x1b.megachat.v1.CalendarsReply\x12>\n" +
 	"\x06Events\x12\x1a.megachat.v1.EventsRequest\x1a\x18.megachat.v1.EventsReply\x12C\n" +
 	"\tSaveEvent\x12\x1a.megachat.v1.CalendarEvent\x1a\x1a.megachat.v1.CalendarEvent\x12B\n" +
@@ -6528,260 +8112,311 @@ func file_megachat_proto_rawDescGZIP() []byte {
 	return file_megachat_proto_rawDescData
 }
 
-var file_megachat_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
-var file_megachat_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
+var file_megachat_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
+var file_megachat_proto_msgTypes = make([]protoimpl.MessageInfo, 90)
 var file_megachat_proto_goTypes = []any{
-	(Capability)(0),               // 0: megachat.v1.Capability
-	(AccountStatus)(0),            // 1: megachat.v1.AccountStatus
-	(ChatKind)(0),                 // 2: megachat.v1.ChatKind
-	(AttachmentKind)(0),           // 3: megachat.v1.AttachmentKind
-	(CallState)(0),                // 4: megachat.v1.CallState
-	(CallEnd)(0),                  // 5: megachat.v1.CallEnd
-	(SignalKind)(0),               // 6: megachat.v1.SignalKind
-	(FolderRole)(0),               // 7: megachat.v1.FolderRole
-	(MailAction)(0),               // 8: megachat.v1.MailAction
-	(Rsvp)(0),                     // 9: megachat.v1.Rsvp
-	(Event_Kind)(0),               // 10: megachat.v1.Event.Kind
-	(*Empty)(nil),                 // 11: megachat.v1.Empty
-	(*IdRequest)(nil),             // 12: megachat.v1.IdRequest
-	(*PasswordRequest)(nil),       // 13: megachat.v1.PasswordRequest
-	(*ChangePasswordRequest)(nil), // 14: megachat.v1.ChangePasswordRequest
-	(*State)(nil),                 // 15: megachat.v1.State
-	(*Field)(nil),                 // 16: megachat.v1.Field
-	(*AuthMethod)(nil),            // 17: megachat.v1.AuthMethod
-	(*ProviderInfo)(nil),          // 18: megachat.v1.ProviderInfo
-	(*ProvidersReply)(nil),        // 19: megachat.v1.ProvidersReply
-	(*StartLoginRequest)(nil),     // 20: megachat.v1.StartLoginRequest
-	(*LoginStepRequest)(nil),      // 21: megachat.v1.LoginStepRequest
-	(*LoginStepReply)(nil),        // 22: megachat.v1.LoginStepReply
-	(*Account)(nil),               // 23: megachat.v1.Account
-	(*AccountsReply)(nil),         // 24: megachat.v1.AccountsReply
-	(*RenameRequest)(nil),         // 25: megachat.v1.RenameRequest
-	(*SetEnabledRequest)(nil),     // 26: megachat.v1.SetEnabledRequest
-	(*User)(nil),                  // 27: megachat.v1.User
-	(*Chat)(nil),                  // 28: megachat.v1.Chat
-	(*ChatsRequest)(nil),          // 29: megachat.v1.ChatsRequest
-	(*ChatsReply)(nil),            // 30: megachat.v1.ChatsReply
-	(*Attachment)(nil),            // 31: megachat.v1.Attachment
-	(*Reaction)(nil),              // 32: megachat.v1.Reaction
-	(*Thread)(nil),                // 33: megachat.v1.Thread
-	(*Message)(nil),               // 34: megachat.v1.Message
-	(*ThreadRequest)(nil),         // 35: megachat.v1.ThreadRequest
-	(*TopicsRequest)(nil),         // 36: megachat.v1.TopicsRequest
-	(*Topic)(nil),                 // 37: megachat.v1.Topic
-	(*TopicsReply)(nil),           // 38: megachat.v1.TopicsReply
-	(*ReactRequest)(nil),          // 39: megachat.v1.ReactRequest
-	(*MediaRequest)(nil),          // 40: megachat.v1.MediaRequest
-	(*MediaReply)(nil),            // 41: megachat.v1.MediaReply
-	(*HistoryRequest)(nil),        // 42: megachat.v1.HistoryRequest
-	(*HistoryReply)(nil),          // 43: megachat.v1.HistoryReply
-	(*SendRequest)(nil),           // 44: megachat.v1.SendRequest
-	(*ForwardRequest)(nil),        // 45: megachat.v1.ForwardRequest
-	(*ForwardReply)(nil),          // 46: megachat.v1.ForwardReply
-	(*MarkReadRequest)(nil),       // 47: megachat.v1.MarkReadRequest
-	(*Event)(nil),                 // 48: megachat.v1.Event
-	(*LogsRequest)(nil),           // 49: megachat.v1.LogsRequest
-	(*LogEntry)(nil),              // 50: megachat.v1.LogEntry
-	(*LogsReply)(nil),             // 51: megachat.v1.LogsReply
-	(*IceServer)(nil),             // 52: megachat.v1.IceServer
-	(*CallMedia)(nil),             // 53: megachat.v1.CallMedia
-	(*Call)(nil),                  // 54: megachat.v1.Call
-	(*CallSignal)(nil),            // 55: megachat.v1.CallSignal
-	(*StartCallRequest)(nil),      // 56: megachat.v1.StartCallRequest
-	(*CallRequest)(nil),           // 57: megachat.v1.CallRequest
-	(*EndCallRequest)(nil),        // 58: megachat.v1.EndCallRequest
-	(*CallSignalRequest)(nil),     // 59: megachat.v1.CallSignalRequest
-	(*CallMediaRequest)(nil),      // 60: megachat.v1.CallMediaRequest
-	(*CallsReply)(nil),            // 61: megachat.v1.CallsReply
-	(*CallSignalsRequest)(nil),    // 62: megachat.v1.CallSignalsRequest
-	(*CallSignalsReply)(nil),      // 63: megachat.v1.CallSignalsReply
-	(*AccountsRequest)(nil),       // 64: megachat.v1.AccountsRequest
-	(*AccountError)(nil),          // 65: megachat.v1.AccountError
-	(*Folder)(nil),                // 66: megachat.v1.Folder
-	(*FoldersReply)(nil),          // 67: megachat.v1.FoldersReply
-	(*Address)(nil),               // 68: megachat.v1.Address
-	(*Mail)(nil),                  // 69: megachat.v1.Mail
-	(*MailListRequest)(nil),       // 70: megachat.v1.MailListRequest
-	(*MailListReply)(nil),         // 71: megachat.v1.MailListReply
-	(*GetMailRequest)(nil),        // 72: megachat.v1.GetMailRequest
-	(*SendMailRequest)(nil),       // 73: megachat.v1.SendMailRequest
-	(*UpdateMailRequest)(nil),     // 74: megachat.v1.UpdateMailRequest
-	(*Calendar)(nil),              // 75: megachat.v1.Calendar
-	(*CalendarsReply)(nil),        // 76: megachat.v1.CalendarsReply
-	(*Attendee)(nil),              // 77: megachat.v1.Attendee
-	(*CalendarEvent)(nil),         // 78: megachat.v1.CalendarEvent
-	(*CalendarRef)(nil),           // 79: megachat.v1.CalendarRef
-	(*EventsRequest)(nil),         // 80: megachat.v1.EventsRequest
-	(*EventsReply)(nil),           // 81: megachat.v1.EventsReply
-	(*DeleteEventRequest)(nil),    // 82: megachat.v1.DeleteEventRequest
-	nil,                           // 83: megachat.v1.LoginStepRequest.ValuesEntry
+	(Capability)(0),                // 0: megachat.v1.Capability
+	(ChatAction)(0),                // 1: megachat.v1.ChatAction
+	(AccountStatus)(0),             // 2: megachat.v1.AccountStatus
+	(ChatKind)(0),                  // 3: megachat.v1.ChatKind
+	(AttachmentKind)(0),            // 4: megachat.v1.AttachmentKind
+	(TextStyle)(0),                 // 5: megachat.v1.TextStyle
+	(CallState)(0),                 // 6: megachat.v1.CallState
+	(CallEnd)(0),                   // 7: megachat.v1.CallEnd
+	(SignalKind)(0),                // 8: megachat.v1.SignalKind
+	(FolderRole)(0),                // 9: megachat.v1.FolderRole
+	(MailAction)(0),                // 10: megachat.v1.MailAction
+	(Rsvp)(0),                      // 11: megachat.v1.Rsvp
+	(Event_Kind)(0),                // 12: megachat.v1.Event.Kind
+	(*Empty)(nil),                  // 13: megachat.v1.Empty
+	(*IdRequest)(nil),              // 14: megachat.v1.IdRequest
+	(*PasswordRequest)(nil),        // 15: megachat.v1.PasswordRequest
+	(*VaultPathRequest)(nil),       // 16: megachat.v1.VaultPathRequest
+	(*ChangePasswordRequest)(nil),  // 17: megachat.v1.ChangePasswordRequest
+	(*State)(nil),                  // 18: megachat.v1.State
+	(*Field)(nil),                  // 19: megachat.v1.Field
+	(*AuthMethod)(nil),             // 20: megachat.v1.AuthMethod
+	(*ProviderInfo)(nil),           // 21: megachat.v1.ProviderInfo
+	(*ProvidersReply)(nil),         // 22: megachat.v1.ProvidersReply
+	(*StartLoginRequest)(nil),      // 23: megachat.v1.StartLoginRequest
+	(*LoginStepRequest)(nil),       // 24: megachat.v1.LoginStepRequest
+	(*LoginStepReply)(nil),         // 25: megachat.v1.LoginStepReply
+	(*Account)(nil),                // 26: megachat.v1.Account
+	(*AccountsReply)(nil),          // 27: megachat.v1.AccountsReply
+	(*ReorderAccountsRequest)(nil), // 28: megachat.v1.ReorderAccountsRequest
+	(*RenameRequest)(nil),          // 29: megachat.v1.RenameRequest
+	(*SetEnabledRequest)(nil),      // 30: megachat.v1.SetEnabledRequest
+	(*User)(nil),                   // 31: megachat.v1.User
+	(*Chat)(nil),                   // 32: megachat.v1.Chat
+	(*ManageChatRequest)(nil),      // 33: megachat.v1.ManageChatRequest
+	(*ChatFolder)(nil),             // 34: megachat.v1.ChatFolder
+	(*ChatFoldersReply)(nil),       // 35: megachat.v1.ChatFoldersReply
+	(*ChatsRequest)(nil),           // 36: megachat.v1.ChatsRequest
+	(*ChatsReply)(nil),             // 37: megachat.v1.ChatsReply
+	(*Attachment)(nil),             // 38: megachat.v1.Attachment
+	(*Reaction)(nil),               // 39: megachat.v1.Reaction
+	(*Thread)(nil),                 // 40: megachat.v1.Thread
+	(*Message)(nil),                // 41: megachat.v1.Message
+	(*TextSpan)(nil),               // 42: megachat.v1.TextSpan
+	(*ThreadRequest)(nil),          // 43: megachat.v1.ThreadRequest
+	(*TopicsRequest)(nil),          // 44: megachat.v1.TopicsRequest
+	(*Topic)(nil),                  // 45: megachat.v1.Topic
+	(*TopicsReply)(nil),            // 46: megachat.v1.TopicsReply
+	(*ReactRequest)(nil),           // 47: megachat.v1.ReactRequest
+	(*EditRequest)(nil),            // 48: megachat.v1.EditRequest
+	(*DeleteRequest)(nil),          // 49: megachat.v1.DeleteRequest
+	(*Mention)(nil),                // 50: megachat.v1.Mention
+	(*MembersRequest)(nil),         // 51: megachat.v1.MembersRequest
+	(*MembersReply)(nil),           // 52: megachat.v1.MembersReply
+	(*LinkPreviewRequest)(nil),     // 53: megachat.v1.LinkPreviewRequest
+	(*LinkPreviewReply)(nil),       // 54: megachat.v1.LinkPreviewReply
+	(*ProfileRequest)(nil),         // 55: megachat.v1.ProfileRequest
+	(*ChatProfile)(nil),            // 56: megachat.v1.ChatProfile
+	(*MediaRequest)(nil),           // 57: megachat.v1.MediaRequest
+	(*MediaReply)(nil),             // 58: megachat.v1.MediaReply
+	(*HistoryRequest)(nil),         // 59: megachat.v1.HistoryRequest
+	(*HistoryReply)(nil),           // 60: megachat.v1.HistoryReply
+	(*SendRequest)(nil),            // 61: megachat.v1.SendRequest
+	(*OutFile)(nil),                // 62: megachat.v1.OutFile
+	(*ForwardRequest)(nil),         // 63: megachat.v1.ForwardRequest
+	(*ForwardReply)(nil),           // 64: megachat.v1.ForwardReply
+	(*MarkReadRequest)(nil),        // 65: megachat.v1.MarkReadRequest
+	(*Event)(nil),                  // 66: megachat.v1.Event
+	(*LogsRequest)(nil),            // 67: megachat.v1.LogsRequest
+	(*LogEntry)(nil),               // 68: megachat.v1.LogEntry
+	(*LogsReply)(nil),              // 69: megachat.v1.LogsReply
+	(*IceServer)(nil),              // 70: megachat.v1.IceServer
+	(*CallMedia)(nil),              // 71: megachat.v1.CallMedia
+	(*Call)(nil),                   // 72: megachat.v1.Call
+	(*CallSignal)(nil),             // 73: megachat.v1.CallSignal
+	(*StartCallRequest)(nil),       // 74: megachat.v1.StartCallRequest
+	(*CallRequest)(nil),            // 75: megachat.v1.CallRequest
+	(*EndCallRequest)(nil),         // 76: megachat.v1.EndCallRequest
+	(*CallSignalRequest)(nil),      // 77: megachat.v1.CallSignalRequest
+	(*CallMediaRequest)(nil),       // 78: megachat.v1.CallMediaRequest
+	(*CallsReply)(nil),             // 79: megachat.v1.CallsReply
+	(*CallSignalsRequest)(nil),     // 80: megachat.v1.CallSignalsRequest
+	(*CallSignalsReply)(nil),       // 81: megachat.v1.CallSignalsReply
+	(*AccountsRequest)(nil),        // 82: megachat.v1.AccountsRequest
+	(*AccountError)(nil),           // 83: megachat.v1.AccountError
+	(*Folder)(nil),                 // 84: megachat.v1.Folder
+	(*FoldersReply)(nil),           // 85: megachat.v1.FoldersReply
+	(*Address)(nil),                // 86: megachat.v1.Address
+	(*Mail)(nil),                   // 87: megachat.v1.Mail
+	(*MailListRequest)(nil),        // 88: megachat.v1.MailListRequest
+	(*MailListReply)(nil),          // 89: megachat.v1.MailListReply
+	(*GetMailRequest)(nil),         // 90: megachat.v1.GetMailRequest
+	(*SendMailRequest)(nil),        // 91: megachat.v1.SendMailRequest
+	(*UpdateMailRequest)(nil),      // 92: megachat.v1.UpdateMailRequest
+	(*MoveMailRequest)(nil),        // 93: megachat.v1.MoveMailRequest
+	(*Calendar)(nil),               // 94: megachat.v1.Calendar
+	(*CalendarsReply)(nil),         // 95: megachat.v1.CalendarsReply
+	(*Attendee)(nil),               // 96: megachat.v1.Attendee
+	(*CalendarEvent)(nil),          // 97: megachat.v1.CalendarEvent
+	(*CalendarRef)(nil),            // 98: megachat.v1.CalendarRef
+	(*EventsRequest)(nil),          // 99: megachat.v1.EventsRequest
+	(*EventsReply)(nil),            // 100: megachat.v1.EventsReply
+	(*DeleteEventRequest)(nil),     // 101: megachat.v1.DeleteEventRequest
+	nil,                            // 102: megachat.v1.LoginStepRequest.ValuesEntry
 }
 var file_megachat_proto_depIdxs = []int32{
-	17,  // 0: megachat.v1.ProviderInfo.auth_methods:type_name -> megachat.v1.AuthMethod
+	20,  // 0: megachat.v1.ProviderInfo.auth_methods:type_name -> megachat.v1.AuthMethod
 	0,   // 1: megachat.v1.ProviderInfo.capabilities:type_name -> megachat.v1.Capability
-	18,  // 2: megachat.v1.ProvidersReply.providers:type_name -> megachat.v1.ProviderInfo
-	83,  // 3: megachat.v1.LoginStepRequest.values:type_name -> megachat.v1.LoginStepRequest.ValuesEntry
-	16,  // 4: megachat.v1.LoginStepReply.fields:type_name -> megachat.v1.Field
-	23,  // 5: megachat.v1.LoginStepReply.account:type_name -> megachat.v1.Account
-	1,   // 6: megachat.v1.Account.status:type_name -> megachat.v1.AccountStatus
-	27,  // 7: megachat.v1.Account.self:type_name -> megachat.v1.User
+	21,  // 2: megachat.v1.ProvidersReply.providers:type_name -> megachat.v1.ProviderInfo
+	102, // 3: megachat.v1.LoginStepRequest.values:type_name -> megachat.v1.LoginStepRequest.ValuesEntry
+	19,  // 4: megachat.v1.LoginStepReply.fields:type_name -> megachat.v1.Field
+	26,  // 5: megachat.v1.LoginStepReply.account:type_name -> megachat.v1.Account
+	2,   // 6: megachat.v1.Account.status:type_name -> megachat.v1.AccountStatus
+	31,  // 7: megachat.v1.Account.self:type_name -> megachat.v1.User
 	0,   // 8: megachat.v1.Account.capabilities:type_name -> megachat.v1.Capability
-	23,  // 9: megachat.v1.AccountsReply.accounts:type_name -> megachat.v1.Account
-	2,   // 10: megachat.v1.Chat.kind:type_name -> megachat.v1.ChatKind
-	34,  // 11: megachat.v1.Chat.last_message:type_name -> megachat.v1.Message
-	28,  // 12: megachat.v1.ChatsReply.chats:type_name -> megachat.v1.Chat
-	3,   // 13: megachat.v1.Attachment.kind:type_name -> megachat.v1.AttachmentKind
-	27,  // 14: megachat.v1.Thread.users:type_name -> megachat.v1.User
-	27,  // 15: megachat.v1.Message.sender:type_name -> megachat.v1.User
-	31,  // 16: megachat.v1.Message.attachments:type_name -> megachat.v1.Attachment
-	32,  // 17: megachat.v1.Message.reactions:type_name -> megachat.v1.Reaction
-	33,  // 18: megachat.v1.Message.thread:type_name -> megachat.v1.Thread
-	34,  // 19: megachat.v1.Topic.last_message:type_name -> megachat.v1.Message
-	37,  // 20: megachat.v1.TopicsReply.topics:type_name -> megachat.v1.Topic
-	34,  // 21: megachat.v1.HistoryReply.messages:type_name -> megachat.v1.Message
-	34,  // 22: megachat.v1.ForwardReply.messages:type_name -> megachat.v1.Message
-	10,  // 23: megachat.v1.Event.kind:type_name -> megachat.v1.Event.Kind
-	23,  // 24: megachat.v1.Event.account:type_name -> megachat.v1.Account
-	28,  // 25: megachat.v1.Event.chat:type_name -> megachat.v1.Chat
-	34,  // 26: megachat.v1.Event.message:type_name -> megachat.v1.Message
-	54,  // 27: megachat.v1.Event.call:type_name -> megachat.v1.Call
-	55,  // 28: megachat.v1.Event.signal:type_name -> megachat.v1.CallSignal
-	69,  // 29: megachat.v1.Event.mail:type_name -> megachat.v1.Mail
-	50,  // 30: megachat.v1.LogsReply.entries:type_name -> megachat.v1.LogEntry
-	27,  // 31: megachat.v1.Call.peer:type_name -> megachat.v1.User
-	4,   // 32: megachat.v1.Call.state:type_name -> megachat.v1.CallState
-	5,   // 33: megachat.v1.Call.end:type_name -> megachat.v1.CallEnd
-	52,  // 34: megachat.v1.Call.ice:type_name -> megachat.v1.IceServer
-	53,  // 35: megachat.v1.Call.remote:type_name -> megachat.v1.CallMedia
-	6,   // 36: megachat.v1.CallSignal.kind:type_name -> megachat.v1.SignalKind
-	5,   // 37: megachat.v1.EndCallRequest.reason:type_name -> megachat.v1.CallEnd
-	55,  // 38: megachat.v1.CallSignalRequest.signal:type_name -> megachat.v1.CallSignal
-	53,  // 39: megachat.v1.CallMediaRequest.media:type_name -> megachat.v1.CallMedia
-	54,  // 40: megachat.v1.CallsReply.calls:type_name -> megachat.v1.Call
-	55,  // 41: megachat.v1.CallSignalsReply.signals:type_name -> megachat.v1.CallSignal
-	7,   // 42: megachat.v1.Folder.role:type_name -> megachat.v1.FolderRole
-	66,  // 43: megachat.v1.FoldersReply.folders:type_name -> megachat.v1.Folder
-	65,  // 44: megachat.v1.FoldersReply.failed:type_name -> megachat.v1.AccountError
-	68,  // 45: megachat.v1.Mail.from:type_name -> megachat.v1.Address
-	68,  // 46: megachat.v1.Mail.to:type_name -> megachat.v1.Address
-	68,  // 47: megachat.v1.Mail.cc:type_name -> megachat.v1.Address
-	68,  // 48: megachat.v1.Mail.reply_to:type_name -> megachat.v1.Address
-	31,  // 49: megachat.v1.Mail.attachments:type_name -> megachat.v1.Attachment
-	7,   // 50: megachat.v1.MailListRequest.role:type_name -> megachat.v1.FolderRole
-	69,  // 51: megachat.v1.MailListReply.mails:type_name -> megachat.v1.Mail
-	65,  // 52: megachat.v1.MailListReply.failed:type_name -> megachat.v1.AccountError
-	68,  // 53: megachat.v1.SendMailRequest.to:type_name -> megachat.v1.Address
-	68,  // 54: megachat.v1.SendMailRequest.cc:type_name -> megachat.v1.Address
-	68,  // 55: megachat.v1.SendMailRequest.bcc:type_name -> megachat.v1.Address
-	8,   // 56: megachat.v1.UpdateMailRequest.action:type_name -> megachat.v1.MailAction
-	75,  // 57: megachat.v1.CalendarsReply.calendars:type_name -> megachat.v1.Calendar
-	65,  // 58: megachat.v1.CalendarsReply.failed:type_name -> megachat.v1.AccountError
-	68,  // 59: megachat.v1.Attendee.address:type_name -> megachat.v1.Address
-	9,   // 60: megachat.v1.Attendee.status:type_name -> megachat.v1.Rsvp
-	68,  // 61: megachat.v1.CalendarEvent.organizer:type_name -> megachat.v1.Address
-	77,  // 62: megachat.v1.CalendarEvent.attendees:type_name -> megachat.v1.Attendee
-	79,  // 63: megachat.v1.EventsRequest.calendars:type_name -> megachat.v1.CalendarRef
-	78,  // 64: megachat.v1.EventsReply.events:type_name -> megachat.v1.CalendarEvent
-	65,  // 65: megachat.v1.EventsReply.failed:type_name -> megachat.v1.AccountError
-	11,  // 66: megachat.v1.MegaChat.GetState:input_type -> megachat.v1.Empty
-	13,  // 67: megachat.v1.MegaChat.CreateVault:input_type -> megachat.v1.PasswordRequest
-	13,  // 68: megachat.v1.MegaChat.Unlock:input_type -> megachat.v1.PasswordRequest
-	11,  // 69: megachat.v1.MegaChat.LockVault:input_type -> megachat.v1.Empty
-	14,  // 70: megachat.v1.MegaChat.ChangePassword:input_type -> megachat.v1.ChangePasswordRequest
-	13,  // 71: megachat.v1.MegaChat.CheckPassword:input_type -> megachat.v1.PasswordRequest
-	13,  // 72: megachat.v1.MegaChat.RememberPassword:input_type -> megachat.v1.PasswordRequest
-	11,  // 73: megachat.v1.MegaChat.ForgetPassword:input_type -> megachat.v1.Empty
-	11,  // 74: megachat.v1.MegaChat.UnlockRemembered:input_type -> megachat.v1.Empty
-	11,  // 75: megachat.v1.MegaChat.Providers:input_type -> megachat.v1.Empty
-	20,  // 76: megachat.v1.MegaChat.StartLogin:input_type -> megachat.v1.StartLoginRequest
-	21,  // 77: megachat.v1.MegaChat.LoginStep:input_type -> megachat.v1.LoginStepRequest
-	12,  // 78: megachat.v1.MegaChat.CancelLogin:input_type -> megachat.v1.IdRequest
-	12,  // 79: megachat.v1.MegaChat.Relogin:input_type -> megachat.v1.IdRequest
-	11,  // 80: megachat.v1.MegaChat.Accounts:input_type -> megachat.v1.Empty
-	25,  // 81: megachat.v1.MegaChat.RenameAccount:input_type -> megachat.v1.RenameRequest
-	26,  // 82: megachat.v1.MegaChat.SetAccountEnabled:input_type -> megachat.v1.SetEnabledRequest
-	12,  // 83: megachat.v1.MegaChat.RemoveAccount:input_type -> megachat.v1.IdRequest
-	29,  // 84: megachat.v1.MegaChat.Chats:input_type -> megachat.v1.ChatsRequest
-	29,  // 85: megachat.v1.MegaChat.RefreshChats:input_type -> megachat.v1.ChatsRequest
-	42,  // 86: megachat.v1.MegaChat.History:input_type -> megachat.v1.HistoryRequest
-	44,  // 87: megachat.v1.MegaChat.Send:input_type -> megachat.v1.SendRequest
-	45,  // 88: megachat.v1.MegaChat.Forward:input_type -> megachat.v1.ForwardRequest
-	47,  // 89: megachat.v1.MegaChat.MarkRead:input_type -> megachat.v1.MarkReadRequest
-	35,  // 90: megachat.v1.MegaChat.Thread:input_type -> megachat.v1.ThreadRequest
-	36,  // 91: megachat.v1.MegaChat.Topics:input_type -> megachat.v1.TopicsRequest
-	39,  // 92: megachat.v1.MegaChat.React:input_type -> megachat.v1.ReactRequest
-	40,  // 93: megachat.v1.MegaChat.Media:input_type -> megachat.v1.MediaRequest
-	56,  // 94: megachat.v1.MegaChat.StartCall:input_type -> megachat.v1.StartCallRequest
-	57,  // 95: megachat.v1.MegaChat.AcceptCall:input_type -> megachat.v1.CallRequest
-	58,  // 96: megachat.v1.MegaChat.EndCall:input_type -> megachat.v1.EndCallRequest
-	59,  // 97: megachat.v1.MegaChat.CallSignal:input_type -> megachat.v1.CallSignalRequest
-	60,  // 98: megachat.v1.MegaChat.SetCallMedia:input_type -> megachat.v1.CallMediaRequest
-	11,  // 99: megachat.v1.MegaChat.Calls:input_type -> megachat.v1.Empty
-	62,  // 100: megachat.v1.MegaChat.CallSignals:input_type -> megachat.v1.CallSignalsRequest
-	64,  // 101: megachat.v1.MegaChat.Folders:input_type -> megachat.v1.AccountsRequest
-	70,  // 102: megachat.v1.MegaChat.MailList:input_type -> megachat.v1.MailListRequest
-	72,  // 103: megachat.v1.MegaChat.GetMail:input_type -> megachat.v1.GetMailRequest
-	73,  // 104: megachat.v1.MegaChat.SendMail:input_type -> megachat.v1.SendMailRequest
-	74,  // 105: megachat.v1.MegaChat.UpdateMail:input_type -> megachat.v1.UpdateMailRequest
-	64,  // 106: megachat.v1.MegaChat.Calendars:input_type -> megachat.v1.AccountsRequest
-	80,  // 107: megachat.v1.MegaChat.Events:input_type -> megachat.v1.EventsRequest
-	78,  // 108: megachat.v1.MegaChat.SaveEvent:input_type -> megachat.v1.CalendarEvent
-	82,  // 109: megachat.v1.MegaChat.DeleteEvent:input_type -> megachat.v1.DeleteEventRequest
-	11,  // 110: megachat.v1.MegaChat.Watch:input_type -> megachat.v1.Empty
-	49,  // 111: megachat.v1.MegaChat.Logs:input_type -> megachat.v1.LogsRequest
-	11,  // 112: megachat.v1.MegaChat.ClearLogs:input_type -> megachat.v1.Empty
-	15,  // 113: megachat.v1.MegaChat.GetState:output_type -> megachat.v1.State
-	15,  // 114: megachat.v1.MegaChat.CreateVault:output_type -> megachat.v1.State
-	15,  // 115: megachat.v1.MegaChat.Unlock:output_type -> megachat.v1.State
-	15,  // 116: megachat.v1.MegaChat.LockVault:output_type -> megachat.v1.State
-	11,  // 117: megachat.v1.MegaChat.ChangePassword:output_type -> megachat.v1.Empty
-	11,  // 118: megachat.v1.MegaChat.CheckPassword:output_type -> megachat.v1.Empty
-	15,  // 119: megachat.v1.MegaChat.RememberPassword:output_type -> megachat.v1.State
-	15,  // 120: megachat.v1.MegaChat.ForgetPassword:output_type -> megachat.v1.State
-	15,  // 121: megachat.v1.MegaChat.UnlockRemembered:output_type -> megachat.v1.State
-	19,  // 122: megachat.v1.MegaChat.Providers:output_type -> megachat.v1.ProvidersReply
-	22,  // 123: megachat.v1.MegaChat.StartLogin:output_type -> megachat.v1.LoginStepReply
-	22,  // 124: megachat.v1.MegaChat.LoginStep:output_type -> megachat.v1.LoginStepReply
-	11,  // 125: megachat.v1.MegaChat.CancelLogin:output_type -> megachat.v1.Empty
-	22,  // 126: megachat.v1.MegaChat.Relogin:output_type -> megachat.v1.LoginStepReply
-	24,  // 127: megachat.v1.MegaChat.Accounts:output_type -> megachat.v1.AccountsReply
-	23,  // 128: megachat.v1.MegaChat.RenameAccount:output_type -> megachat.v1.Account
-	23,  // 129: megachat.v1.MegaChat.SetAccountEnabled:output_type -> megachat.v1.Account
-	11,  // 130: megachat.v1.MegaChat.RemoveAccount:output_type -> megachat.v1.Empty
-	30,  // 131: megachat.v1.MegaChat.Chats:output_type -> megachat.v1.ChatsReply
-	11,  // 132: megachat.v1.MegaChat.RefreshChats:output_type -> megachat.v1.Empty
-	43,  // 133: megachat.v1.MegaChat.History:output_type -> megachat.v1.HistoryReply
-	34,  // 134: megachat.v1.MegaChat.Send:output_type -> megachat.v1.Message
-	46,  // 135: megachat.v1.MegaChat.Forward:output_type -> megachat.v1.ForwardReply
-	11,  // 136: megachat.v1.MegaChat.MarkRead:output_type -> megachat.v1.Empty
-	43,  // 137: megachat.v1.MegaChat.Thread:output_type -> megachat.v1.HistoryReply
-	38,  // 138: megachat.v1.MegaChat.Topics:output_type -> megachat.v1.TopicsReply
-	34,  // 139: megachat.v1.MegaChat.React:output_type -> megachat.v1.Message
-	41,  // 140: megachat.v1.MegaChat.Media:output_type -> megachat.v1.MediaReply
-	54,  // 141: megachat.v1.MegaChat.StartCall:output_type -> megachat.v1.Call
-	11,  // 142: megachat.v1.MegaChat.AcceptCall:output_type -> megachat.v1.Empty
-	11,  // 143: megachat.v1.MegaChat.EndCall:output_type -> megachat.v1.Empty
-	11,  // 144: megachat.v1.MegaChat.CallSignal:output_type -> megachat.v1.Empty
-	11,  // 145: megachat.v1.MegaChat.SetCallMedia:output_type -> megachat.v1.Empty
-	61,  // 146: megachat.v1.MegaChat.Calls:output_type -> megachat.v1.CallsReply
-	63,  // 147: megachat.v1.MegaChat.CallSignals:output_type -> megachat.v1.CallSignalsReply
-	67,  // 148: megachat.v1.MegaChat.Folders:output_type -> megachat.v1.FoldersReply
-	71,  // 149: megachat.v1.MegaChat.MailList:output_type -> megachat.v1.MailListReply
-	69,  // 150: megachat.v1.MegaChat.GetMail:output_type -> megachat.v1.Mail
-	11,  // 151: megachat.v1.MegaChat.SendMail:output_type -> megachat.v1.Empty
-	11,  // 152: megachat.v1.MegaChat.UpdateMail:output_type -> megachat.v1.Empty
-	76,  // 153: megachat.v1.MegaChat.Calendars:output_type -> megachat.v1.CalendarsReply
-	81,  // 154: megachat.v1.MegaChat.Events:output_type -> megachat.v1.EventsReply
-	78,  // 155: megachat.v1.MegaChat.SaveEvent:output_type -> megachat.v1.CalendarEvent
-	11,  // 156: megachat.v1.MegaChat.DeleteEvent:output_type -> megachat.v1.Empty
-	48,  // 157: megachat.v1.MegaChat.Watch:output_type -> megachat.v1.Event
-	51,  // 158: megachat.v1.MegaChat.Logs:output_type -> megachat.v1.LogsReply
-	11,  // 159: megachat.v1.MegaChat.ClearLogs:output_type -> megachat.v1.Empty
-	113, // [113:160] is the sub-list for method output_type
-	66,  // [66:113] is the sub-list for method input_type
-	66,  // [66:66] is the sub-list for extension type_name
-	66,  // [66:66] is the sub-list for extension extendee
-	0,   // [0:66] is the sub-list for field type_name
+	1,   // 9: megachat.v1.Account.chat_actions:type_name -> megachat.v1.ChatAction
+	26,  // 10: megachat.v1.AccountsReply.accounts:type_name -> megachat.v1.Account
+	3,   // 11: megachat.v1.Chat.kind:type_name -> megachat.v1.ChatKind
+	41,  // 12: megachat.v1.Chat.last_message:type_name -> megachat.v1.Message
+	1,   // 13: megachat.v1.ManageChatRequest.action:type_name -> megachat.v1.ChatAction
+	34,  // 14: megachat.v1.ChatFoldersReply.folders:type_name -> megachat.v1.ChatFolder
+	83,  // 15: megachat.v1.ChatFoldersReply.failed:type_name -> megachat.v1.AccountError
+	32,  // 16: megachat.v1.ChatsReply.chats:type_name -> megachat.v1.Chat
+	4,   // 17: megachat.v1.Attachment.kind:type_name -> megachat.v1.AttachmentKind
+	31,  // 18: megachat.v1.Thread.users:type_name -> megachat.v1.User
+	31,  // 19: megachat.v1.Message.sender:type_name -> megachat.v1.User
+	38,  // 20: megachat.v1.Message.attachments:type_name -> megachat.v1.Attachment
+	39,  // 21: megachat.v1.Message.reactions:type_name -> megachat.v1.Reaction
+	40,  // 22: megachat.v1.Message.thread:type_name -> megachat.v1.Thread
+	42,  // 23: megachat.v1.Message.format:type_name -> megachat.v1.TextSpan
+	5,   // 24: megachat.v1.TextSpan.style:type_name -> megachat.v1.TextStyle
+	41,  // 25: megachat.v1.Topic.last_message:type_name -> megachat.v1.Message
+	45,  // 26: megachat.v1.TopicsReply.topics:type_name -> megachat.v1.Topic
+	31,  // 27: megachat.v1.Mention.user:type_name -> megachat.v1.User
+	31,  // 28: megachat.v1.MembersReply.users:type_name -> megachat.v1.User
+	31,  // 29: megachat.v1.ChatProfile.member_list:type_name -> megachat.v1.User
+	41,  // 30: megachat.v1.HistoryReply.messages:type_name -> megachat.v1.Message
+	62,  // 31: megachat.v1.SendRequest.files:type_name -> megachat.v1.OutFile
+	50,  // 32: megachat.v1.SendRequest.mentions:type_name -> megachat.v1.Mention
+	41,  // 33: megachat.v1.ForwardReply.messages:type_name -> megachat.v1.Message
+	12,  // 34: megachat.v1.Event.kind:type_name -> megachat.v1.Event.Kind
+	26,  // 35: megachat.v1.Event.account:type_name -> megachat.v1.Account
+	32,  // 36: megachat.v1.Event.chat:type_name -> megachat.v1.Chat
+	41,  // 37: megachat.v1.Event.message:type_name -> megachat.v1.Message
+	72,  // 38: megachat.v1.Event.call:type_name -> megachat.v1.Call
+	73,  // 39: megachat.v1.Event.signal:type_name -> megachat.v1.CallSignal
+	87,  // 40: megachat.v1.Event.mail:type_name -> megachat.v1.Mail
+	68,  // 41: megachat.v1.LogsReply.entries:type_name -> megachat.v1.LogEntry
+	31,  // 42: megachat.v1.Call.peer:type_name -> megachat.v1.User
+	6,   // 43: megachat.v1.Call.state:type_name -> megachat.v1.CallState
+	7,   // 44: megachat.v1.Call.end:type_name -> megachat.v1.CallEnd
+	70,  // 45: megachat.v1.Call.ice:type_name -> megachat.v1.IceServer
+	71,  // 46: megachat.v1.Call.remote:type_name -> megachat.v1.CallMedia
+	8,   // 47: megachat.v1.CallSignal.kind:type_name -> megachat.v1.SignalKind
+	7,   // 48: megachat.v1.EndCallRequest.reason:type_name -> megachat.v1.CallEnd
+	73,  // 49: megachat.v1.CallSignalRequest.signal:type_name -> megachat.v1.CallSignal
+	71,  // 50: megachat.v1.CallMediaRequest.media:type_name -> megachat.v1.CallMedia
+	72,  // 51: megachat.v1.CallsReply.calls:type_name -> megachat.v1.Call
+	73,  // 52: megachat.v1.CallSignalsReply.signals:type_name -> megachat.v1.CallSignal
+	9,   // 53: megachat.v1.Folder.role:type_name -> megachat.v1.FolderRole
+	84,  // 54: megachat.v1.FoldersReply.folders:type_name -> megachat.v1.Folder
+	83,  // 55: megachat.v1.FoldersReply.failed:type_name -> megachat.v1.AccountError
+	86,  // 56: megachat.v1.Mail.from:type_name -> megachat.v1.Address
+	86,  // 57: megachat.v1.Mail.to:type_name -> megachat.v1.Address
+	86,  // 58: megachat.v1.Mail.cc:type_name -> megachat.v1.Address
+	86,  // 59: megachat.v1.Mail.reply_to:type_name -> megachat.v1.Address
+	38,  // 60: megachat.v1.Mail.attachments:type_name -> megachat.v1.Attachment
+	42,  // 61: megachat.v1.Mail.format:type_name -> megachat.v1.TextSpan
+	9,   // 62: megachat.v1.MailListRequest.role:type_name -> megachat.v1.FolderRole
+	87,  // 63: megachat.v1.MailListReply.mails:type_name -> megachat.v1.Mail
+	83,  // 64: megachat.v1.MailListReply.failed:type_name -> megachat.v1.AccountError
+	86,  // 65: megachat.v1.SendMailRequest.to:type_name -> megachat.v1.Address
+	86,  // 66: megachat.v1.SendMailRequest.cc:type_name -> megachat.v1.Address
+	86,  // 67: megachat.v1.SendMailRequest.bcc:type_name -> megachat.v1.Address
+	10,  // 68: megachat.v1.UpdateMailRequest.action:type_name -> megachat.v1.MailAction
+	94,  // 69: megachat.v1.CalendarsReply.calendars:type_name -> megachat.v1.Calendar
+	83,  // 70: megachat.v1.CalendarsReply.failed:type_name -> megachat.v1.AccountError
+	86,  // 71: megachat.v1.Attendee.address:type_name -> megachat.v1.Address
+	11,  // 72: megachat.v1.Attendee.status:type_name -> megachat.v1.Rsvp
+	86,  // 73: megachat.v1.CalendarEvent.organizer:type_name -> megachat.v1.Address
+	96,  // 74: megachat.v1.CalendarEvent.attendees:type_name -> megachat.v1.Attendee
+	98,  // 75: megachat.v1.EventsRequest.calendars:type_name -> megachat.v1.CalendarRef
+	97,  // 76: megachat.v1.EventsReply.events:type_name -> megachat.v1.CalendarEvent
+	83,  // 77: megachat.v1.EventsReply.failed:type_name -> megachat.v1.AccountError
+	13,  // 78: megachat.v1.MegaChat.GetState:input_type -> megachat.v1.Empty
+	15,  // 79: megachat.v1.MegaChat.CreateVault:input_type -> megachat.v1.PasswordRequest
+	15,  // 80: megachat.v1.MegaChat.Unlock:input_type -> megachat.v1.PasswordRequest
+	13,  // 81: megachat.v1.MegaChat.LockVault:input_type -> megachat.v1.Empty
+	17,  // 82: megachat.v1.MegaChat.ChangePassword:input_type -> megachat.v1.ChangePasswordRequest
+	15,  // 83: megachat.v1.MegaChat.CheckPassword:input_type -> megachat.v1.PasswordRequest
+	15,  // 84: megachat.v1.MegaChat.RememberPassword:input_type -> megachat.v1.PasswordRequest
+	13,  // 85: megachat.v1.MegaChat.ForgetPassword:input_type -> megachat.v1.Empty
+	13,  // 86: megachat.v1.MegaChat.UnlockRemembered:input_type -> megachat.v1.Empty
+	16,  // 87: megachat.v1.MegaChat.SetVaultPath:input_type -> megachat.v1.VaultPathRequest
+	13,  // 88: megachat.v1.MegaChat.Providers:input_type -> megachat.v1.Empty
+	23,  // 89: megachat.v1.MegaChat.StartLogin:input_type -> megachat.v1.StartLoginRequest
+	24,  // 90: megachat.v1.MegaChat.LoginStep:input_type -> megachat.v1.LoginStepRequest
+	14,  // 91: megachat.v1.MegaChat.CancelLogin:input_type -> megachat.v1.IdRequest
+	14,  // 92: megachat.v1.MegaChat.Relogin:input_type -> megachat.v1.IdRequest
+	13,  // 93: megachat.v1.MegaChat.Accounts:input_type -> megachat.v1.Empty
+	29,  // 94: megachat.v1.MegaChat.RenameAccount:input_type -> megachat.v1.RenameRequest
+	30,  // 95: megachat.v1.MegaChat.SetAccountEnabled:input_type -> megachat.v1.SetEnabledRequest
+	14,  // 96: megachat.v1.MegaChat.RemoveAccount:input_type -> megachat.v1.IdRequest
+	28,  // 97: megachat.v1.MegaChat.ReorderAccounts:input_type -> megachat.v1.ReorderAccountsRequest
+	36,  // 98: megachat.v1.MegaChat.Chats:input_type -> megachat.v1.ChatsRequest
+	36,  // 99: megachat.v1.MegaChat.RefreshChats:input_type -> megachat.v1.ChatsRequest
+	59,  // 100: megachat.v1.MegaChat.History:input_type -> megachat.v1.HistoryRequest
+	61,  // 101: megachat.v1.MegaChat.Send:input_type -> megachat.v1.SendRequest
+	63,  // 102: megachat.v1.MegaChat.Forward:input_type -> megachat.v1.ForwardRequest
+	65,  // 103: megachat.v1.MegaChat.MarkRead:input_type -> megachat.v1.MarkReadRequest
+	43,  // 104: megachat.v1.MegaChat.Thread:input_type -> megachat.v1.ThreadRequest
+	44,  // 105: megachat.v1.MegaChat.Topics:input_type -> megachat.v1.TopicsRequest
+	47,  // 106: megachat.v1.MegaChat.React:input_type -> megachat.v1.ReactRequest
+	48,  // 107: megachat.v1.MegaChat.Edit:input_type -> megachat.v1.EditRequest
+	49,  // 108: megachat.v1.MegaChat.Delete:input_type -> megachat.v1.DeleteRequest
+	53,  // 109: megachat.v1.MegaChat.LinkPreview:input_type -> megachat.v1.LinkPreviewRequest
+	51,  // 110: megachat.v1.MegaChat.Members:input_type -> megachat.v1.MembersRequest
+	57,  // 111: megachat.v1.MegaChat.Media:input_type -> megachat.v1.MediaRequest
+	55,  // 112: megachat.v1.MegaChat.Profile:input_type -> megachat.v1.ProfileRequest
+	33,  // 113: megachat.v1.MegaChat.ManageChat:input_type -> megachat.v1.ManageChatRequest
+	82,  // 114: megachat.v1.MegaChat.ChatFolders:input_type -> megachat.v1.AccountsRequest
+	74,  // 115: megachat.v1.MegaChat.StartCall:input_type -> megachat.v1.StartCallRequest
+	75,  // 116: megachat.v1.MegaChat.AcceptCall:input_type -> megachat.v1.CallRequest
+	76,  // 117: megachat.v1.MegaChat.EndCall:input_type -> megachat.v1.EndCallRequest
+	77,  // 118: megachat.v1.MegaChat.CallSignal:input_type -> megachat.v1.CallSignalRequest
+	78,  // 119: megachat.v1.MegaChat.SetCallMedia:input_type -> megachat.v1.CallMediaRequest
+	13,  // 120: megachat.v1.MegaChat.Calls:input_type -> megachat.v1.Empty
+	80,  // 121: megachat.v1.MegaChat.CallSignals:input_type -> megachat.v1.CallSignalsRequest
+	82,  // 122: megachat.v1.MegaChat.Folders:input_type -> megachat.v1.AccountsRequest
+	88,  // 123: megachat.v1.MegaChat.MailList:input_type -> megachat.v1.MailListRequest
+	90,  // 124: megachat.v1.MegaChat.GetMail:input_type -> megachat.v1.GetMailRequest
+	91,  // 125: megachat.v1.MegaChat.SendMail:input_type -> megachat.v1.SendMailRequest
+	92,  // 126: megachat.v1.MegaChat.UpdateMail:input_type -> megachat.v1.UpdateMailRequest
+	93,  // 127: megachat.v1.MegaChat.MoveMail:input_type -> megachat.v1.MoveMailRequest
+	82,  // 128: megachat.v1.MegaChat.Calendars:input_type -> megachat.v1.AccountsRequest
+	99,  // 129: megachat.v1.MegaChat.Events:input_type -> megachat.v1.EventsRequest
+	97,  // 130: megachat.v1.MegaChat.SaveEvent:input_type -> megachat.v1.CalendarEvent
+	101, // 131: megachat.v1.MegaChat.DeleteEvent:input_type -> megachat.v1.DeleteEventRequest
+	13,  // 132: megachat.v1.MegaChat.Watch:input_type -> megachat.v1.Empty
+	67,  // 133: megachat.v1.MegaChat.Logs:input_type -> megachat.v1.LogsRequest
+	13,  // 134: megachat.v1.MegaChat.ClearLogs:input_type -> megachat.v1.Empty
+	18,  // 135: megachat.v1.MegaChat.GetState:output_type -> megachat.v1.State
+	18,  // 136: megachat.v1.MegaChat.CreateVault:output_type -> megachat.v1.State
+	18,  // 137: megachat.v1.MegaChat.Unlock:output_type -> megachat.v1.State
+	18,  // 138: megachat.v1.MegaChat.LockVault:output_type -> megachat.v1.State
+	13,  // 139: megachat.v1.MegaChat.ChangePassword:output_type -> megachat.v1.Empty
+	13,  // 140: megachat.v1.MegaChat.CheckPassword:output_type -> megachat.v1.Empty
+	18,  // 141: megachat.v1.MegaChat.RememberPassword:output_type -> megachat.v1.State
+	18,  // 142: megachat.v1.MegaChat.ForgetPassword:output_type -> megachat.v1.State
+	18,  // 143: megachat.v1.MegaChat.UnlockRemembered:output_type -> megachat.v1.State
+	18,  // 144: megachat.v1.MegaChat.SetVaultPath:output_type -> megachat.v1.State
+	22,  // 145: megachat.v1.MegaChat.Providers:output_type -> megachat.v1.ProvidersReply
+	25,  // 146: megachat.v1.MegaChat.StartLogin:output_type -> megachat.v1.LoginStepReply
+	25,  // 147: megachat.v1.MegaChat.LoginStep:output_type -> megachat.v1.LoginStepReply
+	13,  // 148: megachat.v1.MegaChat.CancelLogin:output_type -> megachat.v1.Empty
+	25,  // 149: megachat.v1.MegaChat.Relogin:output_type -> megachat.v1.LoginStepReply
+	27,  // 150: megachat.v1.MegaChat.Accounts:output_type -> megachat.v1.AccountsReply
+	26,  // 151: megachat.v1.MegaChat.RenameAccount:output_type -> megachat.v1.Account
+	26,  // 152: megachat.v1.MegaChat.SetAccountEnabled:output_type -> megachat.v1.Account
+	13,  // 153: megachat.v1.MegaChat.RemoveAccount:output_type -> megachat.v1.Empty
+	27,  // 154: megachat.v1.MegaChat.ReorderAccounts:output_type -> megachat.v1.AccountsReply
+	37,  // 155: megachat.v1.MegaChat.Chats:output_type -> megachat.v1.ChatsReply
+	13,  // 156: megachat.v1.MegaChat.RefreshChats:output_type -> megachat.v1.Empty
+	60,  // 157: megachat.v1.MegaChat.History:output_type -> megachat.v1.HistoryReply
+	41,  // 158: megachat.v1.MegaChat.Send:output_type -> megachat.v1.Message
+	64,  // 159: megachat.v1.MegaChat.Forward:output_type -> megachat.v1.ForwardReply
+	13,  // 160: megachat.v1.MegaChat.MarkRead:output_type -> megachat.v1.Empty
+	60,  // 161: megachat.v1.MegaChat.Thread:output_type -> megachat.v1.HistoryReply
+	46,  // 162: megachat.v1.MegaChat.Topics:output_type -> megachat.v1.TopicsReply
+	41,  // 163: megachat.v1.MegaChat.React:output_type -> megachat.v1.Message
+	41,  // 164: megachat.v1.MegaChat.Edit:output_type -> megachat.v1.Message
+	13,  // 165: megachat.v1.MegaChat.Delete:output_type -> megachat.v1.Empty
+	54,  // 166: megachat.v1.MegaChat.LinkPreview:output_type -> megachat.v1.LinkPreviewReply
+	52,  // 167: megachat.v1.MegaChat.Members:output_type -> megachat.v1.MembersReply
+	58,  // 168: megachat.v1.MegaChat.Media:output_type -> megachat.v1.MediaReply
+	56,  // 169: megachat.v1.MegaChat.Profile:output_type -> megachat.v1.ChatProfile
+	32,  // 170: megachat.v1.MegaChat.ManageChat:output_type -> megachat.v1.Chat
+	35,  // 171: megachat.v1.MegaChat.ChatFolders:output_type -> megachat.v1.ChatFoldersReply
+	72,  // 172: megachat.v1.MegaChat.StartCall:output_type -> megachat.v1.Call
+	13,  // 173: megachat.v1.MegaChat.AcceptCall:output_type -> megachat.v1.Empty
+	13,  // 174: megachat.v1.MegaChat.EndCall:output_type -> megachat.v1.Empty
+	13,  // 175: megachat.v1.MegaChat.CallSignal:output_type -> megachat.v1.Empty
+	13,  // 176: megachat.v1.MegaChat.SetCallMedia:output_type -> megachat.v1.Empty
+	79,  // 177: megachat.v1.MegaChat.Calls:output_type -> megachat.v1.CallsReply
+	81,  // 178: megachat.v1.MegaChat.CallSignals:output_type -> megachat.v1.CallSignalsReply
+	85,  // 179: megachat.v1.MegaChat.Folders:output_type -> megachat.v1.FoldersReply
+	89,  // 180: megachat.v1.MegaChat.MailList:output_type -> megachat.v1.MailListReply
+	87,  // 181: megachat.v1.MegaChat.GetMail:output_type -> megachat.v1.Mail
+	13,  // 182: megachat.v1.MegaChat.SendMail:output_type -> megachat.v1.Empty
+	13,  // 183: megachat.v1.MegaChat.UpdateMail:output_type -> megachat.v1.Empty
+	13,  // 184: megachat.v1.MegaChat.MoveMail:output_type -> megachat.v1.Empty
+	95,  // 185: megachat.v1.MegaChat.Calendars:output_type -> megachat.v1.CalendarsReply
+	100, // 186: megachat.v1.MegaChat.Events:output_type -> megachat.v1.EventsReply
+	97,  // 187: megachat.v1.MegaChat.SaveEvent:output_type -> megachat.v1.CalendarEvent
+	13,  // 188: megachat.v1.MegaChat.DeleteEvent:output_type -> megachat.v1.Empty
+	66,  // 189: megachat.v1.MegaChat.Watch:output_type -> megachat.v1.Event
+	69,  // 190: megachat.v1.MegaChat.Logs:output_type -> megachat.v1.LogsReply
+	13,  // 191: megachat.v1.MegaChat.ClearLogs:output_type -> megachat.v1.Empty
+	135, // [135:192] is the sub-list for method output_type
+	78,  // [78:135] is the sub-list for method input_type
+	78,  // [78:78] is the sub-list for extension type_name
+	78,  // [78:78] is the sub-list for extension extendee
+	0,   // [0:78] is the sub-list for field type_name
 }
 
 func init() { file_megachat_proto_init() }
@@ -6794,8 +8429,8 @@ func file_megachat_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_megachat_proto_rawDesc), len(file_megachat_proto_rawDesc)),
-			NumEnums:      11,
-			NumMessages:   73,
+			NumEnums:      13,
+			NumMessages:   90,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

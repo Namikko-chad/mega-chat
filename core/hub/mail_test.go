@@ -179,3 +179,36 @@ func TestMergedCalendar(t *testing.T) {
 		t.Fatal("an empty range must fail")
 	}
 }
+
+func TestMoveMail(t *testing.T) {
+	e := newEnv(t)
+	a, _ := onlineBoth(t, e)
+	ctx := context.Background()
+	var q MailQuery
+	q.Accounts, q.Role, q.Limit = []string{a.ID}, model.FolderInbox, 3
+	p, err := e.h.Mail(ctx, q)
+	if err != nil || len(p.Mails) != 3 {
+		t.Fatalf("inbox: %+v %v", p, err)
+	}
+	ids := []string{p.Mails[0].ID, p.Mails[1].ID}
+	if err := e.h.MoveMail(ctx, a.ID, ids, "inbox", "projects"); err != nil {
+		t.Fatal(err)
+	}
+	q.Role, q.Folder, q.Limit = model.FolderOther, "projects", 100
+	p, err = e.h.Mail(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved := 0
+	for _, m := range p.Mails {
+		if slices.Contains(ids, m.ID) {
+			moved++
+		}
+	}
+	if moved != 2 {
+		t.Fatalf("moved %d of 2", moved)
+	}
+	if err := e.h.MoveMail(ctx, a.ID, ids, "projects", "nowhere"); err == nil {
+		t.Fatal("moved into a missing folder")
+	}
+}

@@ -9,7 +9,6 @@ import 'package:window_manager/window_manager.dart';
 import '../../core/config/app_config.dart';
 import '../../core/desktop/desktop_window.dart';
 import '../../core/i18n.dart';
-import '../../core/settings/app_settings.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
@@ -35,7 +34,7 @@ enum Section {
   chats(Icons.chat_bubble_outline),
   mail(Icons.mail_outline),
   calendar(Icons.calendar_month_outlined),
-  accounts(Icons.manage_accounts_outlined),
+  accounts(Icons.manage_accounts_outlined, tab: false),
   log(Icons.receipt_long_outlined, tab: false),
   settings(Icons.settings_outlined);
 
@@ -43,7 +42,7 @@ enum Section {
 
   final IconData icon;
 
-  /// A phone tab (M4.2); the log opens from Settings.
+  /// A phone tab and a header link; accounts and the log open from Settings.
   final bool tab;
 
   String get label => switch (this) {
@@ -58,7 +57,7 @@ enum Section {
   /// Settings is the "profile" of the app: an identity anchor (§ 4.6), not a nav link.
   static List<Section> nav(Set<Section> shown) => [
     for (final s in values)
-      if (s != settings && shown.contains(s)) s,
+      if (s != settings && s.tab && shown.contains(s)) s,
   ];
 
   static List<Section> tabs(Set<Section> shown) => [
@@ -325,18 +324,30 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Text('MegaChat', style: HmText.logo),
-          const Spacer(),
-          if (section != null) ...[
-            for (final s in nav) ...[_NavLink(label: s.label, active: section == s, count: counts[s] ?? 0, onTap: () => onGo(s)), const SizedBox(width: 12)],
-            Container(width: 1, height: 18, margin: const EdgeInsets.symmetric(horizontal: 4), color: HmColors.border),
-            const SizedBox(width: 12),
-            _NavLink(label: Section.settings.label, active: true, onTap: () => onGo(Section.settings)),
-            const SizedBox(width: 12),
-            _NavLink(label: tr('Lock', 'Заблокировать'), signOut: true, onTap: onLock),
-          ],
           const SizedBox(width: 16),
-          const _LangSwitch(),
-          if (DesktopWindow.supported) ...[const SizedBox(width: 12), const _WindowButtons()],
+          // A narrow window scrolls the links; the window buttons always stay.
+          Expanded(
+            child: section == null
+                ? const SizedBox()
+                : Align(
+                    alignment: Alignment.centerRight,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
+                      child: Row(
+                        children: [
+                          for (final s in nav) ...[_NavLink(label: s.label, active: section == s, count: counts[s] ?? 0, onTap: () => onGo(s)), const SizedBox(width: 12)],
+                          Container(width: 1, height: 18, margin: const EdgeInsets.symmetric(horizontal: 4), color: HmColors.border),
+                          const SizedBox(width: 12),
+                          _NavLink(label: Section.settings.label, active: true, onTap: () => onGo(Section.settings)),
+                          const SizedBox(width: 12),
+                          _NavLink(label: tr('Lock', 'Заблокировать'), signOut: true, onTap: onLock),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+          if (DesktopWindow.supported) ...[const SizedBox(width: 16), const _WindowButtons()],
         ],
       ),
     ),
@@ -352,25 +363,6 @@ class _TitleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DesktopWindow.supported ? DragToMoveArea(child: child) : child;
-}
-
-/// EN / RU switch (the choice is kept in app settings).
-class _LangSwitch extends StatelessWidget {
-  const _LangSwitch();
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      for (final l in Lang.values)
-        _WindowButton(
-          label: l.name.toUpperCase(),
-          tooltip: l == Lang.en ? 'English' : 'Русский',
-          active: lang.value == l,
-          onTap: () => AppSettings.instance.setLanguage(l),
-        ),
-    ],
-  );
 }
 
 /// Minimize, maximize and close, drawn in the app's style.
@@ -389,14 +381,12 @@ class _WindowButtons extends StatelessWidget {
 }
 
 class _WindowButton extends StatefulWidget {
-  const _WindowButton({required this.tooltip, required this.onTap, this.icon, this.label, this.danger = false, this.active = false});
+  const _WindowButton({required this.tooltip, required this.onTap, required this.icon, this.danger = false});
 
-  final IconData? icon;
-  final String? label;
+  final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
   final bool danger;
-  final bool active;
 
   @override
   State<_WindowButton> createState() => _WindowButtonState();
@@ -408,7 +398,7 @@ class _WindowButtonState extends State<_WindowButton> {
   @override
   Widget build(BuildContext context) {
     final base = widget.danger ? HmColors.error : HmColors.accent;
-    final color = _hot || widget.active ? base : HmColors.muted;
+    final color = _hot ? base : HmColors.muted;
     return Tooltip(
       message: widget.tooltip,
       child: MouseRegion(
@@ -419,17 +409,15 @@ class _WindowButtonState extends State<_WindowButton> {
           onTap: widget.onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: widget.label == null ? 32 : null,
+            width: 32,
             height: 28,
             margin: const EdgeInsets.only(left: 2),
-            padding: widget.label == null ? null : const EdgeInsets.symmetric(horizontal: 8),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: HmColors.tint(base, (_hot ? 0.12 : 0.0) + (widget.active ? 0.08 : 0.0)),
+              color: HmColors.tint(base, _hot ? 0.12 : 0.0),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: widget.active ? HmColors.tint(base, HmColors.ring) : Colors.transparent),
             ),
-            child: widget.label != null ? Text(widget.label!, style: HmText.nav.copyWith(color: color)) : Icon(widget.icon, size: 16, color: color),
+            child: Icon(widget.icon, size: 16, color: color),
           ),
         ),
       ),

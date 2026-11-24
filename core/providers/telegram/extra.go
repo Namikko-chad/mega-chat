@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/tg"
+	"github.com/gotd/td/tgerr"
 
 	"megachat/core/model"
 	"megachat/core/provider"
@@ -288,4 +290,76 @@ func (s *session) React(ctx context.Context, chatID, msgID, emoji string, on boo
 		return nil, errors.New("telegram: the reaction was sent, but the server did not return the result")
 	}
 	return out, nil
+}
+
+// Edit changes the text (or caption) of one of the account's messages
+// with messages.editMessage. The whole message comes back as an edit
+// update; the answer here carries the new text only.
+// Delete deletes messages: messages.deleteMessages (revoke = for
+// everyone) in private chats and basic groups, channels.deleteMessages
+// (always for everyone) in channels and supergroups.
+func (s *session) Delete(ctx context.Context, chatID string, msgIDs []string, forAll bool) error {
+	api, _, err := s.live()
+	if err != nil {
+		return err
+	}
+	peer, err := s.inputPeer(chatID)
+	if err != nil {
+		return err
+	}
+	ids := make([]int, 0, len(msgIDs))
+	for _, m := range msgIDs {
+		id, err := strconv.Atoi(m)
+		if err != nil {
+			return fmt.Errorf("telegram: bad message id %q", m)
+		}
+		ids = append(ids, id)
+	}
+	if ch, ok := peer.(*tg.InputPeerChannel); ok {
+		if !forAll {
+			return errors.New("in channels and supergroups a message can be deleted only for everyone")
+		}
+		_, err = api.ChannelsDeleteMessages(ctx, &tg.ChannelsDeleteMessagesRequest{
+			Channel: &tg.InputChannel{ChannelID: ch.ChannelID, AccessHash: ch.AccessHash}, ID: ids,
+		})
+	} else {
+		_, err = api.MessagesDeleteMessages(ctx, &tg.MessagesDeleteMessagesRequest{Revoke: forAll, ID: ids})
+	}
+	return authErr(err)
+}
+
+// DeletesForMe: outside channels and supergroups.
+func (s *session) DeletesForMe() bool { return true }
+
+func (s *session) Edit(ctx context.Context, chatID, msgID, text string) (model.Message, error) {
+	api, gaps, err := s.live()
+	if err != nil {
+		return model.Message{}, err
+	}
+	peer, err := s.inputPeer(chatID)
+	if err != nil {
+		return model.Message{}, err
+	}
+	id, err := strconv.Atoi(msgID)
+	if err != nil {
+		return model.Message{}, fmt.Errorf("telegram: bad message id %q", msgID)
+	}
+	d, ents := s.outgoingText(model.Outgoing{Text: text}, text)
+	req := &tg.MessagesEditMessageRequest{Peer: peer, ID: id}
+	req.SetMessage(d.Text)
+	// Always set, or an edit that removes all styles would keep the old ones.
+	req.SetEntities(ents)
+	res, err := api.MessagesEditMessage(ctx, req)
+	if tgerr.Is(err, "MESSAGE_NOT_MODIFIED") {
+		err = nil
+	}
+	if err != nil {
+		return model.Message{}, authErr(err)
+	}
+	if res != nil {
+		if err := gaps.Handle(ctx, res); err != nil {
+			s.env.Logf("warn", "updates after edit: %v", err)
+		}
+	}
+	return model.Message{ChatID: chatID, ID: msgID, Text: d.Text, Format: d.Spans, Edited: time.Now(), Outgoing: true}, nil
 }
