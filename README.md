@@ -136,3 +136,10 @@ provider with generated chats. Use it to work on the app without real accounts.
 
 Files (desktop): `~/.config/megachat/` holds `vault.mc`, `cache-*.db`, `endpoint.json` (while the
 app runs) and `megachat.log`.
+
+## License
+
+MegaChat is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License, version 3 or (at your option) any later version. See
+[LICENSE](LICENSE). The bundled fonts (JetBrains Mono, Syne) are under the SIL Open Font
+License (`app/assets/fonts/OFL-*.txt`).
