@@ -46,7 +46,7 @@ object Core {
     // Event.Kind.KIND_MESSAGE_NEW in megachat.proto.
     private const val MESSAGE_NEW = 4L
 
-    // Event.Kind.KIND_THREAD_MESSAGE: comes here only for a mention.
+    // Event.Kind.KIND_THREAD_MESSAGE: comes here only for a followed thread or a mention.
     private const val THREAD_MESSAGE = 9L
 
     // Event.Kind.KIND_MAIL_NEW: a new message in an inbox.

@@ -280,6 +280,10 @@ type Message struct {
 	// @here/@channel; Telegram's mention flag, which replies to us set
 	// too; VK Teams @[me]). Muted chats still notify about these.
 	Mentioned bool `json:"mentioned,omitempty"`
+	// Followed: a thread reply (InThread) in a thread this account's user
+	// follows (Slack: started, replied to or subscribed to it). It notifies
+	// like a message of the chat; unfollowed replies only when Mentioned.
+	Followed bool `json:"followed,omitempty"`
 	// Forwarded: a copy of someone's message; ForwardedFrom names the
 	// original's author (empty when the messenger hides them).
 	Forwarded     bool   `json:"forwarded,omitempty"`

@@ -739,8 +739,13 @@ func (s *session) handle(ctx context.Context, sink provider.Sink, raw []byte) {
 		default:
 			if msg.TS != "" && !msg.Hidden && isReply(msg) {
 				m := s.convert(ctx, ev.Channel, msg)
+				root, ok := s.threadRoot(ctx, ev.Channel, msg.ThreadTS)
+				m.Followed = ok && !m.Outgoing && s.follows(root)
 				sink.Emit(model.Event{Kind: model.EvThreadMessage, Message: &m})
-				s.emitRoot(ctx, sink, ev.Channel, msg.ThreadTS)
+				if ok && !skipped(root) { // the root with its new reply count
+					r := s.convert(ctx, ev.Channel, root)
+					sink.Emit(model.Event{Kind: model.EvMessageEdit, Message: &r})
+				}
 				return
 			}
 			if skipped(msg) || msg.TS == "" {

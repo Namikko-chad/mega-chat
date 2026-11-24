@@ -628,12 +628,20 @@ func TestNotify(t *testing.T) {
 
 	// A mention in a thread notifies once, not again when edited.
 	th := model.Message{AccountID: a.ID, ChatID: "c1", ID: "t1", InThread: "1", Mentioned: true}
-	if !e.h.notifyThread(th) || e.h.notifyThread(th) {
-		t.Fatal("thread mention must notify exactly once")
+	if !e.h.notifyThread(th, true) || e.h.notifyThread(th, false) {
+		t.Fatal("thread mention must notify exactly once, muted or not")
 	}
 	th.ID, th.Mentioned = "t2", false
-	if e.h.notifyThread(th) {
-		t.Fatal("a thread reply without a mention must not notify")
+	if e.h.notifyThread(th, false) {
+		t.Fatal("a reply in an unfollowed thread without a mention must not notify")
+	}
+	// A followed thread notifies unless its chat is muted.
+	th.ID, th.Followed = "t3", true
+	if e.h.notifyThread(th, true) {
+		t.Fatal("a followed thread in a muted chat must not notify")
+	}
+	if !e.h.notifyThread(th, false) {
+		t.Fatal("a reply in a followed thread must notify")
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -71,21 +72,31 @@ func (s *session) Thread(ctx context.Context, chatID, threadID, beforeID string,
 	return all, false, nil
 }
 
-// emitRoot reports a thread's root again with its new reply count.
-func (s *session) emitRoot(ctx context.Context, sink provider.Sink, chatID, ts string) {
+// threadRoot reads a thread's root message.
+func (s *session) threadRoot(ctx context.Context, chatID, ts string) (wMessage, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	raw, err := s.replies(ctx, chatID, ts, 1)
 	if err != nil {
 		s.env.Logf("warn", "thread root: %v", err)
-		return
+		return wMessage{}, false
 	}
 	for _, m := range raw {
-		if m.TS == ts && !skipped(m) {
-			msg := s.convert(ctx, chatID, m)
-			sink.Emit(model.Event{Kind: model.EvMessageEdit, Message: &msg})
+		if m.TS == ts {
+			return m, true
 		}
 	}
+	return wMessage{}, false
+}
+
+// follows tells whether the user follows the thread under root: Slack's
+// own "subscribed" (user tokens), else they started it or replied in it.
+func (s *session) follows(root wMessage) bool {
+	if root.Subscribed != nil {
+		return *root.Subscribed
+	}
+	me := s.params["user_id"]
+	return me != "" && (root.User == me || slices.Contains(root.ReplyUsers, me))
 }
 
 // --- reactions -----------------------------------------------------------

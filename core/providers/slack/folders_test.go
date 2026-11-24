@@ -150,3 +150,46 @@ func TestReplyQuoteReadAndKeptOnEdit(t *testing.T) {
 		t.Fatalf("a bare quote: %v %q", lines, rest)
 	}
 }
+
+type eventSink struct {
+	mu  sync.Mutex
+	evs []model.Event
+}
+
+func (c *eventSink) Emit(ev model.Event) {
+	c.mu.Lock()
+	c.evs = append(c.evs, ev)
+	c.mu.Unlock()
+}
+func (c *eventSink) Connected(model.User)               {}
+func (c *eventSink) SaveParams(map[string]string) error { return nil }
+
+func TestThreadReplyFollowed(t *testing.T) {
+	roots := map[string]map[string]any{
+		"1.0": {"ts": "1.0", "user": "U1", "text": "root", "reply_users": []string{"U2", "U0"}}, // replied in it
+		"2.0": {"ts": "2.0", "user": "U1", "text": "root", "reply_users": []string{"U2"}},       // not in it
+		"3.0": {"ts": "3.0", "user": "U1", "text": "root", "subscribed": true},                  // followed by hand
+		"4.0": {"ts": "4.0", "user": "U0", "text": "root", "subscribed": false},                 // own, unfollowed
+	}
+	s := folderSession(t, methodSession, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		switch r.URL.Path {
+		case "/api/conversations.replies":
+			json.NewEncoder(w).Encode(map[string]any{"ok": true, "messages": []map[string]any{roots[r.Form.Get("ts")]}})
+		case "/api/users.info":
+			json.NewEncoder(w).Encode(map[string]any{"ok": true, "user": map[string]any{"id": r.Form.Get("user"), "name": "x"}})
+		default:
+			json.NewEncoder(w).Encode(map[string]any{"ok": false, "error": "unknown_method"})
+		}
+	})
+	for root, want := range map[string]bool{"1.0": true, "2.0": false, "3.0": true, "4.0": false} {
+		sink := &eventSink{}
+		s.handle(context.Background(), sink, []byte(`{"type":"message","channel":"C1","user":"U2","ts":"9.0","thread_ts":"`+root+`","text":"reply"}`))
+		if len(sink.evs) != 2 || sink.evs[0].Kind != model.EvThreadMessage || sink.evs[1].Kind != model.EvMessageEdit {
+			t.Fatalf("%s: %+v", root, sink.evs)
+		}
+		if got := sink.evs[0].Message.Followed; got != want {
+			t.Fatalf("%s: followed %v", root, got)
+		}
+	}
+}

@@ -190,8 +190,11 @@ type wMessage struct {
 	} `json:"edited"`
 	Hidden bool `json:"hidden"`
 
-	ReplyCount  int             `json:"reply_count"`
-	ReplyUsers  []string        `json:"reply_users"`
+	ReplyCount int      `json:"reply_count"`
+	ReplyUsers []string `json:"reply_users"`
+	// Subscribed: the user follows the thread (a root from
+	// conversations.replies with a user token).
+	Subscribed  *bool           `json:"subscribed"`
 	LatestRepl  string          `json:"latest_reply"`
 	Reactions   []wReaction     `json:"reactions"`
 	Attachments []wAttachment   `json:"attachments"`

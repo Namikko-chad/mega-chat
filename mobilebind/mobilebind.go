@@ -16,7 +16,7 @@ import (
 
 // Listener gets core events (implemented in Kotlin). kind is Event.Kind
 // of megachat.proto. For a message worth a notification (kind 4, or 9 for
-// a mention in a thread; Event.notify) json is {"account_id","chat_id",
+// a reply in a followed thread or a mention there; Event.notify) json is {"account_id","chat_id",
 // "chat_title","sender","text","mention"}; such messages that are not
 // worth one are not passed. For a call (kind 10) see callNotice; other
 // kinds carry no json.

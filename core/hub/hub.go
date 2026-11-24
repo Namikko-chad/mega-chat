@@ -586,11 +586,12 @@ func (h *Hub) apply(acct string, ev model.Event) {
 		if ev.Message != nil && ev.Message.InThread != "" {
 			ev.Message.AccountID = acct
 			out := Event{Kind: EvThreadMessage, AccountID: acct, Message: ev.Message}
-			// The chat (title, muted) for a notification about a mention.
+			// The chat (title, muted) for a notification.
+			var muted bool
 			if c, ok, _ := h.st.Chat(acct, ev.Message.ChatID); ok {
-				out.Chat = &c
+				out.Chat, muted = &c, c.Muted
 			}
-			out.Notify = h.notifyThread(*ev.Message)
+			out.Notify = h.notifyThread(*ev.Message, muted)
 			h.emit(out)
 		}
 	}
@@ -606,10 +607,11 @@ func notifies(m model.Message, c model.Chat) bool {
 	return !m.Outgoing && !m.Service && !m.Deleted && (!c.Muted || m.Mentioned)
 }
 
-// notifyThread: replies in threads notify only when they mention the user,
-// once per message.
-func (h *Hub) notifyThread(m model.Message) bool {
-	if m.Outgoing || m.Deleted || !m.Mentioned {
+// notifyThread: replies in threads notify when they mention the user, or
+// when the user follows the thread and its chat is not muted; once per
+// message.
+func (h *Hub) notifyThread(m model.Message, muted bool) bool {
+	if m.Outgoing || m.Deleted || m.Service || !(m.Mentioned || m.Followed && !muted) {
 		return false
 	}
 	key := m.AccountID + "\x00" + m.ChatID + "\x00" + m.ID
