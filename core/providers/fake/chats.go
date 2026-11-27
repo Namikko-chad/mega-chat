@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Demo chat folders: people and groups, as Telegram's rules would sort them.

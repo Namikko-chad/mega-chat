@@ -15,11 +15,11 @@ import (
 	"sort"
 	"sync"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Capability is a feature a provider offers. Values match the Capability
-// enum in proto/megachat.proto.
+// enum in proto/parley.proto.
 type Capability int
 
 const (

@@ -5,7 +5,7 @@ import '../../core/format.dart';
 import '../../core/i18n.dart';
 import '../../core/theme/typography.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 

@@ -4,11 +4,11 @@ import (
 	"sort"
 	"time"
 
-	"megachat/core/hub"
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/richtext"
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/hub"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/richtext"
+	"github.com/SelfHold/parley/core/rpc/pb"
 )
 
 func ms(t time.Time) int64 {

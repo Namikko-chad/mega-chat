@@ -20,7 +20,7 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
-// "dev.megachat/files" "clipboard" (lib/data/local_files.dart): files
+// "dev.selfhold.parley/files" "clipboard" (lib/data/local_files.dart): files
 // copied in a file manager as {"uris": [...]}, or a picture as {"png":
 // bytes}; nothing when the clipboard has only text, or text with a picture
 // (spreadsheet cells), so that a paste stays a text paste. Read with the
@@ -119,7 +119,7 @@ static void my_application_activate(GApplication* application) {
 
   // No system title bar: the app draws its own (window_manager, see
   // lib/core/desktop/desktop_window.dart). The title stays for the taskbar.
-  gtk_window_set_title(window, "MegaChat");
+  gtk_window_set_title(window, "Parley");
   gtk_window_set_decorated(window, FALSE);
 
   // Window icon (X11 taskbars). GNOME on Wayland takes the icon from the
@@ -128,7 +128,7 @@ static void my_application_activate(GApplication* application) {
   if (exe != nullptr) {
     g_autofree gchar* dir = g_path_get_dirname(exe);
     g_autofree gchar* icon = g_build_filename(
-        dir, "data", "flutter_assets", "assets", "icon", "megachat.png",
+        dir, "data", "flutter_assets", "assets", "icon", "parley.png",
         nullptr);
     gtk_window_set_icon_from_file(window, icon, nullptr);
   }
@@ -160,7 +160,7 @@ static void my_application_activate(GApplication* application) {
   g_clear_object(&self->files);
   self->files = fl_method_channel_new(
       fl_engine_get_binary_messenger(fl_view_get_engine(view)),
-      "dev.megachat/files", FL_METHOD_CODEC(codec));
+      "dev.selfhold.parley/files", FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(self->files, files_call_cb, self,
                                             nullptr);
 

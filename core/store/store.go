@@ -26,9 +26,9 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"megachat/core/crypto"
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 var (

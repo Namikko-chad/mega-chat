@@ -21,8 +21,8 @@ import (
 	"github.com/emersion/go-imap/server"
 	"github.com/emersion/go-webdav/caldav"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // --- local servers -----------------------------------------------------------

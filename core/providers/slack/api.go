@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // api calls Slack's Web API. A browser session (xoxc token) must go to the

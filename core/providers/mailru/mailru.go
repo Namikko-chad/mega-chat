@@ -29,8 +29,8 @@ import (
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/charset"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.

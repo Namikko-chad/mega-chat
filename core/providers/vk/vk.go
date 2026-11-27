@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"time"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.
@@ -88,7 +88,7 @@ func (l *login) ensureQR(ctx context.Context) error {
 		}
 		l.anonym = t
 	}
-	c, err := l.srv.getAuthCode(ctx, l.anonym.Token, "MegaChat")
+	c, err := l.srv.getAuthCode(ctx, l.anonym.Token, "Parley")
 	if err != nil {
 		return err
 	}

@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/providers/fake"
-	"megachat/core/store"
-	"megachat/core/vault"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/fake"
+	"github.com/SelfHold/parley/core/store"
+	"github.com/SelfHold/parley/core/vault"
 )
 
 type env struct {

@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // fakeGoogle serves the parts of the OAuth, Gmail and Calendar APIs the

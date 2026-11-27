@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 func folderSession(t *testing.T, method string, h http.HandlerFunc) *session {

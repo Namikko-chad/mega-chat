@@ -13,9 +13,9 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/providers/mailutil"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/mailutil"
 )
 
 // sendSMTP delivers raw to the recipients. Port 465 is TLS from the start,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/colors.dart';
 import '../../core/theme/typography.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import 'links.dart';
 
 /// The links of a formatted text: those its spans name, then the addresses

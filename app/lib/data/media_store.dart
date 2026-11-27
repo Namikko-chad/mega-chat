@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'local_files.dart';
-import 'rpc/gen/megachat.pbgrpc.dart' as pb;
+import 'rpc/gen/parley.pbgrpc.dart' as pb;
 
 /// Avatars, previews and files of messages, fetched from the core (which
 /// keeps its own encrypted cache) and held in memory while the app runs.
@@ -16,7 +16,7 @@ import 'rpc/gen/megachat.pbgrpc.dart' as pb;
 class MediaStore {
   MediaStore(this._api);
 
-  final pb.MegaChatClient Function() _api;
+  final pb.ParleyClient Function() _api;
 
   /// Memory kept for recently shown pictures.
   static const _cap = 96 << 20;
@@ -104,7 +104,7 @@ class MediaStore {
   Future<File?> toFile(String account, String ref, String name, {int maxBytes = 512 << 20}) async {
     final data = await load(account, ref, maxBytes: maxBytes, keep: false);
     if (data == null) return null;
-    final dir = Directory(p.join((await getTemporaryDirectory()).path, 'megachat-open', '${ref.hashCode.toUnsigned(32)}'));
+    final dir = Directory(p.join((await getTemporaryDirectory()).path, 'parley-open', '${ref.hashCode.toUnsigned(32)}'));
     await dir.create(recursive: true);
     final f = File(p.join(dir.path, _safeName(name)));
     await f.writeAsBytes(data, flush: true);
@@ -158,7 +158,7 @@ class MediaStore {
     _failed.clear();
     _prefetched.clear();
     try {
-      final dir = Directory(p.join((await getTemporaryDirectory()).path, 'megachat-open'));
+      final dir = Directory(p.join((await getTemporaryDirectory()).path, 'parley-open'));
       if (await dir.exists()) await dir.delete(recursive: true);
     } catch (_) {}
   }

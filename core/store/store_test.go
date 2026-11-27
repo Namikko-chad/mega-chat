@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/crypto"
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/model"
 )
 
 func open(t *testing.T) (*Store, string) {

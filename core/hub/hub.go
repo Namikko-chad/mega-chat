@@ -19,13 +19,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"megachat/core/crypto"
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/richtext"
-	"megachat/core/store"
-	"megachat/core/vault"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/richtext"
+	"github.com/SelfHold/parley/core/store"
+	"github.com/SelfHold/parley/core/vault"
 )
 
 // Status of an account's session.
@@ -1620,7 +1620,7 @@ func (h *Hub) Remove(ctx context.Context, id string) error {
 	return nil
 }
 
-// Reload applies a vault config that came from elsewhere (CloudSync gave
+// Reload applies a vault config that came from elsewhere (Shard gave
 // this device another device's vault): prev is the config before it.
 // Sessions of removed accounts stop and their cache goes, new accounts
 // start, changed ones restart (a rename only renames).

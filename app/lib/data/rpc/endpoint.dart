@@ -24,7 +24,7 @@ abstract class CoreLauncher {
 /// Android: the core runs inside the app (gomobile AAR) in a foreground
 /// service; Kotlin starts it and hands over the socket path and token.
 class AndroidLauncher implements CoreLauncher {
-  static const _ch = MethodChannel('dev.megachat/core');
+  static const _ch = MethodChannel('dev.selfhold.parley/core');
 
   @override
   Future<Endpoint> endpoint() async {
@@ -43,10 +43,10 @@ class AndroidLauncher implements CoreLauncher {
 /// instance quits, the next reconnect starts the core here.
 class DesktopLauncher implements CoreLauncher {
   static String get configDir {
-    if (Platform.isWindows) return p.join(Platform.environment['APPDATA'] ?? '.', 'megachat');
+    if (Platform.isWindows) return p.join(Platform.environment['APPDATA'] ?? '.', 'selfhold', 'parley');
     final xdg = Platform.environment['XDG_CONFIG_HOME'];
     final home = Platform.environment['HOME'] ?? '.';
-    return p.join(xdg != null && xdg.isNotEmpty ? xdg : p.join(home, '.config'), 'megachat');
+    return p.join(xdg != null && xdg.isNotEmpty ? xdg : p.join(home, '.config'), 'selfhold', 'parley');
   }
 
   @override

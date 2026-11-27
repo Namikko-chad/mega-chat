@@ -9,7 +9,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-const service = "MegaChat"
+const service = "dev.selfhold.parley"
 
 // System returns the operating system's keychain.
 func System() Keychain { return system{} }

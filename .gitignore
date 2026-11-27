@@ -1,13 +1,13 @@
 /builds/
 *.test
 *.out
-/app/android/app/libs/megachat.aar
-/app/android/app/libs/megachat-sources.jar
+/app/android/app/libs/parley.aar
+/app/android/app/libs/parley-sources.jar
 
 # `go build` run inside a package directory leaves its binary there.
 /desktopbind/desktopbind
 /mobilebind/mobilebind
-/cmd/mchat/mchat
+/cmd/parley/parley
 
 # Local only: credentials and assistant notes.
 creds

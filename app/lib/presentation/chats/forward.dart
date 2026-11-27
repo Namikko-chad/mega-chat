@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/i18n.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../accounts/providers.dart';
 import '../common/hm.dart';
 import '../core/core_cubit.dart';

@@ -10,7 +10,7 @@ enum BioResult { ok, canceled, invalidated, failed }
 /// is sealed in the Android Keystore with a key that opens only after a
 /// strong biometric check.
 class Biometric {
-  static const _ch = MethodChannel('dev.megachat/biometric');
+  static const _ch = MethodChannel('dev.selfhold.parley/biometric');
 
   /// The phone has a fingerprint enrolled.
   static bool available = false;

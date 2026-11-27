@@ -1,6 +1,6 @@
 package vault
 
-// Several copies of one vault (CloudSync gives every device the vault file
+// Several copies of one vault (Shard gives every device the vault file
 // and keeps concurrent writes as several versions, CONNECTOR.md § 6.2):
 // Merge folds them into one config, the same on every device whatever the
 // order of the copies; Adopt takes a copy as it is.

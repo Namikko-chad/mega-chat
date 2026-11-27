@@ -15,29 +15,29 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
-	"megachat/core/keychain"
-	"megachat/core/provider"
-	"megachat/core/providers/fake"
-	"megachat/core/rpc/pb"
-	"megachat/core/vault"
+	"github.com/SelfHold/parley/core/keychain"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/fake"
+	"github.com/SelfHold/parley/core/rpc/pb"
+	"github.com/SelfHold/parley/core/vault"
 )
 
-func serve(t *testing.T) (pb.MegaChatClient, *fake.Server, context.Context) {
+func serve(t *testing.T) (pb.ParleyClient, *fake.Server, context.Context) {
 	return serveWith(t, nil)
 }
 
-func serveWith(t *testing.T, setup func(*Service)) (pb.MegaChatClient, *fake.Server, context.Context) {
+func serveWith(t *testing.T, setup func(*Service)) (pb.ParleyClient, *fake.Server, context.Context) {
 	t.Helper()
 	dir := t.TempDir()
 	srv := fake.New()
-	svc := NewService(filepath.Join(dir, "vault.mc"), dir, "test", provider.NewRegistry(srv))
+	svc := NewService(filepath.Join(dir, "vault.parley"), dir, "test", provider.NewRegistry(srv))
 	svc.KDF = vault.KDFParams{Time: 1, Memory: 1024, Threads: 1}
 	if setup != nil {
 		setup(svc)
 	}
 	lis := bufconn.Listen(1 << 20)
 	g := grpc.NewServer(TokenAuth("tok")...)
-	pb.RegisterMegaChatServer(g, svc)
+	pb.RegisterParleyServer(g, svc)
 	go g.Serve(lis)
 	conn, err := grpc.NewClient("passthrough:///buf",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
@@ -47,7 +47,7 @@ func serveWith(t *testing.T, setup func(*Service)) (pb.MegaChatClient, *fake.Ser
 	}
 	t.Cleanup(func() { conn.Close(); svc.Close(); g.Stop() })
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer tok")
-	return pb.NewMegaChatClient(conn), srv, ctx
+	return pb.NewParleyClient(conn), srv, ctx
 }
 
 func TestServiceFlow(t *testing.T) {
@@ -226,12 +226,12 @@ func TestSetVaultPath(t *testing.T) {
 	if _, err := c.RememberPassword(ctx, &pb.PasswordRequest{Password: "pw"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: "rel/vault.mc", Move: true}); status.Code(err) != codes.InvalidArgument {
+	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: "rel/vault.parley", Move: true}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("relative path: %v", err)
 	}
 	dir := t.TempDir()
-	st, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: dir, Move: true}) // a directory: vault.mc in it
-	moved := filepath.Join(dir, "vault.mc")
+	st, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: dir, Move: true}) // a directory: vault.parley in it
+	moved := filepath.Join(dir, "vault.parley")
 	if err != nil || st.VaultPath != moved || !st.Unlocked || !st.Remembered {
 		t.Fatalf("move: %v %v", st, err)
 	}
@@ -255,7 +255,7 @@ func TestSetVaultPath(t *testing.T) {
 		t.Fatalf("unlock remembered after move: %v %v", st, err)
 	}
 	// Moving onto an existing file is refused.
-	other := filepath.Join(t.TempDir(), "other.mc")
+	other := filepath.Join(t.TempDir(), "other.parley")
 	if err := os.WriteFile(other, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +270,7 @@ func TestSetVaultPath(t *testing.T) {
 	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: moved + ".x"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("use a missing file: %v", err)
 	}
-	back := filepath.Join(t.TempDir(), "copy.mc")
+	back := filepath.Join(t.TempDir(), "copy.parley")
 	data, _ := os.ReadFile(moved)
 	os.WriteFile(back, data, 0o600)
 	if st, err = c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: back}); err != nil || st.VaultPath != back || st.Unlocked {

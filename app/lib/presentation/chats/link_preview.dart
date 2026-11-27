@@ -7,7 +7,7 @@ import 'package:grpc/grpc.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/typography.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/links.dart';
 import '../core/core_cubit.dart';
 
@@ -19,7 +19,7 @@ class LinkPreviews {
   static const _cap = 300;
   static final _cache = <String, Future<pb.LinkPreviewReply?>>{};
 
-  static Future<pb.LinkPreviewReply?> of(pb.MegaChatClient api, String url) {
+  static Future<pb.LinkPreviewReply?> of(pb.ParleyClient api, String url) {
     final hit = _cache.remove(url);
     if (hit != null) return _cache[url] = hit; // most recent last
     if (_cache.length >= _cap) _cache.remove(_cache.keys.first);
@@ -28,7 +28,7 @@ class LinkPreviews {
     return f;
   }
 
-  static Future<pb.LinkPreviewReply?> _fetch(pb.MegaChatClient api, String url) async {
+  static Future<pb.LinkPreviewReply?> _fetch(pb.ParleyClient api, String url) async {
     try {
       return await api.linkPreview(pb.LinkPreviewRequest(url: url));
     } on GrpcError catch (e) {

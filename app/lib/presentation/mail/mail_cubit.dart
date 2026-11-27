@@ -5,7 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../core/core_cubit.dart';
 
 /// Mail ids are unique only inside an account.
@@ -128,7 +128,7 @@ class MailCubit extends Cubit<MailState> {
   Timer? _reload;
   int _gen = 0; // bumps when the view changes: late answers are dropped
 
-  pb.MegaChatClient get api => _core.api;
+  pb.ParleyClient get api => _core.api;
 
   void _onCore(CoreState s) {
     if (!s.unlocked) {

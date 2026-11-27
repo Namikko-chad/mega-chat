@@ -6,7 +6,7 @@
 //
 // File layout:
 //
-//	magic "MCVAULT\x01" | argon2 time u32 | memory KiB u32 | threads u8 | salt [16]
+//	magic "PARLEYV\x01" | argon2 time u32 | memory KiB u32 | threads u8 | salt [16]
 //	| XChaCha20-Poly1305(key, JSON config, ad = everything before it)
 package vault
 
@@ -28,10 +28,10 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"megachat/core/crypto"
+	"github.com/SelfHold/parley/core/crypto"
 )
 
-var magic = []byte("MCVAULT\x01")
+var magic = []byte("PARLEYV\x01")
 
 const (
 	saltSize   = 16
@@ -62,7 +62,7 @@ type Config struct {
 	MasterKey []byte    `json:"master_key"`
 	Accounts  []Account `json:"accounts"`
 	// Removed are tombstones of removed accounts, so that merging with a
-	// copy made before the removal (CloudSync, merge.go) does not bring
+	// copy made before the removal (Shard, merge.go) does not bring
 	// them back. Kept for TombstoneTTL.
 	Removed []Removed `json:"removed,omitempty"`
 	// PasswordChanged is when the password last changed: when copies

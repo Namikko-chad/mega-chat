@@ -17,8 +17,8 @@ import 'presentation/core/messenger_cubit.dart';
 import 'presentation/core/notifier.dart';
 import 'presentation/shell/app_shell.dart';
 
-class MegaChatApp extends StatefulWidget {
-  const MegaChatApp({super.key, required this.core, this.home = const AppShell(), this.frame});
+class ParleyApp extends StatefulWidget {
+  const ParleyApp({super.key, required this.core, this.home = const AppShell(), this.frame});
 
   final CoreCubit core;
   final Widget home;
@@ -27,10 +27,10 @@ class MegaChatApp extends StatefulWidget {
   final TransitionBuilder? frame;
 
   @override
-  State<MegaChatApp> createState() => _MegaChatAppState();
+  State<ParleyApp> createState() => _ParleyAppState();
 }
 
-class _MegaChatAppState extends State<MegaChatApp> {
+class _ParleyAppState extends State<ParleyApp> {
   // Above the navigator: pushed screens (a chat on phones) share it.
   late final _messenger = MessengerCubit(widget.core);
   late final _calls = CallCubit(widget.core);
@@ -77,7 +77,7 @@ class _MegaChatAppState extends State<MegaChatApp> {
       BlocProvider.value(value: _calls),
     ],
     child: MaterialApp(
-      title: 'MegaChat',
+      title: 'Parley',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       darkTheme: AppTheme.dark,

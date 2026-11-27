@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/typography.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import 'media.dart';
 
 /// Whether the account's messages can mention people (CAPABILITY_MENTIONS).
@@ -22,7 +22,7 @@ class MentionPicker extends ChangeNotifier {
     text.addListener(_changed);
   }
 
-  final pb.MegaChatClient Function() api; // the client of now (it changes after a reconnect)
+  final pb.ParleyClient Function() api; // the client of now (it changes after a reconnect)
   final String account;
   final String chat;
   final TextEditingController text;

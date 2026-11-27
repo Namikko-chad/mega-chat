@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"slices"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // selfDM opens the direct chat with oneself (Slack's notes to self) when

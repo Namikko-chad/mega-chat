@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 func TestEmoji(t *testing.T) {

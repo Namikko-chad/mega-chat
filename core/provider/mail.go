@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Mailer is implemented by sessions with a mailbox (CapMail). Live changes

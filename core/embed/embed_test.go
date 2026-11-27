@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/rpc/pb"
 )
 
 func TestStartServesAndStops(t *testing.T) {
@@ -25,8 +25,8 @@ func TestStartServesAndStops(t *testing.T) {
 	defer os.RemoveAll(sockDir)
 	o := Options{
 		Dir: dir, Listen: "unix:" + filepath.Join(sockDir, "s"),
-		Endpoint: filepath.Join(dir, "endpoint.json"), LogFile: filepath.Join(dir, "megachat.log"),
-		NoCloudSync: true, // never the user's own CloudSync
+		Endpoint: filepath.Join(dir, "endpoint.json"), LogFile: filepath.Join(dir, "parley.log"),
+		NoShard: true, // never the user's own Shard
 	}
 	c, err := Start(o)
 	if err != nil {
@@ -42,7 +42,7 @@ func TestStartServesAndStops(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	api := pb.NewMegaChatClient(conn)
+	api := pb.NewParleyClient(conn)
 	if _, err := api.GetState(context.Background(), &pb.Empty{}); err == nil {
 		t.Fatal("a call without the token was served")
 	}
@@ -51,7 +51,7 @@ func TestStartServesAndStops(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.VaultExists || st.VaultPath != filepath.Join(dir, "vault.mc") {
+	if st.VaultExists || st.VaultPath != filepath.Join(dir, "vault.parley") {
 		t.Fatalf("state %v", st)
 	}
 

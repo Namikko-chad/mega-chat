@@ -72,7 +72,7 @@ func TestMergeIsDeterministic(t *testing.T) {
 }
 
 func TestUpdateStampsAndTombstones(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "vault.mc")
+	path := filepath.Join(t.TempDir(), "vault.parley")
 	c, _ := New()
 	v, err := Create(path, []byte("pw"), c, fastKDF)
 	if err != nil {

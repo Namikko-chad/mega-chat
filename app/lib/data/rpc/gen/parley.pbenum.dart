@@ -1,0 +1,623 @@
+// This is a generated file - do not edit.
+//
+// Generated from parley.proto.
+
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+
+import 'dart:core' as $core;
+
+import 'package:protobuf/protobuf.dart' as $pb;
+
+/// What a provider can do. Only MESSAGES exists today; the others are
+/// reserved so the app and the core agree on them when they arrive.
+class Capability extends $pb.ProtobufEnum {
+  static const Capability CAPABILITY_UNSPECIFIED =
+      Capability._(0, _omitEnumNames ? '' : 'CAPABILITY_UNSPECIFIED');
+  static const Capability CAPABILITY_MESSAGES =
+      Capability._(1, _omitEnumNames ? '' : 'CAPABILITY_MESSAGES');
+  static const Capability CAPABILITY_CALLS =
+      Capability._(2, _omitEnumNames ? '' : 'CAPABILITY_CALLS');
+  static const Capability CAPABILITY_GROUP_CALLS =
+      Capability._(3, _omitEnumNames ? '' : 'CAPABILITY_GROUP_CALLS');
+  static const Capability CAPABILITY_MAIL =
+      Capability._(4, _omitEnumNames ? '' : 'CAPABILITY_MAIL');
+  static const Capability CAPABILITY_CALENDAR =
+      Capability._(5, _omitEnumNames ? '' : 'CAPABILITY_CALENDAR');
+
+  /// Sessions: Account.capabilities tells what an account's session does.
+  static const Capability CAPABILITY_THREADS =
+      Capability._(6, _omitEnumNames ? '' : 'CAPABILITY_THREADS');
+  static const Capability CAPABILITY_REACTIONS =
+      Capability._(7, _omitEnumNames ? '' : 'CAPABILITY_REACTIONS');
+  static const Capability CAPABILITY_MEDIA =
+      Capability._(8, _omitEnumNames ? '' : 'CAPABILITY_MEDIA');
+  static const Capability CAPABILITY_TOPICS =
+      Capability._(9, _omitEnumNames ? '' : 'CAPABILITY_TOPICS');
+  static const Capability CAPABILITY_FORWARD =
+      Capability._(10, _omitEnumNames ? '' : 'CAPABILITY_FORWARD');
+  static const Capability CAPABILITY_FILES =
+      Capability._(11, _omitEnumNames ? '' : 'CAPABILITY_FILES');
+  static const Capability CAPABILITY_PROFILES =
+      Capability._(12, _omitEnumNames ? '' : 'CAPABILITY_PROFILES');
+  static const Capability CAPABILITY_EDIT =
+      Capability._(13, _omitEnumNames ? '' : 'CAPABILITY_EDIT');
+  static const Capability CAPABILITY_DELETE =
+      Capability._(14, _omitEnumNames ? '' : 'CAPABILITY_DELETE');
+  static const Capability CAPABILITY_DELETE_FOR_ME =
+      Capability._(15, _omitEnumNames ? '' : 'CAPABILITY_DELETE_FOR_ME');
+  static const Capability CAPABILITY_MENTIONS =
+      Capability._(16, _omitEnumNames ? '' : 'CAPABILITY_MENTIONS');
+  static const Capability CAPABILITY_CHAT_FOLDERS =
+      Capability._(17, _omitEnumNames ? '' : 'CAPABILITY_CHAT_FOLDERS');
+  static const Capability CAPABILITY_MANAGE_CHATS =
+      Capability._(18, _omitEnumNames ? '' : 'CAPABILITY_MANAGE_CHATS');
+
+  static const $core.List<Capability> values = <Capability>[
+    CAPABILITY_UNSPECIFIED,
+    CAPABILITY_MESSAGES,
+    CAPABILITY_CALLS,
+    CAPABILITY_GROUP_CALLS,
+    CAPABILITY_MAIL,
+    CAPABILITY_CALENDAR,
+    CAPABILITY_THREADS,
+    CAPABILITY_REACTIONS,
+    CAPABILITY_MEDIA,
+    CAPABILITY_TOPICS,
+    CAPABILITY_FORWARD,
+    CAPABILITY_FILES,
+    CAPABILITY_PROFILES,
+    CAPABILITY_EDIT,
+    CAPABILITY_DELETE,
+    CAPABILITY_DELETE_FOR_ME,
+    CAPABILITY_MENTIONS,
+    CAPABILITY_CHAT_FOLDERS,
+    CAPABILITY_MANAGE_CHATS,
+  ];
+
+  static final $core.List<Capability?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 18);
+  static Capability? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Capability._(super.value, super.name);
+}
+
+/// Something the account does to one of its chats (ManageChat).
+class ChatAction extends $pb.ProtobufEnum {
+  static const ChatAction CHAT_ACTION_UNSPECIFIED =
+      ChatAction._(0, _omitEnumNames ? '' : 'CHAT_ACTION_UNSPECIFIED');
+  static const ChatAction CHAT_ACTION_MUTE =
+      ChatAction._(1, _omitEnumNames ? '' : 'CHAT_ACTION_MUTE');
+  static const ChatAction CHAT_ACTION_UNMUTE =
+      ChatAction._(2, _omitEnumNames ? '' : 'CHAT_ACTION_UNMUTE');
+  static const ChatAction CHAT_ACTION_PIN =
+      ChatAction._(3, _omitEnumNames ? '' : 'CHAT_ACTION_PIN');
+  static const ChatAction CHAT_ACTION_UNPIN =
+      ChatAction._(4, _omitEnumNames ? '' : 'CHAT_ACTION_UNPIN');
+  static const ChatAction CHAT_ACTION_ARCHIVE =
+      ChatAction._(5, _omitEnumNames ? '' : 'CHAT_ACTION_ARCHIVE');
+  static const ChatAction CHAT_ACTION_UNARCHIVE =
+      ChatAction._(6, _omitEnumNames ? '' : 'CHAT_ACTION_UNARCHIVE');
+  static const ChatAction CHAT_ACTION_LEAVE =
+      ChatAction._(7, _omitEnumNames ? '' : 'CHAT_ACTION_LEAVE');
+
+  static const $core.List<ChatAction> values = <ChatAction>[
+    CHAT_ACTION_UNSPECIFIED,
+    CHAT_ACTION_MUTE,
+    CHAT_ACTION_UNMUTE,
+    CHAT_ACTION_PIN,
+    CHAT_ACTION_UNPIN,
+    CHAT_ACTION_ARCHIVE,
+    CHAT_ACTION_UNARCHIVE,
+    CHAT_ACTION_LEAVE,
+  ];
+
+  static final $core.List<ChatAction?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 7);
+  static ChatAction? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ChatAction._(super.value, super.name);
+}
+
+class AccountStatus extends $pb.ProtobufEnum {
+  static const AccountStatus ACCOUNT_STATUS_UNSPECIFIED =
+      AccountStatus._(0, _omitEnumNames ? '' : 'ACCOUNT_STATUS_UNSPECIFIED');
+  static const AccountStatus ACCOUNT_STATUS_DISABLED =
+      AccountStatus._(1, _omitEnumNames ? '' : 'ACCOUNT_STATUS_DISABLED');
+  static const AccountStatus ACCOUNT_STATUS_CONNECTING =
+      AccountStatus._(2, _omitEnumNames ? '' : 'ACCOUNT_STATUS_CONNECTING');
+  static const AccountStatus ACCOUNT_STATUS_ONLINE =
+      AccountStatus._(3, _omitEnumNames ? '' : 'ACCOUNT_STATUS_ONLINE');
+  static const AccountStatus ACCOUNT_STATUS_OFFLINE =
+      AccountStatus._(4, _omitEnumNames ? '' : 'ACCOUNT_STATUS_OFFLINE');
+  static const AccountStatus ACCOUNT_STATUS_NEEDS_LOGIN =
+      AccountStatus._(5, _omitEnumNames ? '' : 'ACCOUNT_STATUS_NEEDS_LOGIN');
+
+  static const $core.List<AccountStatus> values = <AccountStatus>[
+    ACCOUNT_STATUS_UNSPECIFIED,
+    ACCOUNT_STATUS_DISABLED,
+    ACCOUNT_STATUS_CONNECTING,
+    ACCOUNT_STATUS_ONLINE,
+    ACCOUNT_STATUS_OFFLINE,
+    ACCOUNT_STATUS_NEEDS_LOGIN,
+  ];
+
+  static final $core.List<AccountStatus?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static AccountStatus? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const AccountStatus._(super.value, super.name);
+}
+
+class ChatKind extends $pb.ProtobufEnum {
+  static const ChatKind CHAT_KIND_UNSPECIFIED =
+      ChatKind._(0, _omitEnumNames ? '' : 'CHAT_KIND_UNSPECIFIED');
+  static const ChatKind CHAT_KIND_DIRECT =
+      ChatKind._(1, _omitEnumNames ? '' : 'CHAT_KIND_DIRECT');
+  static const ChatKind CHAT_KIND_GROUP =
+      ChatKind._(2, _omitEnumNames ? '' : 'CHAT_KIND_GROUP');
+  static const ChatKind CHAT_KIND_CHANNEL =
+      ChatKind._(3, _omitEnumNames ? '' : 'CHAT_KIND_CHANNEL');
+
+  static const $core.List<ChatKind> values = <ChatKind>[
+    CHAT_KIND_UNSPECIFIED,
+    CHAT_KIND_DIRECT,
+    CHAT_KIND_GROUP,
+    CHAT_KIND_CHANNEL,
+  ];
+
+  static final $core.List<ChatKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ChatKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ChatKind._(super.value, super.name);
+}
+
+class AttachmentKind extends $pb.ProtobufEnum {
+  static const AttachmentKind ATTACHMENT_KIND_UNSPECIFIED =
+      AttachmentKind._(0, _omitEnumNames ? '' : 'ATTACHMENT_KIND_UNSPECIFIED');
+  static const AttachmentKind ATTACHMENT_KIND_FILE =
+      AttachmentKind._(1, _omitEnumNames ? '' : 'ATTACHMENT_KIND_FILE');
+  static const AttachmentKind ATTACHMENT_KIND_IMAGE =
+      AttachmentKind._(2, _omitEnumNames ? '' : 'ATTACHMENT_KIND_IMAGE');
+  static const AttachmentKind ATTACHMENT_KIND_VIDEO =
+      AttachmentKind._(3, _omitEnumNames ? '' : 'ATTACHMENT_KIND_VIDEO');
+  static const AttachmentKind ATTACHMENT_KIND_AUDIO =
+      AttachmentKind._(4, _omitEnumNames ? '' : 'ATTACHMENT_KIND_AUDIO');
+  static const AttachmentKind ATTACHMENT_KIND_VOICE =
+      AttachmentKind._(5, _omitEnumNames ? '' : 'ATTACHMENT_KIND_VOICE');
+  static const AttachmentKind ATTACHMENT_KIND_STICKER =
+      AttachmentKind._(6, _omitEnumNames ? '' : 'ATTACHMENT_KIND_STICKER');
+
+  static const $core.List<AttachmentKind> values = <AttachmentKind>[
+    ATTACHMENT_KIND_UNSPECIFIED,
+    ATTACHMENT_KIND_FILE,
+    ATTACHMENT_KIND_IMAGE,
+    ATTACHMENT_KIND_VIDEO,
+    ATTACHMENT_KIND_AUDIO,
+    ATTACHMENT_KIND_VOICE,
+    ATTACHMENT_KIND_STICKER,
+  ];
+
+  static final $core.List<AttachmentKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
+  static AttachmentKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const AttachmentKind._(super.value, super.name);
+}
+
+class TextStyle extends $pb.ProtobufEnum {
+  static const TextStyle TEXT_STYLE_UNSPECIFIED =
+      TextStyle._(0, _omitEnumNames ? '' : 'TEXT_STYLE_UNSPECIFIED');
+  static const TextStyle TEXT_STYLE_BOLD =
+      TextStyle._(1, _omitEnumNames ? '' : 'TEXT_STYLE_BOLD');
+  static const TextStyle TEXT_STYLE_ITALIC =
+      TextStyle._(2, _omitEnumNames ? '' : 'TEXT_STYLE_ITALIC');
+  static const TextStyle TEXT_STYLE_UNDERLINE =
+      TextStyle._(3, _omitEnumNames ? '' : 'TEXT_STYLE_UNDERLINE');
+  static const TextStyle TEXT_STYLE_STRIKE =
+      TextStyle._(4, _omitEnumNames ? '' : 'TEXT_STYLE_STRIKE');
+  static const TextStyle TEXT_STYLE_SPOILER =
+      TextStyle._(5, _omitEnumNames ? '' : 'TEXT_STYLE_SPOILER');
+  static const TextStyle TEXT_STYLE_CODE =
+      TextStyle._(6, _omitEnumNames ? '' : 'TEXT_STYLE_CODE');
+  static const TextStyle TEXT_STYLE_PRE =
+      TextStyle._(7, _omitEnumNames ? '' : 'TEXT_STYLE_PRE');
+  static const TextStyle TEXT_STYLE_LINK =
+      TextStyle._(8, _omitEnumNames ? '' : 'TEXT_STYLE_LINK');
+  static const TextStyle TEXT_STYLE_QUOTE =
+      TextStyle._(9, _omitEnumNames ? '' : 'TEXT_STYLE_QUOTE');
+  static const TextStyle TEXT_STYLE_HEADING =
+      TextStyle._(10, _omitEnumNames ? '' : 'TEXT_STYLE_HEADING');
+
+  static const $core.List<TextStyle> values = <TextStyle>[
+    TEXT_STYLE_UNSPECIFIED,
+    TEXT_STYLE_BOLD,
+    TEXT_STYLE_ITALIC,
+    TEXT_STYLE_UNDERLINE,
+    TEXT_STYLE_STRIKE,
+    TEXT_STYLE_SPOILER,
+    TEXT_STYLE_CODE,
+    TEXT_STYLE_PRE,
+    TEXT_STYLE_LINK,
+    TEXT_STYLE_QUOTE,
+    TEXT_STYLE_HEADING,
+  ];
+
+  static final $core.List<TextStyle?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 10);
+  static TextStyle? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const TextStyle._(super.value, super.name);
+}
+
+class CallState extends $pb.ProtobufEnum {
+  static const CallState CALL_STATE_UNSPECIFIED =
+      CallState._(0, _omitEnumNames ? '' : 'CALL_STATE_UNSPECIFIED');
+  static const CallState CALL_STATE_WAITING =
+      CallState._(1, _omitEnumNames ? '' : 'CALL_STATE_WAITING');
+  static const CallState CALL_STATE_RINGING =
+      CallState._(2, _omitEnumNames ? '' : 'CALL_STATE_RINGING');
+  static const CallState CALL_STATE_CONNECTING =
+      CallState._(3, _omitEnumNames ? '' : 'CALL_STATE_CONNECTING');
+  static const CallState CALL_STATE_ACTIVE =
+      CallState._(4, _omitEnumNames ? '' : 'CALL_STATE_ACTIVE');
+  static const CallState CALL_STATE_ENDED =
+      CallState._(5, _omitEnumNames ? '' : 'CALL_STATE_ENDED');
+
+  static const $core.List<CallState> values = <CallState>[
+    CALL_STATE_UNSPECIFIED,
+    CALL_STATE_WAITING,
+    CALL_STATE_RINGING,
+    CALL_STATE_CONNECTING,
+    CALL_STATE_ACTIVE,
+    CALL_STATE_ENDED,
+  ];
+
+  static final $core.List<CallState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static CallState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CallState._(super.value, super.name);
+}
+
+class CallEnd extends $pb.ProtobufEnum {
+  static const CallEnd CALL_END_UNSPECIFIED =
+      CallEnd._(0, _omitEnumNames ? '' : 'CALL_END_UNSPECIFIED');
+  static const CallEnd CALL_END_HANGUP =
+      CallEnd._(1, _omitEnumNames ? '' : 'CALL_END_HANGUP');
+  static const CallEnd CALL_END_DECLINED =
+      CallEnd._(2, _omitEnumNames ? '' : 'CALL_END_DECLINED');
+  static const CallEnd CALL_END_MISSED =
+      CallEnd._(3, _omitEnumNames ? '' : 'CALL_END_MISSED');
+  static const CallEnd CALL_END_BUSY =
+      CallEnd._(4, _omitEnumNames ? '' : 'CALL_END_BUSY');
+  static const CallEnd CALL_END_FAILED =
+      CallEnd._(5, _omitEnumNames ? '' : 'CALL_END_FAILED');
+
+  static const $core.List<CallEnd> values = <CallEnd>[
+    CALL_END_UNSPECIFIED,
+    CALL_END_HANGUP,
+    CALL_END_DECLINED,
+    CALL_END_MISSED,
+    CALL_END_BUSY,
+    CALL_END_FAILED,
+  ];
+
+  static final $core.List<CallEnd?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static CallEnd? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CallEnd._(super.value, super.name);
+}
+
+class SignalKind extends $pb.ProtobufEnum {
+  static const SignalKind SIGNAL_KIND_UNSPECIFIED =
+      SignalKind._(0, _omitEnumNames ? '' : 'SIGNAL_KIND_UNSPECIFIED');
+  static const SignalKind SIGNAL_KIND_OFFER =
+      SignalKind._(1, _omitEnumNames ? '' : 'SIGNAL_KIND_OFFER');
+  static const SignalKind SIGNAL_KIND_ANSWER =
+      SignalKind._(2, _omitEnumNames ? '' : 'SIGNAL_KIND_ANSWER');
+  static const SignalKind SIGNAL_KIND_CANDIDATE =
+      SignalKind._(3, _omitEnumNames ? '' : 'SIGNAL_KIND_CANDIDATE');
+  static const SignalKind SIGNAL_KIND_DATA =
+      SignalKind._(4, _omitEnumNames ? '' : 'SIGNAL_KIND_DATA');
+  static const SignalKind SIGNAL_KIND_CONNECTED =
+      SignalKind._(5, _omitEnumNames ? '' : 'SIGNAL_KIND_CONNECTED');
+  static const SignalKind SIGNAL_KIND_FAILED =
+      SignalKind._(6, _omitEnumNames ? '' : 'SIGNAL_KIND_FAILED');
+
+  static const $core.List<SignalKind> values = <SignalKind>[
+    SIGNAL_KIND_UNSPECIFIED,
+    SIGNAL_KIND_OFFER,
+    SIGNAL_KIND_ANSWER,
+    SIGNAL_KIND_CANDIDATE,
+    SIGNAL_KIND_DATA,
+    SIGNAL_KIND_CONNECTED,
+    SIGNAL_KIND_FAILED,
+  ];
+
+  static final $core.List<SignalKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
+  static SignalKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const SignalKind._(super.value, super.name);
+}
+
+class FolderRole extends $pb.ProtobufEnum {
+  static const FolderRole FOLDER_ROLE_OTHER =
+      FolderRole._(0, _omitEnumNames ? '' : 'FOLDER_ROLE_OTHER');
+  static const FolderRole FOLDER_ROLE_INBOX =
+      FolderRole._(1, _omitEnumNames ? '' : 'FOLDER_ROLE_INBOX');
+  static const FolderRole FOLDER_ROLE_SENT =
+      FolderRole._(2, _omitEnumNames ? '' : 'FOLDER_ROLE_SENT');
+  static const FolderRole FOLDER_ROLE_DRAFTS =
+      FolderRole._(3, _omitEnumNames ? '' : 'FOLDER_ROLE_DRAFTS');
+  static const FolderRole FOLDER_ROLE_TRASH =
+      FolderRole._(4, _omitEnumNames ? '' : 'FOLDER_ROLE_TRASH');
+  static const FolderRole FOLDER_ROLE_SPAM =
+      FolderRole._(5, _omitEnumNames ? '' : 'FOLDER_ROLE_SPAM');
+  static const FolderRole FOLDER_ROLE_ARCHIVE =
+      FolderRole._(6, _omitEnumNames ? '' : 'FOLDER_ROLE_ARCHIVE');
+
+  static const $core.List<FolderRole> values = <FolderRole>[
+    FOLDER_ROLE_OTHER,
+    FOLDER_ROLE_INBOX,
+    FOLDER_ROLE_SENT,
+    FOLDER_ROLE_DRAFTS,
+    FOLDER_ROLE_TRASH,
+    FOLDER_ROLE_SPAM,
+    FOLDER_ROLE_ARCHIVE,
+  ];
+
+  static final $core.List<FolderRole?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
+  static FolderRole? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FolderRole._(super.value, super.name);
+}
+
+class MailAction extends $pb.ProtobufEnum {
+  static const MailAction MAIL_ACTION_UNSPECIFIED =
+      MailAction._(0, _omitEnumNames ? '' : 'MAIL_ACTION_UNSPECIFIED');
+  static const MailAction MAIL_ACTION_READ =
+      MailAction._(1, _omitEnumNames ? '' : 'MAIL_ACTION_READ');
+  static const MailAction MAIL_ACTION_UNREAD =
+      MailAction._(2, _omitEnumNames ? '' : 'MAIL_ACTION_UNREAD');
+  static const MailAction MAIL_ACTION_STAR =
+      MailAction._(3, _omitEnumNames ? '' : 'MAIL_ACTION_STAR');
+  static const MailAction MAIL_ACTION_UNSTAR =
+      MailAction._(4, _omitEnumNames ? '' : 'MAIL_ACTION_UNSTAR');
+  static const MailAction MAIL_ACTION_TRASH =
+      MailAction._(5, _omitEnumNames ? '' : 'MAIL_ACTION_TRASH');
+
+  static const $core.List<MailAction> values = <MailAction>[
+    MAIL_ACTION_UNSPECIFIED,
+    MAIL_ACTION_READ,
+    MAIL_ACTION_UNREAD,
+    MAIL_ACTION_STAR,
+    MAIL_ACTION_UNSTAR,
+    MAIL_ACTION_TRASH,
+  ];
+
+  static final $core.List<MailAction?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static MailAction? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const MailAction._(super.value, super.name);
+}
+
+class Rsvp extends $pb.ProtobufEnum {
+  static const Rsvp RSVP_UNSPECIFIED =
+      Rsvp._(0, _omitEnumNames ? '' : 'RSVP_UNSPECIFIED');
+  static const Rsvp RSVP_NEEDS_ACTION =
+      Rsvp._(1, _omitEnumNames ? '' : 'RSVP_NEEDS_ACTION');
+  static const Rsvp RSVP_ACCEPTED =
+      Rsvp._(2, _omitEnumNames ? '' : 'RSVP_ACCEPTED');
+  static const Rsvp RSVP_TENTATIVE =
+      Rsvp._(3, _omitEnumNames ? '' : 'RSVP_TENTATIVE');
+  static const Rsvp RSVP_DECLINED =
+      Rsvp._(4, _omitEnumNames ? '' : 'RSVP_DECLINED');
+
+  static const $core.List<Rsvp> values = <Rsvp>[
+    RSVP_UNSPECIFIED,
+    RSVP_NEEDS_ACTION,
+    RSVP_ACCEPTED,
+    RSVP_TENTATIVE,
+    RSVP_DECLINED,
+  ];
+
+  static final $core.List<Rsvp?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static Rsvp? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Rsvp._(super.value, super.name);
+}
+
+/// What of a repeating event a change or a delete of one occurrence touches.
+class RecurrenceScope extends $pb.ProtobufEnum {
+  static const RecurrenceScope RECURRENCE_SCOPE_THIS =
+      RecurrenceScope._(0, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_THIS');
+  static const RecurrenceScope RECURRENCE_SCOPE_FOLLOWING =
+      RecurrenceScope._(1, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_FOLLOWING');
+  static const RecurrenceScope RECURRENCE_SCOPE_ALL =
+      RecurrenceScope._(2, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_ALL');
+
+  static const $core.List<RecurrenceScope> values = <RecurrenceScope>[
+    RECURRENCE_SCOPE_THIS,
+    RECURRENCE_SCOPE_FOLLOWING,
+    RECURRENCE_SCOPE_ALL,
+  ];
+
+  static final $core.List<RecurrenceScope?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static RecurrenceScope? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RecurrenceScope._(super.value, super.name);
+}
+
+class ShardState_Status extends $pb.ProtobufEnum {
+  static const ShardState_Status STATUS_UNSPECIFIED =
+      ShardState_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
+  static const ShardState_Status OFF =
+      ShardState_Status._(1, _omitEnumNames ? '' : 'OFF');
+  static const ShardState_Status NOT_RUNNING =
+      ShardState_Status._(2, _omitEnumNames ? '' : 'NOT_RUNNING');
+  static const ShardState_Status NO_VAULT =
+      ShardState_Status._(3, _omitEnumNames ? '' : 'NO_VAULT');
+  static const ShardState_Status LOCKED =
+      ShardState_Status._(4, _omitEnumNames ? '' : 'LOCKED');
+  static const ShardState_Status OFFLINE =
+      ShardState_Status._(5, _omitEnumNames ? '' : 'OFFLINE');
+  static const ShardState_Status PAIRING =
+      ShardState_Status._(6, _omitEnumNames ? '' : 'PAIRING');
+  static const ShardState_Status SYNCING =
+      ShardState_Status._(7, _omitEnumNames ? '' : 'SYNCING');
+  static const ShardState_Status SYNCED =
+      ShardState_Status._(8, _omitEnumNames ? '' : 'SYNCED');
+  static const ShardState_Status CONFLICT =
+      ShardState_Status._(9, _omitEnumNames ? '' : 'CONFLICT');
+  static const ShardState_Status NEEDS_PASSWORD =
+      ShardState_Status._(10, _omitEnumNames ? '' : 'NEEDS_PASSWORD');
+  static const ShardState_Status WAITING_UNLOCK =
+      ShardState_Status._(11, _omitEnumNames ? '' : 'WAITING_UNLOCK');
+  static const ShardState_Status ERROR =
+      ShardState_Status._(12, _omitEnumNames ? '' : 'ERROR');
+
+  static const $core.List<ShardState_Status> values = <ShardState_Status>[
+    STATUS_UNSPECIFIED,
+    OFF,
+    NOT_RUNNING,
+    NO_VAULT,
+    LOCKED,
+    OFFLINE,
+    PAIRING,
+    SYNCING,
+    SYNCED,
+    CONFLICT,
+    NEEDS_PASSWORD,
+    WAITING_UNLOCK,
+    ERROR,
+  ];
+
+  static final $core.List<ShardState_Status?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
+  static ShardState_Status? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ShardState_Status._(super.value, super.name);
+}
+
+class ResolveShardRequest_Choice extends $pb.ProtobufEnum {
+  static const ResolveShardRequest_Choice CHOICE_UNSPECIFIED =
+      ResolveShardRequest_Choice._(
+          0, _omitEnumNames ? '' : 'CHOICE_UNSPECIFIED');
+  static const ResolveShardRequest_Choice USE_SYNCED =
+      ResolveShardRequest_Choice._(1, _omitEnumNames ? '' : 'USE_SYNCED');
+  static const ResolveShardRequest_Choice UPLOAD =
+      ResolveShardRequest_Choice._(2, _omitEnumNames ? '' : 'UPLOAD');
+  static const ResolveShardRequest_Choice MERGE =
+      ResolveShardRequest_Choice._(3, _omitEnumNames ? '' : 'MERGE');
+
+  static const $core.List<ResolveShardRequest_Choice> values =
+      <ResolveShardRequest_Choice>[
+    CHOICE_UNSPECIFIED,
+    USE_SYNCED,
+    UPLOAD,
+    MERGE,
+  ];
+
+  static final $core.List<ResolveShardRequest_Choice?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ResolveShardRequest_Choice? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ResolveShardRequest_Choice._(super.value, super.name);
+}
+
+class Event_Kind extends $pb.ProtobufEnum {
+  static const Event_Kind KIND_UNSPECIFIED =
+      Event_Kind._(0, _omitEnumNames ? '' : 'KIND_UNSPECIFIED');
+  static const Event_Kind KIND_STATE =
+      Event_Kind._(1, _omitEnumNames ? '' : 'KIND_STATE');
+  static const Event_Kind KIND_ACCOUNT =
+      Event_Kind._(2, _omitEnumNames ? '' : 'KIND_ACCOUNT');
+  static const Event_Kind KIND_CHAT =
+      Event_Kind._(3, _omitEnumNames ? '' : 'KIND_CHAT');
+  static const Event_Kind KIND_MESSAGE_NEW =
+      Event_Kind._(4, _omitEnumNames ? '' : 'KIND_MESSAGE_NEW');
+  static const Event_Kind KIND_MESSAGE_EDIT =
+      Event_Kind._(5, _omitEnumNames ? '' : 'KIND_MESSAGE_EDIT');
+  static const Event_Kind KIND_MESSAGE_DELETE =
+      Event_Kind._(6, _omitEnumNames ? '' : 'KIND_MESSAGE_DELETE');
+  static const Event_Kind KIND_TYPING =
+      Event_Kind._(7, _omitEnumNames ? '' : 'KIND_TYPING');
+  static const Event_Kind KIND_CHAT_REMOVED =
+      Event_Kind._(8, _omitEnumNames ? '' : 'KIND_CHAT_REMOVED');
+  static const Event_Kind KIND_THREAD_MESSAGE =
+      Event_Kind._(9, _omitEnumNames ? '' : 'KIND_THREAD_MESSAGE');
+
+  /// (chat: the cached chat, when there is one)
+  static const Event_Kind KIND_CALL =
+      Event_Kind._(10, _omitEnumNames ? '' : 'KIND_CALL');
+  static const Event_Kind KIND_CALL_SIGNAL =
+      Event_Kind._(11, _omitEnumNames ? '' : 'KIND_CALL_SIGNAL');
+  static const Event_Kind KIND_CHAT_FOLDERS =
+      Event_Kind._(12, _omitEnumNames ? '' : 'KIND_CHAT_FOLDERS');
+  static const Event_Kind KIND_MAIL_NEW =
+      Event_Kind._(20, _omitEnumNames ? '' : 'KIND_MAIL_NEW');
+  static const Event_Kind KIND_MAIL =
+      Event_Kind._(21, _omitEnumNames ? '' : 'KIND_MAIL');
+  static const Event_Kind KIND_CALENDAR =
+      Event_Kind._(22, _omitEnumNames ? '' : 'KIND_CALENDAR');
+  static const Event_Kind KIND_SHARD =
+      Event_Kind._(23, _omitEnumNames ? '' : 'KIND_SHARD');
+
+  static const $core.List<Event_Kind> values = <Event_Kind>[
+    KIND_UNSPECIFIED,
+    KIND_STATE,
+    KIND_ACCOUNT,
+    KIND_CHAT,
+    KIND_MESSAGE_NEW,
+    KIND_MESSAGE_EDIT,
+    KIND_MESSAGE_DELETE,
+    KIND_TYPING,
+    KIND_CHAT_REMOVED,
+    KIND_THREAD_MESSAGE,
+    KIND_CALL,
+    KIND_CALL_SIGNAL,
+    KIND_CHAT_FOLDERS,
+    KIND_MAIL_NEW,
+    KIND_MAIL,
+    KIND_CALENDAR,
+    KIND_SHARD,
+  ];
+
+  static final $core.List<Event_Kind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 23);
+  static Event_Kind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Event_Kind._(super.value, super.name);
+}
+
+const $core.bool _omitEnumNames =
+    $core.bool.fromEnvironment('protobuf.omit_enum_names');

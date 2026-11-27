@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.megachat"
+    namespace = "dev.selfhold.parley"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,13 +19,13 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
-    // CloudSync's bound service (src/main/aidl/dev/cloudsync/connector, CONNECTOR.md).
+    // Shard's bound service (src/main/aidl/dev/selfhold/shard/connector, CONNECTOR.md).
     buildFeatures {
         aidl = true
     }
 
     defaultConfig {
-        applicationId = "dev.megachat"
+        applicationId = "dev.selfhold.parley"
         // startForegroundService and notification channels.
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
@@ -47,7 +47,7 @@ flutter {
 }
 
 dependencies {
-    implementation(files("libs/megachat.aar"))
+    implementation(files("libs/parley.aar"))
     // Unlock by fingerprint (Biometric.kt); AppCompat for its dialog on Android 8.
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.appcompat:appcompat:1.7.0")

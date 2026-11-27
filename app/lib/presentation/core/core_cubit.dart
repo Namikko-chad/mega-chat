@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/endpoint.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../../core/i18n.dart';
 
 enum Conn { connecting, ready, failed }
@@ -48,7 +48,7 @@ class CoreCubit extends Cubit<CoreState> {
   /// Every event of the core, across reconnects.
   Stream<pb.Event> get events => _events.stream;
 
-  pb.MegaChatClient get api {
+  pb.ParleyClient get api {
     final c = _client;
     if (c == null) throw StateError('not connected');
     return c.api;
@@ -78,8 +78,8 @@ class CoreCubit extends Cubit<CoreState> {
         .watch(pb.Empty())
         .listen(
           (ev) {
-            // State carries the CloudSync state too.
-            if (ev.kind == pb.Event_Kind.KIND_STATE || ev.kind == pb.Event_Kind.KIND_CLOUDSYNC) unawaited(refreshState());
+            // State carries the Shard state too.
+            if (ev.kind == pb.Event_Kind.KIND_STATE || ev.kind == pb.Event_Kind.KIND_SHARD) unawaited(refreshState());
             _events.add(ev);
           },
           onError: (_) => _lost(),
@@ -118,8 +118,8 @@ class CoreCubit extends Cubit<CoreState> {
   /// Applies a state returned by an unlock / create / lock call.
   void adopt(pb.State st) => emit(state.copyWith(state: st));
 
-  /// Applies a CloudSync state returned by a CloudSync call.
-  void adoptCloudSync(pb.CloudSyncState cs) => adopt((state.state ?? pb.State()).deepCopy()..cloudsync = cs);
+  /// Applies a Shard state returned by a Shard call.
+  void adoptShard(pb.ShardState cs) => adopt((state.state ?? pb.State()).deepCopy()..shard = cs);
 
   Future<void> lockVault() async => adopt(await api.lockVault(pb.Empty()));
 

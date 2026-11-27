@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 
 /// GTK application id (linux/CMakeLists.txt APPLICATION_ID). GNOME on
 /// Wayland matches windows to `<id>.desktop` for the taskbar icon.
-const _appId = 'dev.megachat.megachat';
+const _appId = 'dev.selfhold.parley';
 
 /// Registers the app with the Linux desktop (menu entry and taskbar icon):
 /// writes `~/.local/share/applications/<id>.desktop` pointing at this build
@@ -18,7 +18,7 @@ Future<void> registerDesktopEntry() async {
     final xdg = env['XDG_DATA_HOME'];
     final data = xdg != null && xdg.isNotEmpty ? xdg : p.join(env['HOME'] ?? '', '.local', 'share');
     final exe = Platform.resolvedExecutable;
-    final src = File(p.join(p.dirname(exe), 'data', 'flutter_assets', 'assets', 'icon', 'megachat.png'));
+    final src = File(p.join(p.dirname(exe), 'data', 'flutter_assets', 'assets', 'icon', 'parley.png'));
     if (!await src.exists()) return;
 
     final icon = File(p.join(data, 'icons', 'hicolor', '256x256', 'apps', '$_appId.png'));
@@ -32,7 +32,7 @@ Future<void> registerDesktopEntry() async {
     final text = [
       '[Desktop Entry]',
       'Type=Application',
-      'Name=MegaChat',
+      'Name=Parley',
       'Comment=VK Teams, Slack and Telegram in one window',
       'Exec="$exe"',
       'Icon=${icon.path}',

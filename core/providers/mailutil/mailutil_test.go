@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 func TestHTMLToText(t *testing.T) {

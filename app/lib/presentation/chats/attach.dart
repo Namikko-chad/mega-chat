@@ -5,7 +5,7 @@ import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../data/local_files.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 
 /// The files a composer sends with its next message, picked from the disk,

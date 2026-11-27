@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:megachat/app.dart';
-import 'package:megachat/data/rpc/endpoint.dart';
-import 'package:megachat/presentation/core/core_cubit.dart';
+import 'package:parley/app.dart';
+import 'package:parley/data/rpc/endpoint.dart';
+import 'package:parley/presentation/core/core_cubit.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,7 +18,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final core = CoreCubit(_NoCore());
-      await tester.pumpWidget(MegaChatApp(core: core));
+      await tester.pumpWidget(ParleyApp(core: core));
       await core.connect();
       await tester.pump();
       expect(find.text('No connection to the core'), findsWidgets);

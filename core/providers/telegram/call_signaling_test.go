@@ -13,7 +13,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 func TestMediaStateJSON(t *testing.T) {

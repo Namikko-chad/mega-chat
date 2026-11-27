@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/core/theme/app_theme.dart';
-import 'package:megachat/data/local_files.dart';
-import 'package:megachat/presentation/chats/attach.dart';
-import 'package:megachat/presentation/common/hm.dart';
+import 'package:parley/core/theme/app_theme.dart';
+import 'package:parley/data/local_files.dart';
+import 'package:parley/presentation/chats/attach.dart';
+import 'package:parley/presentation/common/hm.dart';
 
 Widget host(Widget child) => MaterialApp(
   theme: AppTheme.dark,

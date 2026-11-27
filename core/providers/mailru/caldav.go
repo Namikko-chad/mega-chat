@@ -16,9 +16,9 @@ import (
 	"github.com/emersion/go-webdav/caldav"
 	"github.com/teambition/rrule-go"
 
-	"megachat/core/crypto"
-	"megachat/core/model"
-	"megachat/core/recur"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/recur"
 )
 
 type calClient struct {
@@ -513,14 +513,14 @@ func cloneEvent(c *ical.Component) *ical.Component {
 }
 
 func newObjectPath(calendarID string) (path, uid string) {
-	uid = crypto.RandomID(16) + "@megachat"
+	uid = crypto.RandomID(16) + "@parley"
 	return strings.TrimSuffix(calendarID, "/") + "/" + url.PathEscape(uid) + ".ics", uid
 }
 
 func newCalendarObject() *ical.Calendar {
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropVersion, "2.0")
-	cal.Props.SetText(ical.PropProductID, "-//MegaChat//EN")
+	cal.Props.SetText(ical.PropProductID, "-//Parley//EN")
 	return cal
 }
 

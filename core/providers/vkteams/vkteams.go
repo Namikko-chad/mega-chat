@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.

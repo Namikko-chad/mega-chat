@@ -1,4 +1,4 @@
-// Package rpc serves the MegaChat gRPC API over a hub. The same service
+// Package rpc serves the Parley gRPC API over a hub. The same service
 // runs inside the app's process on desktops and on Android (core/embed).
 package rpc
 
@@ -18,22 +18,22 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"megachat/core/cloudsync"
-	"megachat/core/crypto"
-	"megachat/core/eventlog"
-	"megachat/core/hub"
-	"megachat/core/keychain"
-	"megachat/core/linkpreview"
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/rpc/pb"
-	"megachat/core/store"
-	"megachat/core/vault"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/hub"
+	"github.com/SelfHold/parley/core/keychain"
+	"github.com/SelfHold/parley/core/linkpreview"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/rpc/pb"
+	"github.com/SelfHold/parley/core/shard"
+	"github.com/SelfHold/parley/core/store"
+	"github.com/SelfHold/parley/core/vault"
 )
 
-// Service implements pb.MegaChatServer.
+// Service implements pb.ParleyServer.
 type Service struct {
-	pb.UnimplementedMegaChatServer
+	pb.UnimplementedParleyServer
 	VaultPath string // read through vaultPath(): SetVaultPath changes it
 	// VaultPointer keeps a vault path set by SetVaultPath for the next run;
 	// "" keeps it for this run only.
@@ -48,11 +48,11 @@ type Service struct {
 	// Keychain remembers the vault's unlock key on this machine; nil: the
 	// platform has none (can_remember is false).
 	Keychain keychain.Keychain
-	// Sync keeps the vault in CloudSync (cloudsync.go); nil: not here.
-	Sync *cloudsync.Syncer
+	// Sync keeps the vault in Shard (shard.go); nil: not here.
+	Sync *shard.Syncer
 
 	pathMu sync.Mutex
-	// vaultOp keeps a vault taken from CloudSync from meeting a lock.
+	// vaultOp keeps a vault taken from Shard from meeting a lock.
 	vaultOp sync.Mutex
 
 	previewOnce sync.Once
@@ -209,7 +209,7 @@ func (s *Service) state() *pb.State {
 		VaultExists: err == nil, VaultPath: s.vaultPath(), Platform: s.Platform,
 		CoreVersion: Version, CoreBuild: Build,
 		CanRemember: s.Keychain != nil,
-		Cloudsync:   s.syncState(),
+		Shard:       s.syncState(),
 	}
 	if s.Keychain != nil {
 		_, err := os.Stat(s.rememberedMark())
@@ -358,8 +358,8 @@ func (s *Service) rememberedMark() string {
 	if err != nil {
 		abs = p
 	}
-	if def, err := filepath.Abs(filepath.Join(s.DataRoot, "vault.mc")); err == nil && def == abs {
-		return filepath.Join(s.DataRoot, "vault.mc.remembered")
+	if def, err := filepath.Abs(filepath.Join(s.DataRoot, "vault.parley")); err == nil && def == abs {
+		return filepath.Join(s.DataRoot, "vault.parley.remembered")
 	}
 	sum := sha256.Sum256([]byte(abs))
 	return filepath.Join(s.DataRoot, "remembered-"+hex.EncodeToString(sum[:8]))
@@ -500,7 +500,7 @@ func (s *Service) SetVaultPath(_ context.Context, r *pb.VaultPathRequest) (*pb.S
 	}
 	path := filepath.Clean(r.Path)
 	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
-		path = filepath.Join(path, "vault.mc")
+		path = filepath.Join(path, "vault.parley")
 	}
 	if old, err := filepath.Abs(s.vaultPath()); err == nil && old == path {
 		return s.GetState(context.Background(), &pb.Empty{})

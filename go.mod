@@ -1,4 +1,4 @@
-module megachat
+module github.com/SelfHold/parley
 
 go 1.27.1
 

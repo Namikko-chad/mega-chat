@@ -19,32 +19,32 @@ import (
 
 	"google.golang.org/grpc"
 
-	"megachat/core/cloudsync"
-	"megachat/core/crypto"
-	"megachat/core/eventlog"
-	"megachat/core/keychain"
-	"megachat/core/providers/all"
-	"megachat/core/rpc"
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/keychain"
+	"github.com/SelfHold/parley/core/providers/all"
+	"github.com/SelfHold/parley/core/rpc"
+	"github.com/SelfHold/parley/core/rpc/pb"
+	"github.com/SelfHold/parley/core/shard"
 )
 
 // Options say where the core keeps its files and listens.
 type Options struct {
-	Dir      string // vault.mc and cache-*.db
+	Dir      string // vault.parley and cache-*.db
 	Platform string // runtime.GOOS when empty
 	Listen   string // unix:PATH or tcp:HOST:PORT
 	// Endpoint, when set, is where address and token are written for the
-	// mchat CLI ({"address": "unix:///…", "token": "…"}, readable only by
+	// parley CLI ({"address": "unix:///…", "token": "…"}, readable only by
 	// the user). An endpoint there that still answers means another app
 	// instance runs the core: Start returns ErrRunning.
 	Endpoint string
 	LogFile  string // also log here (empty: Log only)
 	Log      io.Writer
 	Demo     bool // add the Demo messenger
-	// CloudSync reaches CloudSync to sync the vault (CONNECTOR.md); nil:
-	// its desktop daemon (cloudsync.Desktop). NoCloudSync turns it off.
-	CloudSync   cloudsync.Dialer
-	NoCloudSync bool
+	// Shard reaches Shard to sync the vault (CONNECTOR.md); nil:
+	// its desktop daemon (shard.Desktop). NoShard turns it off.
+	Shard   shard.Dialer
+	NoShard bool
 }
 
 // Core is a running core.
@@ -61,7 +61,7 @@ type Core struct {
 
 // ErrRunning: another process of this user already runs the core (the
 // cache is locked to one process).
-var ErrRunning = errors.New("MegaChat is already running")
+var ErrRunning = errors.New("Parley is already running")
 
 // Start opens the socket and serves the API. The vault stays locked until
 // the app unlocks it.
@@ -100,7 +100,7 @@ func Start(o Options) (*Core, error) {
 	pointer := filepath.Join(o.Dir, "vault.path")
 	vaultPath := rpc.ReadVaultPointer(pointer)
 	if vaultPath == "" {
-		vaultPath = filepath.Join(o.Dir, "vault.mc")
+		vaultPath = filepath.Join(o.Dir, "vault.parley")
 	}
 	svc := rpc.NewService(vaultPath, o.Dir, o.Platform, all.Registry(o.Demo))
 	svc.VaultPointer = pointer
@@ -108,16 +108,16 @@ func Start(o Options) (*Core, error) {
 		svc.Log = eventlog.New(1000, out)
 	}
 	svc.Keychain = keychain.System()
-	if !o.NoCloudSync {
-		d := o.CloudSync
+	if !o.NoShard {
+		d := o.Shard
 		if d == nil {
-			d = cloudsync.Desktop{}
+			d = shard.Desktop{}
 		}
-		svc.Sync = cloudsync.New(cloudsync.Options{
+		svc.Sync = shard.New(shard.Options{
 			Dialer: d, Host: svc.SyncHost(), Dir: o.Dir, Keychain: svc.Keychain,
-			AppName:     "MegaChat",
-			Description: fmt.Sprintf("MegaChat %s on %s", rpc.Version, o.Platform),
-			Log:         func(level, msg string) { svc.Log.Add(level, "cloudsync", "", msg) },
+			AppName:     "Parley",
+			Description: fmt.Sprintf("Parley %s on %s", rpc.Version, o.Platform),
+			Log:         func(level, msg string) { svc.Log.Add(level, "shard", "", msg) },
 			OnChange:    svc.SyncChanged,
 		})
 	}
@@ -137,7 +137,7 @@ func Start(o Options) (*Core, error) {
 		}
 	}
 	c.srv = grpc.NewServer(rpc.TokenAuth(c.Token)...)
-	pb.RegisterMegaChatServer(c.srv, svc)
+	pb.RegisterParleyServer(c.srv, svc)
 	go c.srv.Serve(lis)
 	if svc.Sync != nil {
 		svc.Sync.Start()
@@ -178,16 +178,16 @@ func (c *Core) closeLog() {
 }
 
 // DefaultDir is where the desktop core keeps its files: the user's config
-// dir/megachat (~/.config/megachat, %AppData%\megachat).
+// dir/selfhold/parley (~/.config/selfhold/parley, %AppData%\selfhold\parley).
 func DefaultDir() string {
 	cfg, err := os.UserConfigDir()
 	if err != nil {
 		cfg = "."
 	}
-	return filepath.Join(cfg, "megachat")
+	return filepath.Join(cfg, "selfhold", "parley")
 }
 
-// DefaultListen is the desktop socket: $XDG_RUNTIME_DIR/megachat.sock, or
+// DefaultListen is the desktop socket: $XDG_RUNTIME_DIR/selfhold-parley.sock, or
 // a localhost port on Windows.
 func DefaultListen(dir string) string {
 	if runtime.GOOS == "windows" {
@@ -197,7 +197,7 @@ func DefaultListen(dir string) string {
 	if d == "" {
 		d = dir
 	}
-	return "unix:" + filepath.Join(d, "megachat.sock")
+	return "unix:" + filepath.Join(d, "selfhold-parley.sock")
 }
 
 // ReadEndpoint reads an endpoint file and says whether the core there

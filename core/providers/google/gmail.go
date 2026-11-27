@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/providers/mailutil"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/mailutil"
 )
 
 const gmail = "gmail/v1/users/me/"

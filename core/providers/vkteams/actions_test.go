@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // actionServer records what the file, edit, delete and forward calls send.

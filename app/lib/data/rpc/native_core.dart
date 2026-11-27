@@ -5,21 +5,21 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 
 /// The desktop core inside this process (Go, `desktopbind`): linked into
-/// the executable on Linux, megachat_core.dll next to it on Windows.
+/// the executable on Linux, parley_core.dll next to it on Windows.
 class NativeCore {
   NativeCore._(DynamicLibrary lib)
-    : _start = lib.lookupFunction<Pointer<Uint8> Function(), Pointer<Uint8> Function()>('MegachatStart'),
-      _stop = lib.lookupFunction<Void Function(), void Function()>('MegachatStop'),
-      _free = lib.lookupFunction<Void Function(Pointer<Uint8>), void Function(Pointer<Uint8>)>('MegachatFree'),
-      _notify = lib.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('MegachatNotify'),
-      _notifyClose = lib.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('MegachatNotifyClose'),
+    : _start = lib.lookupFunction<Pointer<Uint8> Function(), Pointer<Uint8> Function()>('ParleyStart'),
+      _stop = lib.lookupFunction<Void Function(), void Function()>('ParleyStop'),
+      _free = lib.lookupFunction<Void Function(Pointer<Uint8>), void Function(Pointer<Uint8>)>('ParleyFree'),
+      _notify = lib.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('ParleyNotify'),
+      _notifyClose = lib.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('ParleyNotifyClose'),
       _notifyClicks = lib.lookupFunction<Void Function(Pointer<NativeFunction<_ClickFn>>), void Function(Pointer<NativeFunction<_ClickFn>>)>(
-        'MegachatNotifyClicks',
+        'ParleyNotifyClicks',
       );
 
   static NativeCore? _instance;
 
-  static NativeCore get instance => _instance ??= NativeCore._(Platform.isWindows ? DynamicLibrary.open('megachat_core.dll') : DynamicLibrary.process());
+  static NativeCore get instance => _instance ??= NativeCore._(Platform.isWindows ? DynamicLibrary.open('parley_core.dll') : DynamicLibrary.process());
 
   final Pointer<Uint8> Function() _start;
   final void Function() _stop;

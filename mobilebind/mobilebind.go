@@ -10,13 +10,13 @@ import (
 	"os"
 	"sync"
 
-	"megachat/core/cloudsync"
-	"megachat/core/embed"
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/embed"
+	"github.com/SelfHold/parley/core/rpc/pb"
+	"github.com/SelfHold/parley/core/shard"
 )
 
 // Listener gets core events (implemented in Kotlin). kind is Event.Kind
-// of megachat.proto. For a message worth a notification (kind 4, or 9 for
+// of parley.proto. For a message worth a notification (kind 4, or 9 for
 // a reply in a followed thread or a mention there; Event.notify) json is {"account_id","chat_id",
 // "chat_title","sender","text","mention"}; such messages that are not
 // worth one are not passed. For a call (kind 10) see callNotice; other
@@ -26,42 +26,42 @@ type Listener interface {
 }
 
 var (
-	mu        sync.Mutex
-	core      *embed.Core
-	unsub     func()
-	cloudSync CloudSyncBinder
+	mu          sync.Mutex
+	core        *embed.Core
+	unsub       func()
+	shardBinder ShardBinder
 )
 
-// CloudSyncBinder is CloudSync's bound service (ICloudSyncConnector.aidl,
+// ShardBinder is Shard's bound service (IShardConnector.aidl,
 // CONNECTOR.md § 3.2), bound by the Kotlin side. Call returns the
-// serialized CallReply of the method; an error means CloudSync is not
+// serialized CallReply of the method; an error means Shard is not
 // installed or the binding broke. Calls come from Go's goroutines, never
 // the main thread, and may block (AwaitPairing up to 60 s).
-type CloudSyncBinder interface {
+type ShardBinder interface {
 	Call(method string, request []byte) ([]byte, error)
 	// Watch starts a watch that sends serialized Change messages to w,
 	// then one OnEnd; it returns the handle for Unwatch.
-	Watch(w CloudSyncWatcher) (int64, error)
+	Watch(w ShardWatcher) (int64, error)
 	Unwatch(handle int64)
 }
 
-// CloudSyncWatcher gets one watch's changes (implemented in Go).
-type CloudSyncWatcher interface {
+// ShardWatcher gets one watch's changes (implemented in Go).
+type ShardWatcher interface {
 	OnChange(change []byte)
 	OnEnd(reply []byte)
 }
 
-// SetCloudSync gives the core CloudSync's binder; call it before Start.
-func SetCloudSync(b CloudSyncBinder) {
+// SetShard gives the core Shard's binder; call it before Start.
+func SetShard(b ShardBinder) {
 	mu.Lock()
 	defer mu.Unlock()
-	cloudSync = b
+	shardBinder = b
 }
 
-type binder struct{ b CloudSyncBinder }
+type binder struct{ b ShardBinder }
 
 func (b binder) Call(method string, req []byte) ([]byte, error) { return b.b.Call(method, req) }
-func (b binder) Watch(w cloudsync.BinderWatcher) (int64, error) { return b.b.Watch(w) }
+func (b binder) Watch(w shard.BinderWatcher) (int64, error)     { return b.b.Watch(w) }
 func (b binder) Unwatch(h int64)                                { b.b.Unwatch(h) }
 
 // Start runs the core: the vault and the cache live in dataDir, temporary
@@ -86,8 +86,8 @@ func Start(dataDir, cacheDir, sock string) (string, error) {
 	// process is stale.
 	os.Remove(sock)
 	o := embed.Options{Dir: dataDir, Platform: "android", Listen: "unix:" + sock}
-	if cloudSync != nil {
-		o.CloudSync = cloudsync.Android{Binder: binder{cloudSync}}
+	if shardBinder != nil {
+		o.Shard = shard.Android{Binder: binder{shardBinder}}
 	}
 	c, err := embed.Start(o)
 	if err != nil {
@@ -125,7 +125,7 @@ type callNotice struct {
 	Peer      string `json:"peer"`
 	Video     bool   `json:"video"`
 	Outgoing  bool   `json:"outgoing"`
-	State     int    `json:"state"` // CallState of megachat.proto
+	State     int    `json:"state"` // CallState of parley.proto
 }
 
 // SetListener registers l for core events (nil to stop).

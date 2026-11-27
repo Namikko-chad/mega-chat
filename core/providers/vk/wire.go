@@ -47,7 +47,7 @@ const (
 	clientID     = "51453752"
 	clientSecret = "4UyuCUsdK8pVCNoeQuGi"
 	apiVersion   = "5.231"
-	userAgent    = "VKDesktopMessenger/6.0 (megachat)"
+	userAgent    = "VKDesktopMessenger/6.0 (parley)"
 
 	defaultAPIHost   = "api.vk.me"  // messages.*, auth.exchange*, users.get
 	defaultAuthHost  = "api.vk.com" // auth.getAuthCode / auth.checkAuthCode

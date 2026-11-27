@@ -3,10 +3,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/core/theme/app_theme.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/chats/chat_view.dart';
-import 'package:megachat/presentation/common/lists.dart';
+import 'package:parley/core/theme/app_theme.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/chats/chat_view.dart';
+import 'package:parley/presentation/common/lists.dart';
 
 pb.Message msg({String text = 'hello brave world'}) => pb.Message(
   id: '1',

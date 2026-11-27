@@ -4,16 +4,16 @@
 // app then talks to it over the gRPC API, like the Android app does with
 // mobilebind.
 //
-// It writes endpoint.json to the config dir, so the mchat CLI reaches the
-// core of the running app. MEGACHAT_DEMO=1 adds the Demo messenger.
+// It writes endpoint.json to the config dir, so the parley CLI reaches the
+// core of the running app. PARLEY_DEMO=1 adds the Demo messenger.
 package main
 
 /*
 #include <stdlib.h>
 
-typedef void (*megachat_click_fn)(char*);
+typedef void (*parley_click_fn)(char*);
 
-static void megachat_click(megachat_click_fn f, char* tag) { f(tag); }
+static void parley_click(parley_click_fn f, char* tag) { f(tag); }
 */
 import "C"
 
@@ -28,7 +28,7 @@ import (
 	"time"
 	"unsafe"
 
-	"megachat/core/embed"
+	"github.com/SelfHold/parley/core/embed"
 )
 
 var (
@@ -44,11 +44,11 @@ type reply struct {
 	Error    string `json:"error,omitempty"`
 }
 
-// MegachatStart starts the core (again: returns the running one) and
-// returns JSON {"address","token"} or {"error"}; free it with MegachatFree.
+// ParleyStart starts the core (again: returns the running one) and
+// returns JSON {"address","token"} or {"error"}; free it with ParleyFree.
 //
-//export MegachatStart
-func MegachatStart() *C.char {
+//export ParleyStart
+func ParleyStart() *C.char {
 	return cjson(start())
 }
 
@@ -64,9 +64,9 @@ func start() reply {
 		Dir:      dir,
 		Listen:   embed.DefaultListen(dir),
 		Endpoint: endpoint,
-		LogFile:  filepath.Join(dir, "megachat.log"),
+		LogFile:  filepath.Join(dir, "parley.log"),
 		Log:      os.Stderr,
-		Demo:     os.Getenv("MEGACHAT_DEMO") == "1",
+		Demo:     os.Getenv("PARLEY_DEMO") == "1",
 	})
 	if errors.Is(err, embed.ErrRunning) {
 		if addr, token, ok := embed.ReadEndpoint(endpoint); ok {
@@ -80,17 +80,17 @@ func start() reply {
 	return reply{Address: c.Address, Token: c.Token}
 }
 
-// stopWait is how long MegachatStop waits for the core before it gives up.
+// stopWait is how long ParleyStop waits for the core before it gives up.
 const stopWait = 5 * time.Second
 
-// MegachatStop locks the vault, closes the sessions and stops the server.
+// ParleyStop locks the vault, closes the sessions and stops the server.
 // It is called on the app's UI thread right before the process exits, so
 // it never waits longer than stopWait: a core that does not stop in time
 // leaves its goroutine stacks in stop-hang.log (config dir) and is left to
 // die with the process.
 //
-//export MegachatStop
-func MegachatStop() {
+//export ParleyStop
+func ParleyStop() {
 	mu.Lock()
 	defer mu.Unlock()
 	if core == nil {
@@ -118,10 +118,10 @@ func dumpStacks(path string) {
 	pprof.Lookup("goroutine").WriteTo(f, 1)
 }
 
-// MegachatFree frees a string returned by MegachatStart.
+// ParleyFree frees a string returned by ParleyStart.
 //
-//export MegachatFree
-func MegachatFree(p *C.char) {
+//export ParleyFree
+func ParleyFree(p *C.char) {
 	C.free(unsafe.Pointer(p))
 }
 
@@ -130,35 +130,35 @@ func cjson(r reply) *C.char {
 	return C.CString(string(b))
 }
 
-// MegachatNotify shows a desktop notification, JSON
+// ParleyNotify shows a desktop notification, JSON
 // {"tag","title","body","icon","entry"} (see notice); it does not wait.
 //
-//export MegachatNotify
-func MegachatNotify(js *C.char) {
+//export ParleyNotify
+func ParleyNotify(js *C.char) {
 	var n notice
 	if json.Unmarshal([]byte(C.GoString(js)), &n) == nil {
 		notes.show(n)
 	}
 }
 
-// MegachatNotifyClose takes away the notification with this tag.
+// ParleyNotifyClose takes away the notification with this tag.
 //
-//export MegachatNotifyClose
-func MegachatNotifyClose(tag *C.char) {
+//export ParleyNotifyClose
+func ParleyNotifyClose(tag *C.char) {
 	notes.close(C.GoString(tag))
 }
 
-// MegachatNotifyClicks registers f (NULL: none) to be called with the tag
+// ParleyNotifyClicks registers f (NULL: none) to be called with the tag
 // of a clicked notification, from any thread; f frees the string with
-// MegachatFree.
+// ParleyFree.
 //
-//export MegachatNotifyClicks
-func MegachatNotifyClicks(f C.megachat_click_fn) {
+//export ParleyNotifyClicks
+func ParleyNotifyClicks(f C.parley_click_fn) {
 	if f == nil {
 		notes.setClick(nil)
 		return
 	}
-	notes.setClick(func(tag string) { C.megachat_click(f, C.CString(tag)) })
+	notes.setClick(func(tag string) { C.parley_click(f, C.CString(tag)) })
 }
 
 func main() {}

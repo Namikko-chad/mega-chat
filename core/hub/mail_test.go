@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 func onlineBoth(t *testing.T, e *env) (a, b AccountInfo) {

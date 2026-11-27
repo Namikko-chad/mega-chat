@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // A VK Teams thread is a hidden chat of its own ("<n>@chat.agent") whose

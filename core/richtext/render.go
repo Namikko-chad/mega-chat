@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // style says how a target markup writes each kind of span.

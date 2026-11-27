@@ -12,8 +12,8 @@ import (
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Demo calls: the contact is a WebRTC peer in the core that sends back

@@ -37,7 +37,7 @@ func NewKey() (Key, error) {
 // for different things never coincide.
 func (k Key) Derive(purpose string, id []byte) Key {
 	var out Key
-	r := hkdf.New(sha256.New, k[:], id, []byte("megachat/"+purpose))
+	r := hkdf.New(sha256.New, k[:], id, []byte("parley/"+purpose))
 	if _, err := io.ReadFull(r, out[:]); err != nil {
 		panic(err) // hkdf only fails when asked for too much output
 	}

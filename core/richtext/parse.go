@@ -11,7 +11,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Dialect is the markup a source text is written in.

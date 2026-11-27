@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 // --- threads -------------------------------------------------------------

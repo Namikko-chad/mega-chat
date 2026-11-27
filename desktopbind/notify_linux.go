@@ -101,7 +101,7 @@ func showNotice(n notice) {
 	fdo.mu.Unlock()
 	var id uint32
 	err := conn.Object(fdoName, fdoPath).Call(fdoName+".Notify", 0,
-		"MegaChat", replaces, n.Icon, n.Title, body,
+		"Parley", replaces, n.Icon, n.Title, body,
 		[]string{"default", "Open"}, hints, int32(-1),
 	).Store(&id)
 	if err == nil && n.Tag != "" {

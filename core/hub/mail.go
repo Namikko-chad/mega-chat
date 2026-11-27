@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Mail and calendars are not cached: every read goes to the providers,

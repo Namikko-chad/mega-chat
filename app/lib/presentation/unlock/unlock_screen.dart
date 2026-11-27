@@ -11,10 +11,10 @@ import '../../core/theme/typography.dart';
 import '../../data/biometric.dart';
 import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
-import '../settings/cloudsync.dart';
+import '../settings/shard.dart';
 
 /// After the password was entered once: offers to unlock by fingerprint
 /// next time (Android, a fingerprint is enrolled, not declined before).
@@ -46,7 +46,7 @@ Future<void> offerBiometric(BuildContext context, String password) async {
 /// Keeps the vault's key in the OS keychain after [password] opened it
 /// (desktops, "Remember the password on this machine"). Returns the new
 /// state, or null when the keychain refused (a toast says so).
-Future<pb.State?> rememberPassword(pb.MegaChatClient api, String password) async {
+Future<pb.State?> rememberPassword(pb.ParleyClient api, String password) async {
   try {
     return await api.rememberPassword(pb.PasswordRequest(password: password));
   } catch (e) {
@@ -126,8 +126,8 @@ class _NoCore extends StatelessWidget {
     final hint = Platform.isAndroid
         ? tr('The core runs inside the app; try again.', 'Ядро работает внутри приложения; попробуйте ещё раз.')
         : tr(
-            'The core runs inside the app; megachat.log in the config folder says why it did not start.',
-            'Ядро работает внутри приложения; почему оно не запустилось, видно в megachat.log в папке настроек.',
+            'The core runs inside the app; parley.log in the config folder says why it did not start.',
+            'Ядро работает внутри приложения; почему оно не запустилось, видно в parley.log в папке настроек.',
           );
     return HmCard(
       accent: HmAccent.error,
@@ -384,7 +384,7 @@ class _SetupState extends State<_Setup> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          HmPageTitle(tr('Welcome to MegaChat', 'Добро пожаловать в MegaChat')),
+          HmPageTitle(tr('Welcome to Parley', 'Добро пожаловать в Parley')),
           const SizedBox(height: 8),
           Text(
             tr(
@@ -394,7 +394,7 @@ class _SetupState extends State<_Setup> {
             style: HmText.small.copyWith(height: 1.5),
           ),
           const _OtherVault(),
-          const _FromCloudSync(),
+          const _FromShard(),
           const SizedBox(height: 20),
           if (_error != null) ...[HmBanner(_error!, tone: HmTone.error), SizedBox(height: hm.gapSm)],
           HmTextField(label: tr('Password', 'Пароль'), required: true, password: true, autofocus: true, controller: _password, error: _errors['password']),
@@ -421,27 +421,27 @@ class _SetupState extends State<_Setup> {
   }
 }
 
-/// "Get the vault from CloudSync" (no vault here yet, CloudSync answers):
+/// "Get the vault from Shard" (no vault here yet, Shard answers):
 /// pairs this device and takes the synced vault; the core then reports
 /// vault_exists and the unlock form replaces this screen. Without a synced
 /// vault the status ends with a message and the create form stays.
-class _FromCloudSync extends StatefulWidget {
-  const _FromCloudSync();
+class _FromShard extends StatefulWidget {
+  const _FromShard();
 
   @override
-  State<_FromCloudSync> createState() => _FromCloudSyncState();
+  State<_FromShard> createState() => _FromShardState();
 }
 
-class _FromCloudSyncState extends State<_FromCloudSync> {
+class _FromShardState extends State<_FromShard> {
   bool _busy = false;
 
   Future<void> _get() async {
     final core = context.read<CoreCubit>();
     setState(() => _busy = true);
     try {
-      core.adoptCloudSync(await core.api.enableCloudSync(pb.Empty()));
+      core.adoptShard(await core.api.enableShard(pb.Empty()));
     } catch (e) {
-      Toasts.error('${tr('Could not reach CloudSync', 'Не удалось связаться с CloudSync')}: ${errorText(e)}');
+      Toasts.error('${tr('Could not reach Shard', 'Не удалось связаться с Shard')}: ${errorText(e)}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -449,20 +449,20 @@ class _FromCloudSyncState extends State<_FromCloudSync> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = context.watch<CoreCubit>().state.state?.cloudsync ?? pb.CloudSyncState();
-    if (!showCloudSyncSwitch(cs)) return const SizedBox();
-    final started = cs.enabled || cs.status == pb.CloudSyncState_Status.PAIRING;
+    final cs = context.watch<CoreCubit>().state.state?.shard ?? pb.ShardState();
+    if (!showShardSwitch(cs)) return const SizedBox();
+    final started = cs.enabled || cs.status == pb.ShardState_Status.PAIRING;
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (started || cs.message.isNotEmpty) ...[CloudSyncStatus(cs), const SizedBox(height: 8)],
+          if (started || cs.message.isNotEmpty) ...[ShardStatus(cs), const SizedBox(height: 8)],
           if (!started)
             Align(
               alignment: Alignment.centerLeft,
               child: HmButton(
-                tr('Get the vault from CloudSync', 'Получить хранилище из CloudSync'),
+                tr('Get the vault from Shard', 'Получить хранилище из Shard'),
                 icon: Icons.cloud_download_outlined,
                 loading: _busy,
                 onPressed: _get,

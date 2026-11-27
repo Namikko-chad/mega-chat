@@ -7,7 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/theme/colors.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../core/core_cubit.dart';
 
 /// Calendar ids are unique only inside an account.
@@ -157,7 +157,7 @@ class CalendarCubit extends Cubit<CalendarState> {
   int _gen = 0;
   Set<String> _online = {}; // calendar accounts that were online at the last load
 
-  pb.MegaChatClient get api => _core.api;
+  pb.ParleyClient get api => _core.api;
 
   void _onCore(CoreState s) {
     if (!s.unlocked) {

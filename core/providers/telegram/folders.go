@@ -10,8 +10,8 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Chat folders (dialog filters), the archive (folder 1) and the account's

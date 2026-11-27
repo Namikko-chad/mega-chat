@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/core/theme/app_theme.dart';
-import 'package:megachat/presentation/common/lists.dart';
+import 'package:parley/core/theme/app_theme.dart';
+import 'package:parley/presentation/common/lists.dart';
 
 Widget host(Widget child) => MaterialApp(
   theme: AppTheme.dark,

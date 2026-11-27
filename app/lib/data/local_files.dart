@@ -52,7 +52,7 @@ Future<String?> askSavePath(String name, {String? directory}) async {
 
 /// Asks for an existing vault file (desktops); null: cancelled.
 Future<String?> pickVaultFile() async {
-  final f = await openFile(acceptedTypeGroups: const [XTypeGroup(label: 'MegaChat vault', extensions: ['mc'])]);
+  final f = await openFile(acceptedTypeGroups: const [XTypeGroup(label: 'Parley vault', extensions: ['parley'])]);
   return f?.path;
 }
 
@@ -60,7 +60,7 @@ Future<String?> pickVaultFile() async {
 /// Downloads collection instead).
 bool get canAskSavePath => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
-const _channel = MethodChannel('dev.megachat/files');
+const _channel = MethodChannel('dev.selfhold.parley/files');
 
 /// Android: puts a file into the shared Downloads collection and returns
 /// its name there.

@@ -5,12 +5,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/core/theme/app_theme.dart';
-import 'package:megachat/data/rpc/endpoint.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/chats/chats_screen.dart';
-import 'package:megachat/presentation/core/core_cubit.dart';
-import 'package:megachat/presentation/core/messenger_cubit.dart';
+import 'package:parley/core/theme/app_theme.dart';
+import 'package:parley/data/rpc/endpoint.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/chats/chats_screen.dart';
+import 'package:parley/presentation/core/core_cubit.dart';
+import 'package:parley/presentation/core/messenger_cubit.dart';
 
 class _NoCore implements CoreLauncher {
   @override

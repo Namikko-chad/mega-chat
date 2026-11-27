@@ -7,7 +7,7 @@ import '../../core/i18n.dart';
 import '../../core/settings/app_settings.dart';
 import '../../data/media_store.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../chats/player.dart';
 import 'core_cubit.dart';
 
@@ -188,7 +188,7 @@ class MessengerCubit extends Cubit<MessengerState> {
   final _typingTimers = <ChatKey, Timer>{};
   Timer? _reloadChats;
 
-  pb.MegaChatClient get api => _core.api;
+  pb.ParleyClient get api => _core.api;
 
   void _onCore(CoreState s) {
     if (!s.unlocked) {

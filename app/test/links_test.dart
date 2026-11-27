@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/presentation/common/links.dart';
+import 'package:parley/presentation/common/links.dart';
 
 void main() {
   List<String> found(String s) => [for (final l in findLinks(s)) '${s.substring(l.start, l.end)} -> ${l.uri}'];

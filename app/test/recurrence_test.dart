@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/calendar/recurrence.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/calendar/recurrence.dart';
 
 void main() {
   test('rules in words', () {

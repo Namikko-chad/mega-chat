@@ -21,7 +21,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <application
-        android:label="MegaChat"
+        android:label="Parley"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -62,8 +62,8 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
-        <!-- CloudSync keeps the vault in sync between devices (CONNECTOR.md). -->
-        <package android:name="dev.cloudsync.cloudsync"/>
+        <!-- Shard keeps the vault in sync between devices (CONNECTOR.md). -->
+        <package android:name="dev.selfhold.shard"/>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

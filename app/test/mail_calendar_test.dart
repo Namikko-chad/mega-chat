@@ -1,8 +1,8 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/calendar/calendar_cubit.dart';
-import 'package:megachat/presentation/mail/compose.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/calendar/calendar_cubit.dart';
+import 'package:parley/presentation/mail/compose.dart';
 
 void main() {
   test('addresses parse and print back', () {

@@ -5,7 +5,7 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // FromHTML reduces an HTML part to text and spans. Only structure and

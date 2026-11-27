@@ -19,7 +19,7 @@ import (
 	"github.com/pion/logging"
 	"github.com/pion/sctp"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Signalling of library version 11.0.0 (tgcalls InstanceV2ReferenceImpl,

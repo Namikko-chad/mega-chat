@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/recur"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/recur"
 )
 
 // The demo mailbox and calendars of a fake account: a few folders with
@@ -35,7 +35,7 @@ var demoPeople = []model.Address{
 }
 
 var demoSubjects = []string{
-	"Quarterly report draft", "Lunch on Friday?", "Re: release checklist", "[megachat] New pull request",
+	"Quarterly report draft", "Lunch on Friday?", "Re: release checklist", "[parley] New pull request",
 	"Contract for review", "Your booking is confirmed", "Design review notes", "Invoice #%d",
 	"Team offsite agenda", "Re: Re: holiday plans",
 }

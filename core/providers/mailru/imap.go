@@ -17,9 +17,9 @@ import (
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/charset"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/providers/mailutil"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/mailutil"
 )
 
 // Folder names that tell a role on servers without SPECIAL-USE (Mail.ru's

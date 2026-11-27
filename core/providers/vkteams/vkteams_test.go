@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // fakeServer implements wire.go's view of the protocol.

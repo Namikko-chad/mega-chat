@@ -19,7 +19,7 @@ $x = New-Object Windows.Data.Xml.Dom.XmlDocument
 $x.LoadXml($in[1])
 $t = New-Object Windows.UI.Notifications.ToastNotification $x
 $t.Tag = $in[0]
-$t.Group = 'megachat'
+$t.Group = 'parley'
 $id = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($id).Show($t)
 `

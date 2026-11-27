@@ -5,14 +5,14 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:megachat/app.dart';
-import 'package:megachat/core/settings/app_settings.dart';
-import 'package:megachat/data/rpc/endpoint.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/core/core_cubit.dart';
-import 'package:megachat/presentation/chats/chats_screen.dart';
-import 'package:megachat/presentation/core/messenger_cubit.dart';
-import 'package:megachat/presentation/shell/app_shell.dart';
+import 'package:parley/app.dart';
+import 'package:parley/core/settings/app_settings.dart';
+import 'package:parley/data/rpc/endpoint.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/core/core_cubit.dart';
+import 'package:parley/presentation/chats/chats_screen.dart';
+import 'package:parley/presentation/core/messenger_cubit.dart';
+import 'package:parley/presentation/shell/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,7 +29,7 @@ Future<void> main() async {
   runApp(
     ValueListenableBuilder(
       valueListenable: frame,
-      builder: (_, f, _) => MegaChatApp(
+      builder: (_, f, _) => ParleyApp(
         key: ValueKey(f),
         core: core,
         home: AppShell(initial: f.$2),

@@ -19,8 +19,8 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // maxMsgChats bounds the message id → chat map used to place deletions

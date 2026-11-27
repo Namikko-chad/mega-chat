@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/crypto"
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.
@@ -217,7 +217,7 @@ func (l *login) listen() error {
 			fmt.Fprint(w, "<p>Access was not granted. You can close this page.</p>")
 			return
 		}
-		fmt.Fprint(w, "<p>Signed in. You can close this page and go back to MegaChat.</p>")
+		fmt.Fprint(w, "<p>Signed in. You can close this page and go back to Parley.</p>")
 	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	l.mu.Lock()

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import '../../core/desktop/desktop_window.dart';
 import '../../core/i18n.dart';
 import '../../core/settings/app_settings.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../../data/rpc/native_core.dart';
 import '../shell/app_shell.dart' show AppShell, Section;
 import 'core_cubit.dart';
@@ -41,7 +41,7 @@ class DesktopNotifier {
   /// The app's PNG icon next to the executable (Linux).
   static final String? _icon = () {
     if (!Platform.isLinux) return null;
-    final f = File(p.join(p.dirname(Platform.resolvedExecutable), 'data', 'flutter_assets', 'assets', 'icon', 'megachat.png'));
+    final f = File(p.join(p.dirname(Platform.resolvedExecutable), 'data', 'flutter_assets', 'assets', 'icon', 'parley.png'));
     return f.existsSync() ? f.path : null;
   }();
 
@@ -95,7 +95,7 @@ class DesktopNotifier {
     try {
       final core = NativeCore.instance;
       if (!core.owner) return; // another instance of the app runs the core and notifies
-      core.notify(tag: tag, title: title, body: body, icon: _icon, entry: 'dev.megachat.megachat');
+      core.notify(tag: tag, title: title, body: body, icon: _icon, entry: 'dev.selfhold.parley');
       _shown.add(tag);
     } catch (_) {}
   }

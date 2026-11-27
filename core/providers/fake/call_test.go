@@ -9,8 +9,8 @@ import (
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 type callSink struct {

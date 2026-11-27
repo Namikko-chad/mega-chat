@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 // memberIDs caches conversations.members per chat for a while: typing "@"

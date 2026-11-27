@@ -5,8 +5,7 @@ One client for **Telegram**, **Slack**, **VK Teams** and **VK**, plus **mail and
 provider. All chats are in one list, all inboxes in one mailbox, all calendars in one month view;
 every chat, message and event knows its account.
 
-Parley was formerly called MegaChat; some identifiers (the Go module `megachat`, the CLI
-`cmd/mchat`, the Android package `dev.megachat`, the data directory) still use the old name.
+Parley was formerly called MegaChat.
 
 Parley is part of [SelfHold](https://github.com/SelfHold), a set of self-hosted apps that share
 one architecture: a Go core inside the app's process and a Flutter UI. It can keep its vault in
@@ -101,7 +100,7 @@ never taken from the system locale.
 
 ## Security model
 
-- **Vault** (`vault.mc`): the accounts and their credentials (tokens, session keys, app
+- **Vault** (`vault.parley`): the accounts and their credentials (tokens, session keys, app
   passwords), encrypted with a key derived from your password (Argon2id + XChaCha20-Poly1305).
   Unlocking it starts all accounts. The password itself is never stored.
 - **Remember on this machine** (desktop, optional): keeps the password-derived key, not the
@@ -122,8 +121,8 @@ See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ```
    ┌──────────────── one process: the app ─────────────────┐
-   │ Flutter UI (app/): unlock · chats · mail · calendar   │       mchat (CLI)
-   │        │ gRPC (proto/megachat.proto), bearer token    │          │
+   │ Flutter UI (app/): unlock · chats · mail · calendar   │       parley (CLI)
+   │        │ gRPC (proto/parley.proto), bearer token    │          │
    │        │ unix socket                                  │          │
    │ core/embed ── desktopbind (FFI) | mobilebind (AAR) ◄─┼── endpoint.json
    └────────┼──────────────────────────────────────────────┘
@@ -166,11 +165,11 @@ Prerequisites:
   and the Dart plugin (`dart pub global activate protoc_plugin`).
 
 ```bash
-make build-linux                                             # builds/linux/megachat: the app with the core in it
+make build-linux                                             # builds/linux/parley: the app with the core in it
 make build-linux TG_APP_ID=123 TG_APP_HASH=abc               # with built-in Telegram app credentials
 make build-linux GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…   # with a built-in Google OAuth client
 make build-apk                                               # builds/android/*.apk (arm64, x86_64)
-make build                                                   # builds/mchat: the debug CLI
+make build                                                   # builds/parley: the debug CLI
 make run-demo                                                # the app with the Demo messenger, no real accounts
 ```
 
@@ -180,40 +179,40 @@ All outputs go to `builds/`. Development commands (tests, code generation) are i
 ## Use
 
 Start the app, create a vault with a password, then add accounts in Accounts. `make run-demo`
-(or `MEGACHAT_DEMO=1`) adds the **Demo** messenger, an in-memory provider with generated chats,
+(or `PARLEY_DEMO=1`) adds the **Demo** messenger, an in-memory provider with generated chats,
 mail and a call peer.
 
-`mchat` is a debug CLI that talks to the core of the running app (the cache belongs to one
+`parley` is a debug CLI that talks to the core of the running app (the cache belongs to one
 process):
 
 ```bash
-builds/linux/megachat &
-mchat create                  # new vault (asks for a password); later: mchat unlock [remembered]
-mchat providers
-mchat login telegram          # the same sign-in dialog the app shows
-mchat login slack session
-mchat accounts
-mchat chats -n 20
-mchat history ACCOUNT CHAT -n 50
-mchat send ACCOUNT CHAT hello
-mchat sendfile ACCOUNT CHAT ./photo.jpg caption...
-mchat login google            # or: mchat login mailru [server]
-mchat folders
-mchat mail -n 20              # all inboxes; mchat mail ACCOUNT FOLDER for one folder
-mchat mailread ACCOUNT ID
-mchat sendmail ACCOUNT to@example.com "Subject" text...
-mchat events -n 7             # the next 7 days of every calendar
-mchat watch                   # live events
+builds/linux/parley &
+parley create                  # new vault (asks for a password); later: parley unlock [remembered]
+parley providers
+parley login telegram          # the same sign-in dialog the app shows
+parley login slack session
+parley accounts
+parley chats -n 20
+parley history ACCOUNT CHAT -n 50
+parley send ACCOUNT CHAT hello
+parley sendfile ACCOUNT CHAT ./photo.jpg caption...
+parley login google            # or: parley login mailru [server]
+parley folders
+parley mail -n 20              # all inboxes; parley mail ACCOUNT FOLDER for one folder
+parley mailread ACCOUNT ID
+parley sendmail ACCOUNT to@example.com "Subject" text...
+parley events -n 7             # the next 7 days of every calendar
+parley watch                   # live events
 ```
 
-Files on Linux: `~/.config/megachat/` (or `$XDG_CONFIG_HOME/megachat/`) holds `vault.mc`,
+Files on Linux: `~/.config/selfhold/parley/` (or `$XDG_CONFIG_HOME/selfhold/parley/`) holds `vault.parley`,
 `cache-*.db`, `app.json` (UI settings of this device), `endpoint.json` (while the app runs) and
-`megachat.log`.
+`parley.log`.
 
 ## Sync through Shard (optional)
 
 Parley works on its own. With [Shard](https://github.com/SelfHold/shard) installed and running,
-the "Sync via CloudSync" switch in Settings (the UI still uses Shard's old name) keeps the vault file in your Shard vault, so all your devices get the same
+the "Sync via Shard" switch in Settings keeps the vault file in your Shard vault, so all your devices get the same
 accounts. The local file stays the working copy; copies from different devices are merged
 (union by account, newest change wins, removals are kept), and the first sync lets you choose
 when the two vaults differ. Per-device state (pairing, last synced revision) is never synced.

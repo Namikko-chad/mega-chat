@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/core/messenger_cubit.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/core/messenger_cubit.dart';
 
 pb.Chat chat(String id, int at, {bool archived = false, bool pinned = false, bool muted = false, int unread = 0, List<String> folders = const []}) =>
     pb.Chat(accountId: 'a', id: id, title: id, updatedMs: Int64(at), archived: archived, pinned: pinned, muted: muted, unread: unread, folders: folders);

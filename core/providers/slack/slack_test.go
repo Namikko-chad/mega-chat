@@ -15,8 +15,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 func TestText(t *testing.T) {

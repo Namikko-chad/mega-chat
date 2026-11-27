@@ -36,7 +36,7 @@ const (
 	maxText    = 300 // description, in runes
 	timeout    = 10 * time.Second
 	cacheSize  = 200
-	userAgent  = "Mozilla/5.0 (compatible; MegaChat link preview)"
+	userAgent  = "Mozilla/5.0 (compatible; Parley link preview)"
 	acceptHTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1"
 )
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/recur"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/recur"
 )
 
 const gcal = "calendar/v3/"

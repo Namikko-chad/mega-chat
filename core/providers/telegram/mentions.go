@@ -7,7 +7,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Members returns people of a chat to mention: the person of a direct

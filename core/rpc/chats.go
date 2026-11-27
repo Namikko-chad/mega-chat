@@ -3,9 +3,9 @@ package rpc
 import (
 	"context"
 
-	"megachat/core/hub"
-	"megachat/core/model"
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/hub"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/rpc/pb"
 )
 
 func init() {

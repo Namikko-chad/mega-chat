@@ -19,5 +19,5 @@ Future<void> main() async {
   await DesktopWindow.instance.init();
   unawaited(registerDesktopEntry());
   final core = CoreCubit(CoreLauncher.forPlatform())..connect();
-  runApp(MegaChatApp(core: core));
+  runApp(ParleyApp(core: core));
 }

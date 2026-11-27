@@ -17,7 +17,7 @@ make test        # Go core tests
 make race        # Go core tests with the race detector (skips the packages that link Telegram)
 make vet         # go vet
 make app-test    # flutter analyze + flutter test
-make proto       # regenerate Go and Dart code after changing proto/megachat.proto
+make proto       # regenerate Go and Dart code after changing proto/parley.proto
 make run-demo    # the app with the Demo messenger (no real accounts)
 make app-run     # flutter run with the build defines
 make core-lib    # the desktop core as a C archive (the Linux app build runs it itself)
@@ -31,9 +31,9 @@ make build-linux | make build-apk | make build
   which `make test` does. Use the targets rather than bare `go test` / `flutter test`.
 - Hub and rpc tests use the in-memory `fake` provider; Slack, VK Teams, VK, Google and the
   IMAP/SMTP/CalDAV provider are tested against local fake servers; Telegram's mapping with unit
-  tests. Shard sync is tested against the fake in `core/cloudsync/fakecs`, never a live Shard.
+  tests. Shard sync is tested against the fake in `core/shard/fakeshard`, never a live Shard.
 - Work on screens with `make run-demo` and `app/tool/screenshots.dart`.
-- Generated code (`core/rpc/pb`, `core/cloudsync/pb`, `app/lib/data/rpc/gen`) is never edited by
+- Generated code (`core/rpc/pb`, `core/shard/pb`, `app/lib/data/rpc/gen`) is never edited by
   hand.
 - Format Go with `gofmt` and Dart with `dart format`.
 
@@ -50,11 +50,11 @@ make build-linux | make build-apk | make build
   (Kotlin) follow the app's choice (`Notifications.tr`).
 - **No secrets anywhere** they could leak: logs, errors, RPC replies, plain files, the app. Don't
   commit credentials, tokens or local config.
-- **Don't rename persisted identifiers**: the app id `megachat`, the record name `vault.mc`, file
-  names in the data dir, the Android package `dev.megachat`, the AIDL package, keychain entries.
+- **Don't rename persisted identifiers**: the app id `parley`, the record name `vault.parley`, file
+  names in the data dir, the Android package `dev.selfhold.parley`, the AIDL package, keychain entries.
   They live on users' devices and in Shard; changing one needs a migration.
 - **Connector contract**: `proto/connector.proto` and the AIDL under
-  `app/android/app/src/main/aidl/dev/cloudsync/connector/` are owned by
+  `app/android/app/src/main/aidl/dev/selfhold/shard/connector/` are owned by
   [Shard](https://github.com/SelfHold/shard). Change them there first, then copy byte for byte.
   Parley must keep working with an older Shard and without Shard at all.
 - **Platforms**: Linux and Android. Keep platform-specific code behind the existing seams

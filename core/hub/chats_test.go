@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 func TestChatFoldersAndActions(t *testing.T) {

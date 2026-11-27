@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:grpc/grpc.dart';
 
 import 'endpoint.dart';
-import 'gen/megachat.pbgrpc.dart';
+import 'gen/parley.pbgrpc.dart';
 import '../../core/i18n.dart';
 
 /// The gRPC client of the core, with the bearer token on every call.
@@ -11,7 +11,7 @@ class CoreClient {
   CoreClient._(this._channel, this.api, this.options);
 
   final ClientChannel _channel;
-  final MegaChatClient api;
+  final ParleyClient api;
   final CallOptions options;
 
   static Future<CoreClient> connect(CoreLauncher launcher) async {
@@ -22,7 +22,7 @@ class CoreClient {
       options: const ChannelOptions(credentials: ChannelCredentials.insecure(), idleTimeout: Duration(minutes: 5)),
     );
     final opts = CallOptions(metadata: {'authorization': 'Bearer ${e.token}'});
-    return CoreClient._(ch, MegaChatClient(ch, options: opts), opts);
+    return CoreClient._(ch, ParleyClient(ch, options: opts), opts);
   }
 
   /// Options for a call that should give up after [timeout].

@@ -1,8 +1,7 @@
 # Parley architecture
 
-Parley (formerly MegaChat; the Go module, the proto package, the Android package and the data
-directory still use the old name) is a Go core (`core/`) that runs inside the app's process, a
-Flutter app (`app/`) that only renders, and a debug CLI (`cmd/mchat`). This document lists how
+Parley is a Go core (`core/`) that runs inside the app's process, a
+Flutter app (`app/`) that only renders, and a debug CLI (`cmd/parley`). This document lists how
 the parts fit together and the rules that changes must keep. The overview is in the
 [README](../README.md).
 
@@ -10,7 +9,7 @@ the parts fit together and the rules that changes must keep. The overview is in 
 
 | Path | What |
 |---|---|
-| `proto/megachat.proto` | The gRPC API between the core and the app (and the CLI). |
+| `proto/parley.proto` | The gRPC API between the core and the app (and the CLI). |
 | `core/embed` | Starts the core in a process: vault, store, hub, gRPC server on a private socket, `endpoint.json`. |
 | `desktopbind` | The core as a C archive linked into the Linux executable, called through Dart FFI. Also desktop notifications (D-Bus). |
 | `mobilebind` | The core as a gomobile AAR for Android. |
@@ -21,12 +20,12 @@ the parts fit together and the rules that changes must keep. The overview is in 
 | `core/vault` | The encrypted vault: accounts and credentials; merging synced copies. |
 | `core/store` | The encrypted cache (bbolt): chats, messages, media, provider session state. |
 | `core/keychain` | The OS keychain (go-keyring) for "remember on this machine". |
-| `core/cloudsync` | The client of Shard's Connector API (optional vault sync). |
+| `core/shard` | The client of Shard's Connector API (optional vault sync). |
 | `core/richtext`, `core/recur`, `core/linkpreview` | Formatting spans, repeating events, link previews. |
 | `app/lib` | The Flutter app: `data/` (RPC client, native core), `presentation/` (screens, `common/` widget kit), `core/` (theme, i18n, settings). |
 | `app/android` | Kotlin glue: core service, notifications, fingerprint, Shard binding, clipboard files. |
 
-Generated code (`core/rpc/pb`, `core/cloudsync/pb`, `app/lib/data/rpc/gen`) comes from
+Generated code (`core/rpc/pb`, `core/shard/pb`, `app/lib/data/rpc/gen`) comes from
 `make proto` and is never edited by hand.
 
 ## Rules
@@ -65,12 +64,12 @@ Generated code (`core/rpc/pb`, `core/cloudsync/pb`, `app/lib/data/rpc/gen`) come
   The app tries it once per start, not after "Lock". Android has no keychain: the password is
   sealed in the Android Keystore behind a fingerprint instead.
 - The vault file may live anywhere on desktops: `<data dir>/vault.path` holds its path (the only
-  plain file, no secret), else `<data dir>/vault.mc`. The cache stays in the data dir, keyed by
+  plain file, no secret), else `<data dir>/vault.parley`. The cache stays in the data dir, keyed by
   the vault id.
 - One process per cache: bbolt locks the file. The core lives in the app's process (no daemon);
   the CLI and a second app instance reach it through `endpoint.json`, never open the store.
 - App preferences (language, notifications, tray, media autoload) are per device, in
-  `<config dir>/megachat/app.json` (Android: app support dir). They are never in the vault and
+  `<config dir>/parley/app.json` (Android: app support dir). They are never in the vault and
   never synced.
 
 ### Sync through Shard
@@ -78,13 +77,13 @@ Generated code (`core/rpc/pb`, `core/cloudsync/pb`, `app/lib/data/rpc/gen`) come
 - Optional and off by default; Parley works without Shard, and Shard may be missing, stopped or
   locked at any time. The protocol is Shard's Connector API, see the
   [Connector guide](https://github.com/SelfHold/shard/blob/main/docs/CONNECTOR.md).
-- The vault file's bytes are record `vault.mc` of app id `megachat`. Both names are persisted on
+- The vault file's bytes are record `vault.parley` of app id `parley`. Both names are persisted on
   users' devices and in Shard and must never change.
-- The local file stays the working copy. Per-device state (`<data dir>/cloudsync.json`: base
+- The local file stays the working copy. Per-device state (`<data dir>/shard.json`: base
   revision, synced hash, Shard vault id; the pairing token in the keychain, else
-  `cloudsync.token`) is never synced.
+  `shard.token`) is never synced.
 - Desktops dial Shard's `connector.json`; Android binds Shard's service through Kotlin
-  (`CloudSync.kt`, the AIDL copied as is from Shard) and `mobilebind.SetCloudSync`.
+  (`Shard.kt`, the AIDL copied as is from Shard) and `mobilebind.SetShard`.
 - Merging (`vault.Merge`) is deterministic: union by account id, the newer `Account.Updated` wins,
   removals are tombstones, the same result in any order on every device; the latest password
   change seals the result. The first sync compares and lets the user pick on a conflict.
@@ -133,7 +132,7 @@ Generated code (`core/rpc/pb`, `core/cloudsync/pb`, `app/lib/data/rpc/gen`) come
 - Every UI string goes through `tr('English', 'Русский')` (`app/lib/core/i18n.dart`). The app
   starts in English whatever the system locale; Russian is a choice in Settings, kept in
   `app.json`. Android's Kotlin notification strings follow the same choice: the app passes the
-  language over the `dev.megachat/core` method channel at start and on every change.
+  language over the `dev.selfhold.parley/core` method channel at start and on every change.
 - Screens use only the widget kit in `app/lib/presentation/common/` and the design tokens
   (`HmColors`, `HmText`): dark theme only, no raw colours, no Material elevation, bundled fonts.
   Below 768 px of width the phone layout is used, on any platform.

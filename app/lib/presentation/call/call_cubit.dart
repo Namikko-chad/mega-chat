@@ -11,7 +11,7 @@ import 'package:media_kit/media_kit.dart';
 import '../../core/desktop/desktop_window.dart';
 import '../../core/i18n.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 
@@ -63,7 +63,7 @@ class CallCubit extends Cubit<CallUi> {
   late final StreamSubscription<CoreState> _coreState;
   int? _session;
 
-  pb.MegaChatClient get _api => _core.api;
+  pb.ParleyClient get _api => _core.api;
 
   RTCPeerConnection? _pc;
   MediaStream? _local;

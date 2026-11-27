@@ -5,8 +5,8 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 // spansOf maps Telegram's own styles. Auto-detected entities (bare links,

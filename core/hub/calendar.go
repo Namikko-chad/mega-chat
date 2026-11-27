@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/recur"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/recur"
 )
 
 // calendarTTL: how long a calendar list is used before it is fetched again.

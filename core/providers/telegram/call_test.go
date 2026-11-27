@@ -11,7 +11,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // fakeTG is Telegram's side of 1:1 calls for two sessions, as the docs

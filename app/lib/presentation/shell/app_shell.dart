@@ -12,7 +12,7 @@ import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../accounts/accounts_screen.dart';
 import '../accounts/providers.dart';
 import '../calendar/calendar_cubit.dart';
@@ -323,7 +323,7 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text('MegaChat', style: HmText.logo),
+          Text('Parley', style: HmText.logo),
           const SizedBox(width: 16),
           // A narrow window scrolls the links; the window buttons always stay.
           Expanded(
@@ -494,7 +494,7 @@ class _MobileHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text('MegaChat', style: HmText.logo.copyWith(fontSize: 18)),
+          Text('Parley', style: HmText.logo.copyWith(fontSize: 18)),
           const Spacer(),
           HmDot(ok: online, label: online ? tr('Online', 'В сети') : tr('Offline', 'Не в сети')),
           // On a narrow desktop window the window buttons take this place.
@@ -553,7 +553,7 @@ class BuildInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = core.state;
     const dot = Opacity(opacity: 0.4, child: Text('  ·  '));
-    final children = <Widget>[Text('MEGACHAT V${AppConfig.version}'), dot, Text('APP ${AppConfig.buildId}'.toUpperCase())];
+    final children = <Widget>[Text('PARLEY V${AppConfig.version}'), dot, Text('APP ${AppConfig.buildId}'.toUpperCase())];
     if (st != null && core.conn == Conn.ready) {
       final same = st.coreVersion == AppConfig.version && st.coreBuild == AppConfig.buildId;
       final coreBuild = st.coreBuild.isEmpty ? '?' : '${st.coreVersion} ${st.coreBuild}';

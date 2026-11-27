@@ -36,8 +36,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 const (
@@ -161,7 +161,7 @@ func (s *server) clientLogin(ctx context.Context, devID, login, password string)
 	var r loginResult
 	form := url.Values{
 		"f": {"json"}, "devId": {devID}, "s": {login}, "pwd": {password},
-		"clientName": {"MegaChat"}, "idType": {"ICQ"}, "tokenType": {"longTerm"},
+		"clientName": {"Parley"}, "idType": {"ICQ"}, "tokenType": {"longTerm"},
 	}
 	err := s.wimDo(ctx, http.MethodPost, s.wim()+"auth/clientLogin", form, &r)
 	if err == nil && r.Token.A == "" {
@@ -218,7 +218,7 @@ func (s *server) startSession(ctx context.Context, devID, token, key string, tim
 	u := s.wim() + "aim/startSession"
 	p := url.Values{
 		"a": {token}, "f": {"json"}, "k": {devID}, "events": {startEvents},
-		"clientName": {"MegaChat"}, "imf": {"plain"}, "invisible": {"false"}, "view": {"online"},
+		"clientName": {"Parley"}, "imf": {"plain"}, "invisible": {"false"}, "view": {"online"},
 		"includePresenceFields": {"aimId,displayId,friendly,state,userType"},
 		"sessionTimeout":        {"2592000"}, "nonce": {s.reqID()},
 	}
@@ -1250,7 +1250,7 @@ const uploadBlock = 1 << 20
 // to an upload host of the messenger's own domain, and never over a redirect.
 func (s *server) uploadFile(ctx context.Context, aimsid, devID, name string, data []byte) (string, error) {
 	q := url.Values{"aimsid": {aimsid}, "f": {"json"}, "size": {strconv.Itoa(len(data))},
-		"filename": {name}, "client": {"megachat"}, "r": {s.reqID()}}
+		"filename": {name}, "client": {"parley"}, "r": {s.reqID()}}
 	if devID != "" {
 		q.Set("k", devID)
 	}

@@ -6,9 +6,9 @@ import (
 	"slices"
 	"time"
 
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // EvChatFolders: the chat folders of AccountID changed: reload them.

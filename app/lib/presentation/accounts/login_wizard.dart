@@ -11,7 +11,7 @@ import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/messenger_cubit.dart';
 import 'providers.dart';
@@ -54,7 +54,7 @@ class _WizardState extends State<_Wizard> {
   int _gen = 0;
   String _opened = '';
 
-  pb.MegaChatClient get _api => _messenger.api;
+  pb.ParleyClient get _api => _messenger.api;
 
   bool get _done => _step?.done ?? false;
 

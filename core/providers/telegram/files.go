@@ -10,8 +10,8 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 
-	"megachat/core/model"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 // maxPhoto is the largest picture Telegram takes as a photo; a larger one

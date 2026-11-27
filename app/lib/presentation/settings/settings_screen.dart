@@ -12,14 +12,14 @@ import '../../core/theme/typography.dart';
 import '../../data/biometric.dart';
 import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../accounts/providers.dart' show isOnline;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
 import '../shell/app_shell.dart' show AppShell, BuildInfo, Section, StatusPills;
 import '../unlock/unlock_screen.dart' show rememberHint, rememberPassword;
-import 'cloudsync.dart';
+import 'shard.dart';
 
 /// This device, app preferences and the vault password: the "profile" of
 /// the app. On phones it also carries the footer's status.
@@ -215,8 +215,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     tr(
-                      'Shown while MegaChat is not on screen. Muted chats notify only when someone mentions you.',
-                      'Показываются, когда MegaChat не на экране. Беззвучные чаты уведомляют, только если вас упомянули.',
+                      'Shown while Parley is not on screen. Muted chats notify only when someone mentions you.',
+                      'Показываются, когда Parley не на экране. Беззвучные чаты уведомляют, только если вас упомянули.',
                     ),
                     style: HmText.jb(11, color: HmColors.muted, height: 1.5),
                   ),
@@ -361,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        if (s.cloudsync.status != pb.CloudSyncState_Status.STATUS_UNSPECIFIED) const CloudSyncSection(),
+        if (s.shard.status != pb.ShardState_Status.STATUS_UNSPECIFIED) const ShardSection(),
         _preferences(s, gap),
         HmCard(
           padding: const EdgeInsets.all(20),

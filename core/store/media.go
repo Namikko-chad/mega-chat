@@ -7,7 +7,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"megachat/core/crypto"
+	"github.com/SelfHold/parley/core/crypto"
 )
 
 // Media cache: downloaded avatars, previews and small files, per account,

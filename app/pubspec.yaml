@@ -1,5 +1,5 @@
-name: megachat
-description: MegaChat — one client for VK Teams, Slack and Telegram, several accounts each.
+name: parley
+description: Parley — one client for VK Teams, Slack and Telegram, several accounts each.
 publish_to: 'none'
 version: 0.1.0+1
 

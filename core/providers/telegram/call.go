@@ -19,8 +19,8 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // 1:1 calls. The core does the key exchange, the call's state and the
@@ -624,13 +624,13 @@ func (s *session) confirmed(c *tgCall, p *tg.PhoneCall) {
 		if len(v) > 0 {
 			got = v[0]
 		}
-		s.failLocked(c, model.EndFailed, "The other app speaks call version "+got+"; MegaChat speaks only "+callVersion, disconnect)
+		s.failLocked(c, model.EndFailed, "The other app speaks call version "+got+"; Parley speaks only "+callVersion, disconnect)
 		return
 	}
 	if customFlag(p.CustomParameters.Data, "network_use_mtproto") {
 		// The peer would carry media over MTProto framing instead of
 		// DTLS, which a stock peer connection cannot speak.
-		s.failLocked(c, model.EndFailed, "Telegram asked for a call transport MegaChat does not support", disconnect)
+		s.failLocked(c, model.EndFailed, "Telegram asked for a call transport Parley does not support", disconnect)
 		return
 	}
 	c.call.ICE = iceServers(p.Connections)

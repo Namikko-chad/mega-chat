@@ -2,14 +2,14 @@
 package all
 
 import (
-	"megachat/core/provider"
-	"megachat/core/providers/fake"
-	"megachat/core/providers/google"
-	"megachat/core/providers/mailru"
-	"megachat/core/providers/slack"
-	"megachat/core/providers/telegram"
-	"megachat/core/providers/vk"
-	"megachat/core/providers/vkteams"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/providers/fake"
+	"github.com/SelfHold/parley/core/providers/google"
+	"github.com/SelfHold/parley/core/providers/mailru"
+	"github.com/SelfHold/parley/core/providers/slack"
+	"github.com/SelfHold/parley/core/providers/telegram"
+	"github.com/SelfHold/parley/core/providers/vk"
+	"github.com/SelfHold/parley/core/providers/vkteams"
 )
 
 // Registry returns the providers; demo adds the in-memory "fake" one for

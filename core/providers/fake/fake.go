@@ -1,5 +1,5 @@
 // Package fake is an in-memory messenger for tests and for working on the
-// app without real accounts (MEGACHAT_DEMO=1). Its "server" keeps chats
+// app without real accounts (PARLEY_DEMO=1). Its "server" keeps chats
 // per login; Inject plays the other side of a conversation.
 package fake
 
@@ -20,9 +20,9 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 // Type is the provider type.

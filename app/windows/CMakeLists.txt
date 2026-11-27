@@ -1,10 +1,10 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(megachat LANGUAGES CXX)
+project(parley LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "megachat")
+set(BINARY_NAME "parley")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -58,20 +58,20 @@ add_subdirectory("runner")
 include(flutter/generated_plugins.cmake)
 
 # The core (Go, desktopbind) runs inside the app's process, loaded from
-# megachat_core.dll next to the executable (Go cannot be linked into an MSVC
+# parley_core.dll next to the executable (Go cannot be linked into an MSVC
 # executable). Building it needs Go and gcc (MSYS2 mingw-w64) in PATH;
-# MEGACHAT_GO_LDFLAGS may carry the -X flags of the Makefile (credentials,
+# PARLEY_GO_LDFLAGS may carry the -X flags of the Makefile (credentials,
 # build id). Dart calls it through FFI.
-set(MEGACHAT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-set(MEGACHAT_CORE "${CMAKE_BINARY_DIR}/core/megachat_core.dll")
-add_custom_target(megachat_core
+set(PARLEY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(PARLEY_CORE "${CMAKE_BINARY_DIR}/core/parley_core.dll")
+add_custom_target(parley_core
   COMMAND ${CMAKE_COMMAND} -E env CGO_ENABLED=1
-    go build -buildmode=c-shared "-ldflags=$ENV{MEGACHAT_GO_LDFLAGS}" -o "${MEGACHAT_CORE}" ./desktopbind
-  WORKING_DIRECTORY "${MEGACHAT_ROOT}"
-  BYPRODUCTS "${MEGACHAT_CORE}"
+    go build -buildmode=c-shared "-ldflags=$ENV{PARLEY_GO_LDFLAGS}" -o "${PARLEY_CORE}" ./desktopbind
+  WORKING_DIRECTORY "${PARLEY_ROOT}"
+  BYPRODUCTS "${PARLEY_CORE}"
   USES_TERMINAL
 )
-add_dependencies(${BINARY_NAME} megachat_core)
+add_dependencies(${BINARY_NAME} parley_core)
 
 
 # === Installation ===
@@ -97,7 +97,7 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-install(FILES "${MEGACHAT_CORE}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+install(FILES "${PARLEY_CORE}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
 if(PLUGIN_BUNDLED_LIBRARIES)

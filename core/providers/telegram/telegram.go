@@ -19,7 +19,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/updates"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.
@@ -78,7 +78,7 @@ func newClient(appID int, appHash string, st tdsession.Storage, h telegram.Updat
 		UpdateHandler:  h,
 		NoUpdates:      h == nil,
 		Device: telegram.DeviceConfig{
-			DeviceModel:   "MegaChat",
+			DeviceModel:   "Parley",
 			SystemVersion: runtime.GOOS,
 			AppVersion:    AppVersion,
 		},

@@ -9,7 +9,7 @@ import (
 var fastKDF = KDFParams{Time: 1, Memory: 1024, Threads: 1}
 
 func TestCreateOpenUpdate(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "vault.mc")
+	path := filepath.Join(t.TempDir(), "vault.parley")
 	c, err := New()
 	if err != nil {
 		t.Fatal(err)

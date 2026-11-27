@@ -3,7 +3,7 @@ package rpc
 import (
 	"testing"
 
-	"megachat/core/rpc/pb"
+	"github.com/SelfHold/parley/core/rpc/pb"
 )
 
 func TestMentionSpans(t *testing.T) {

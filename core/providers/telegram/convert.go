@@ -8,7 +8,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // peerKey returns the chat id of a peer.

@@ -14,7 +14,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 type stage int

@@ -9,7 +9,7 @@ import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/typography.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
@@ -79,8 +79,8 @@ class _LogScreenState extends State<LogScreen> {
       context,
       title: tr('Clear the log?', 'Очистить журнал?'),
       message: tr(
-        'Events are removed from the app; the log file (megachat.log) stays.',
-        'События пропадут из приложения; файл журнала (megachat.log) останется.',
+        'Events are removed from the app; the log file (parley.log) stays.',
+        'События пропадут из приложения; файл журнала (parley.log) останется.',
       ),
       action: tr('Clear', 'Очистить'),
       destructive: true,
@@ -126,9 +126,9 @@ class _LogScreenState extends State<LogScreen> {
         Text(
           tr(
             'What the core did and what failed: an account that drops its connection shows why here. Repeats are folded into one line (×N). '
-                'On desktops the core also writes megachat.log in the config folder.',
+                'On desktops the core also writes parley.log in the config folder.',
             'Что делало ядро и что не удалось: здесь видно, почему аккаунт теряет связь. Повторы сворачиваются в одну строку (×N). '
-                'На компьютере ядро также пишет megachat.log в папке настроек.',
+                'На компьютере ядро также пишет parley.log в папке настроек.',
           ),
           style: HmText.small.copyWith(height: 1.5),
         ),

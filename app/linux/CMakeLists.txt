@@ -4,10 +4,10 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "megachat")
+set(BINARY_NAME "parley")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "dev.megachat.megachat")
+set(APPLICATION_ID "dev.selfhold.parley")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -63,21 +63,21 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 
 # The core (Go, desktopbind) is linked into the executable: one process, no
 # daemon. `make core-lib` builds it (go keeps it up to date); Dart calls
-# MegachatStart/Stop/Free and MegachatNotify* through FFI (DynamicLibrary.process()), so they are
+# ParleyStart/Stop/Free and ParleyNotify* through FFI (DynamicLibrary.process()), so they are
 # pulled from the archive and exported although nothing in C++ calls them.
 find_package(Threads REQUIRED)
-set(MEGACHAT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-set(MEGACHAT_CORE "${CMAKE_BINARY_DIR}/core/libmegachat.a")
-add_custom_target(megachat_core
-  COMMAND make -C "${MEGACHAT_ROOT}" --no-print-directory core-lib "CORE_LIB=${MEGACHAT_CORE}"
-  BYPRODUCTS "${MEGACHAT_CORE}"
+set(PARLEY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(PARLEY_CORE "${CMAKE_BINARY_DIR}/core/libparley.a")
+add_custom_target(parley_core
+  COMMAND make -C "${PARLEY_ROOT}" --no-print-directory core-lib "CORE_LIB=${PARLEY_CORE}"
+  BYPRODUCTS "${PARLEY_CORE}"
   USES_TERMINAL
 )
-add_dependencies(${BINARY_NAME} megachat_core)
-foreach(sym MegachatStart MegachatStop MegachatFree MegachatNotify MegachatNotifyClose MegachatNotifyClicks)
+add_dependencies(${BINARY_NAME} parley_core)
+foreach(sym ParleyStart ParleyStop ParleyFree ParleyNotify ParleyNotifyClose ParleyNotifyClicks)
   target_link_options(${BINARY_NAME} PRIVATE "LINKER:-u,${sym}" "LINKER:--export-dynamic-symbol=${sym}")
 endforeach()
-target_link_libraries(${BINARY_NAME} PRIVATE "${MEGACHAT_CORE}" Threads::Threads)
+target_link_libraries(${BINARY_NAME} PRIVATE "${PARLEY_CORE}" Threads::Threads)
 
 # Only the install-generated bundle's copy of the executable will launch
 # correctly, since the resources must in the right relative locations. To avoid

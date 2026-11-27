@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "dev.megachat" "\0"
-            VALUE "FileDescription", "megachat" "\0"
+            VALUE "CompanyName", "dev.selfhold.parley" "\0"
+            VALUE "FileDescription", "parley" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "megachat" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 dev.megachat. All rights reserved." "\0"
-            VALUE "OriginalFilename", "megachat.exe" "\0"
-            VALUE "ProductName", "megachat" "\0"
+            VALUE "InternalName", "parley" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 dev.selfhold.parley. All rights reserved." "\0"
+            VALUE "OriginalFilename", "parley.exe" "\0"
+            VALUE "ProductName", "parley" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

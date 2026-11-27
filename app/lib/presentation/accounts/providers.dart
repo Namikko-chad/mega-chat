@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 
 /// How a provider looks in lists. Unknown types (a newer core) still get

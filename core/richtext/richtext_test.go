@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 func kinds(d Doc) map[model.SpanKind]string {

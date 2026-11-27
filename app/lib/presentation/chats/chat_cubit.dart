@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
 import 'messages.dart';
@@ -159,7 +159,7 @@ class ChatCubit extends Cubit<ChatState> {
   bool _readSent = false; // the read point moved since opening
   pb.Message? _seen; // the newest message shown and not yet marked read
 
-  pb.MegaChatClient get _api => _core.api;
+  pb.ParleyClient get _api => _core.api;
 
   Future<void> load() async {
     emit(state.copyWith(loading: state.messages.isEmpty, clearError: true));

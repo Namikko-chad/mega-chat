@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // uploadImage uploads one image and returns its "photo<owner>_<id>" ref.

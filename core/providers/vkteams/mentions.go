@@ -3,7 +3,7 @@ package vkteams
 import (
 	"context"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // Members returns people of a chat to mention: a group's members (as

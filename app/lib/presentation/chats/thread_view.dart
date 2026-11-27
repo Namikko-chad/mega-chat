@@ -12,7 +12,7 @@ import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/local_files.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
@@ -121,7 +121,7 @@ class ThreadCubit extends Cubit<ThreadState> {
     });
   }
 
-  pb.MegaChatClient get _api => _core.api;
+  pb.ParleyClient get _api => _core.api;
 
   Future<void> load() async {
     emit(state.copyWith(loading: state.replies.isEmpty, clearError: true));

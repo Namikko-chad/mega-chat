@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // --- Profile (a chat's info page) --------------------------------------------

@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/crypto"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/crypto"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // Type is the provider type.
@@ -303,7 +303,7 @@ func (l *oauthLogin) listen() error {
 		default:
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, "<p>Signed in. You can close this page and go back to MegaChat.</p>")
+		fmt.Fprint(w, "<p>Signed in. You can close this page and go back to Parley.</p>")
 	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	l.mu.Lock()

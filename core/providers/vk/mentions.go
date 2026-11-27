@@ -7,8 +7,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 var _ provider.Mentioner = (*session)(nil)

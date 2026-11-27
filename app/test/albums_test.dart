@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/chats/messages.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/chats/messages.dart';
 
 pb.Message msg(String id, {String group = '', String text = '', String sender = 'a', bool deleted = false, int reactions = 0}) => pb.Message(
   id: id,

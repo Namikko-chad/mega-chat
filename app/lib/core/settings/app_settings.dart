@@ -25,7 +25,7 @@ enum NotifyMode {
 }
 
 /// App preferences of this device (not part of the vault): kept in
-/// `<config dir>/megachat/app.json` on desktops, in app support on Android.
+/// `<config dir>/parley/app.json` on desktops, in app support on Android.
 class AppSettings extends ChangeNotifier {
   AppSettings._(this._file);
 
@@ -111,7 +111,7 @@ class AppSettings extends ChangeNotifier {
   // the app's language, never the system locale).
   void _tellAndroid() {
     if (!Platform.isAndroid) return;
-    const channel = MethodChannel('dev.megachat/core');
+    const channel = MethodChannel('dev.selfhold.parley/core');
     channel.invokeMethod<void>('notifications', _notify.name).catchError((_) {});
     channel.invokeMethod<void>('language', lang.value.name).catchError((_) {});
   }

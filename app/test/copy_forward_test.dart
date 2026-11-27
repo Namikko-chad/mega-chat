@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/chats/messages.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/chats/messages.dart';
 
 pb.Message msg(String id, String text, {String name = 'Ann', bool outgoing = false, List<String> files = const [], bool deleted = false}) => pb.Message(
   id: id,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
-import 'package:megachat/presentation/chats/messages.dart';
-import 'package:megachat/presentation/common/hm.dart';
+import 'package:parley/data/rpc/gen/parley.pbgrpc.dart' as pb;
+import 'package:parley/presentation/chats/messages.dart';
+import 'package:parley/presentation/common/hm.dart';
 
 pb.TextSpan span(pb.TextStyle s, int o, int l, {String url = ''}) => pb.TextSpan(style: s, offset: o, length: l, url: url);
 

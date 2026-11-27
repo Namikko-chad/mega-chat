@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"megachat/core/eventlog"
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/eventlog"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // ErrInCall: the device is in another call already.

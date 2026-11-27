@@ -8,7 +8,7 @@ import '../../core/i18n.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../data/rpc/core_client.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"megachat/core/model"
-	"megachat/core/provider"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/provider"
 )
 
 // chatPeerBase is the offset VK adds to a group chat's local id.

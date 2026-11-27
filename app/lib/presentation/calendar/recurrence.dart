@@ -1,6 +1,6 @@
 import '../../core/format.dart';
 import '../../core/i18n.dart';
-import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../../data/rpc/gen/parley.pbgrpc.dart' as pb;
 import 'calendar_screen.dart' show weekdayNames;
 
 /// Repeat rules of events: RFC 5545 RRULE values without "RRULE:", as the

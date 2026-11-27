@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 // SendFiles shares files the way Slack's current API wants it: each file

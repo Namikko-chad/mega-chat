@@ -27,7 +27,7 @@ class DesktopWindow with WindowListener, TrayListener {
     if (!supported) return;
     await windowManager.ensureInitialized();
     const options = WindowOptions(
-      title: 'MegaChat',
+      title: 'Parley',
       size: Size(1440, 900),
       minimumSize: Size(420, 560),
       center: true,
@@ -42,7 +42,7 @@ class DesktopWindow with WindowListener, TrayListener {
     windowManager.addListener(this);
     try {
       await trayManager.setIcon(Platform.isWindows ? 'assets/tray/tray.ico' : 'assets/tray/tray.png');
-      if (!Platform.isLinux) await trayManager.setToolTip('MegaChat');
+      if (!Platform.isLinux) await trayManager.setToolTip('Parley');
       trayManager.addListener(this);
       _tray = true;
       await _menu();
@@ -58,7 +58,7 @@ class DesktopWindow with WindowListener, TrayListener {
     await trayManager.setContextMenu(
       Menu(
         items: [
-          MenuItem(key: 'show', label: tr('Open MegaChat', 'Открыть MegaChat')),
+          MenuItem(key: 'show', label: tr('Open Parley', 'Открыть Parley')),
           MenuItem.separator(),
           MenuItem(key: 'quit', label: tr('Quit', 'Выйти')),
         ],

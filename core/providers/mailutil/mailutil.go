@@ -21,8 +21,8 @@ import (
 	"github.com/emersion/go-message/charset"
 	xhtml "golang.org/x/net/html"
 
-	"megachat/core/model"
-	"megachat/core/richtext"
+	"github.com/SelfHold/parley/core/model"
+	"github.com/SelfHold/parley/core/richtext"
 )
 
 var dec = &mime.WordDecoder{CharsetReader: charset.Reader}
@@ -136,7 +136,7 @@ func Compose(from model.Address, out model.OutMail, reply *Reply, now time.Time)
 	}
 	var r [12]byte
 	rand.Read(r[:])
-	boundary := "mc-" + hex.EncodeToString(r[:])
+	boundary := "parley-" + hex.EncodeToString(r[:])
 	h("Content-Type", `multipart/alternative; boundary="`+boundary+`"`)
 	b.WriteString("\r\n")
 	section := func(mimeType, body string) {
@@ -153,7 +153,7 @@ func Compose(from model.Address, out model.OutMail, reply *Reply, now time.Time)
 func newMessageID(from string) string {
 	var r [12]byte
 	rand.Read(r[:])
-	host := "megachat.local"
+	host := "parley.local"
 	if i := strings.LastIndexByte(from, '@'); i >= 0 && i < len(from)-1 {
 		host = from[i+1:]
 	}

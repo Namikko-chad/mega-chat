@@ -5,7 +5,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"megachat/core/model"
+	"github.com/SelfHold/parley/core/model"
 )
 
 func TestInputMedia(t *testing.T) {
