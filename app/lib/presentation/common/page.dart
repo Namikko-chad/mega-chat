@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 
-/// The canvas of a page (§ 2.3): gutters and section gaps come from here,
+/// The canvas of a page: gutters and section gaps come from here,
 /// pages add none of their own. On phones it pulls to refresh and tells
-/// long lists when the end comes near (infinite scroll, App. D).
+/// long lists when the end comes near (infinite scroll).
 class HmPage extends StatefulWidget {
   const HmPage({super.key, required this.children, this.onRefresh});
 

@@ -20,18 +20,18 @@ object Notifications {
     fun channels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(SERVICE, "Фоновая работа", NotificationManager.IMPORTANCE_MIN).apply {
-                description = "MegaChat держит соединения с мессенджерами"
+            NotificationChannel(SERVICE, tr(context, "Background work", "Фоновая работа"), NotificationManager.IMPORTANCE_MIN).apply {
+                description = tr(context, "MegaChat keeps the messenger connections open", "MegaChat держит соединения с мессенджерами")
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(MESSAGES, "Сообщения", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Новые входящие сообщения"
+            NotificationChannel(MESSAGES, tr(context, "Messages", "Сообщения"), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = tr(context, "New incoming messages", "Новые входящие сообщения")
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(CALLS, "Звонки", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Входящие звонки"
+            NotificationChannel(CALLS, tr(context, "Calls", "Звонки"), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = tr(context, "Incoming calls", "Входящие звонки")
                 setSound(
                     RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
                     AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
@@ -59,7 +59,7 @@ object Notifications {
         val video = c.optBoolean("video")
         val n = Notification.Builder(context, CALLS)
             .setContentTitle(c.optString("peer").ifEmpty { "MegaChat" })
-            .setContentText(if (video) "Входящий видеозвонок" else "Входящий звонок")
+            .setContentText(if (video) tr(context, "Incoming video call", "Входящий видеозвонок") else tr(context, "Incoming call", "Входящий звонок"))
             .setSmallIcon(R.drawable.ic_stat_chat)
             .setCategory(Notification.CATEGORY_CALL)
             .setContentIntent(openApp(context))
@@ -90,6 +90,25 @@ object Notifications {
     private fun mode(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("mode", "all") ?: "all"
 
+    /**
+     * The UI language the user picked in the app's settings: "en" (the
+     * default, whatever the system locale) or "ru". Set by the app at start
+     * and on every change; notifications shown while the UI is not running
+     * use the last one.
+     */
+    fun setLanguage(context: Context, language: String) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getString("language", "en") == language) return
+        prefs.edit().putString("language", language).apply()
+        // Channel names and descriptions can be updated in place.
+        channels(context)
+        CoreService.refresh(context)
+    }
+
+    /** Picks the string for the chosen language, like tr() in the app. */
+    fun tr(context: Context, en: String, ru: String): String =
+        if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("language", "en") == "ru") ru else en
+
     /** One notification per chat: a newer message replaces the older one. */
     fun message(context: Context, json: String) {
         val m = runCatching { JSONObject(json) }.getOrNull() ?: return
@@ -112,7 +131,7 @@ object Notifications {
             .setContentIntent(openApp(context))
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_MESSAGE)
-            .apply { if (mention) setSubText("Упоминание") }
+            .apply { if (mention) setSubText(tr(context, "Mention", "Упоминание")) }
             .build()
         val id = (m.optString("account_id") + "/" + m.optString("chat_id")).hashCode()
         context.getSystemService(NotificationManager::class.java).notify(id, n)

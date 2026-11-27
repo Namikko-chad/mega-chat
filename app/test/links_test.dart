@@ -7,7 +7,7 @@ void main() {
   List<String> found(String s) => [for (final l in findLinks(s)) '${s.substring(l.start, l.end)} -> ${l.uri}'];
 
   test('web links with a scheme or www.', () {
-    expect(found('https://namikko-chad.github.io/'), ['https://namikko-chad.github.io/ -> https://namikko-chad.github.io/']);
+    expect(found('https://user.github.io/'), ['https://user.github.io/ -> https://user.github.io/']);
     expect(found('see www.example.org/a?b=1#c, ok'), ['www.example.org/a?b=1#c -> https://www.example.org/a?b=1#c']);
   });
 

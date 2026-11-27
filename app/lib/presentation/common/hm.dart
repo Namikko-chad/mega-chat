@@ -1,4 +1,4 @@
-/// The component library (DESIGN_MANIFEST.md): every screen is built from
+/// The component library: every screen is built from
 /// these widgets only.
 library;
 

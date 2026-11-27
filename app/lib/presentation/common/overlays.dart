@@ -10,14 +10,14 @@ import '../../core/theme/typography.dart';
 import 'buttons.dart';
 import '../../core/i18n.dart';
 
-/// Modal widths (§ 14.2).
+/// Modal widths.
 enum HmModalSize { sm, md, lg }
 
-const _scrim = Color(0x99000000); // rgba(0,0,0,0.6) (§ 14.1)
+const _scrim = Color(0x99000000); // rgba(0,0,0,0.6)
 
-/// Opens a modal: a centred dialog on desktops (§ 14), a bottom sheet with
-/// a handle on phones (M14). [actions] is `[Cancel, Primary]` in that
-/// order; on phones it is stacked with the primary on top (M7).
+/// Opens a modal: a centred dialog on desktops, a bottom sheet with
+/// a handle on phones. [actions] is `[Cancel, Primary]` in that
+/// order; on phones it is stacked with the primary on top.
 Future<T?> showHmModal<T>(
   BuildContext context, {
   required String title,
@@ -37,7 +37,7 @@ Future<T?> showHmModal<T>(
       barrierColor: _scrim,
       backgroundColor: Colors.transparent,
       constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.92),
-      // dismissible: false also blocks the back button (M14).
+      // dismissible: false also blocks the back button.
       builder: (ctx) => PopScope(
         canPop: dismissible,
         child: _Sheet(title: title, body: body, actions: actions),
@@ -165,7 +165,7 @@ class _Sheet extends StatelessWidget {
             ),
             if (acts.isNotEmpty) ...[
               const SizedBox(height: 20),
-              // DOM order [Cancel, Primary] renders primary on top (M7).
+              // DOM order [Cancel, Primary] renders primary on top.
               for (final a in acts.reversed) ...[Padding(padding: const EdgeInsets.only(bottom: 8), child: a)],
             ],
           ],
@@ -175,8 +175,8 @@ class _Sheet extends StatelessWidget {
   }
 }
 
-/// A centred confirmation dialog on every platform (App. D: confirms stay
-/// centred). Destructive confirms use a red primary (§ 14.4).
+/// A centred confirmation dialog on every platform (confirms stay
+/// centred on phones too). Destructive confirms use a red primary.
 Future<bool> confirm(
   BuildContext context, {
   required String title,
@@ -223,9 +223,9 @@ Future<bool> confirm(
   return ok ?? false;
 }
 
-/// Picks one option: a dropdown panel under the trigger on desktops
-/// (§ 16), a picker sheet on phones (App. D). From 8 options on, a search
-/// field sits on top (§ 16.4).
+/// Picks one option: a dropdown panel under the trigger on desktops,
+/// a picker sheet on phones. From 8 options on, a search
+/// field sits on top.
 Future<T?> pickOption<T>(
   BuildContext context, {
   required String title,
@@ -254,7 +254,7 @@ typedef HmMenuItem<T> = ({T value, String label});
 /// coordinates: a right click or a long press), or — opened without a
 /// pointer — next to [anchor]'s box (the item it is about; null: [context]'s
 /// box). It opens down and right of the point and flips or slides to stay
-/// inside the window. On phones it is a picker sheet (App. D). Returns the
+/// inside the window. On phones it is a picker sheet. Returns the
 /// value of the picked item, null when dismissed.
 Future<T?> showContextMenu<T>(
   BuildContext context, {
@@ -298,7 +298,7 @@ Future<T?> _showOptionSheet<T>(BuildContext context, String title, Widget list) 
   builder: (_) => _Sheet(title: title, body: (_) => list, actions: null),
 );
 
-/// The desktop option panel (§ 16) placed next to [anchor] (overlay
+/// The desktop option panel placed next to [anchor] (overlay
 /// coordinates) by [_PanelLayout].
 Future<T?> _showOptionPanel<T>(
   BuildContext context, {
@@ -520,7 +520,7 @@ class _OptionItemState extends State<_OptionItem> {
   }
 }
 
-/// Toast types (§ 15.3).
+/// Toast types.
 enum ToastKind { success, error, info, warning }
 
 class _Toast {
@@ -532,8 +532,8 @@ class _Toast {
   final key = UniqueKey();
 }
 
-/// Toast stack: bottom-right on desktops (§ 15.3), full width above the
-/// tab bar on phones (M15). Newest on top; errors stay until closed.
+/// Toast stack: bottom-right on desktops, full width above the
+/// tab bar on phones. Newest on top; errors stay until closed.
 class Toasts {
   static final _items = ValueNotifier<List<_Toast>>([]);
 
@@ -614,7 +614,7 @@ class _ToastView extends StatelessWidget {
             border: Border.all(color: HmColors.border),
             boxShadow: const [BoxShadow(color: Color(0x66000000), offset: Offset(0, 8), blurRadius: 24)],
           ),
-          // The 3 px type stripe (§ 15.3); a rounded border must be one colour.
+          // The 3 px type stripe; a rounded border must be one colour.
           foregroundDecoration: BoxDecoration(
             border: Border(left: BorderSide(color: color, width: 3)),
           ),

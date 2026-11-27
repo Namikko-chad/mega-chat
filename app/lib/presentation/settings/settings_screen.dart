@@ -22,7 +22,7 @@ import '../unlock/unlock_screen.dart' show rememberHint, rememberPassword;
 import 'cloudsync.dart';
 
 /// This device, app preferences and the vault password: the "profile" of
-/// the app (§ 4.6). On phones it also carries the footer's status (App. D).
+/// the app. On phones it also carries the footer's status.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.onLock});
 
@@ -399,7 +399,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         if (hm.mobile) ...[
-          // The footer's slots live here on phones (M6, App. D).
+          // The footer's slots live here on phones.
           HmCard(
             padding: const EdgeInsets.all(16),
             child: Column(

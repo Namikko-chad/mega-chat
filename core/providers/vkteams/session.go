@@ -730,7 +730,8 @@ func (s *session) nameChat(ctx context.Context, sink provider.Sink, sn string) {
 func (s *session) Chats(ctx context.Context, limit int) ([]model.Chat, error) {
 	s.fill(ctx)
 	s.mu.Lock()
-	// The chat with oneself is the account's saved messages ("Избранное").
+	// The chat with oneself is the account's saved messages (the Russian
+	// client calls it "Избранное", Favourites).
 	if me := s.self.ID; me != "" && s.dialogs[me] == nil {
 		s.dialogs[me] = &dialog{SN: me}
 	}

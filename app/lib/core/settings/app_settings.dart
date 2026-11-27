@@ -106,10 +106,14 @@ class AppSettings extends ChangeNotifier {
     return _instance = s;
   }
 
-  // Android shows notifications in Kotlin, also while the UI is not running.
+  // Android shows notifications in Kotlin, also while the UI is not running:
+  // it gets the notification mode and the chosen language (its strings follow
+  // the app's language, never the system locale).
   void _tellAndroid() {
     if (!Platform.isAndroid) return;
-    const MethodChannel('dev.megachat/core').invokeMethod<void>('notifications', _notify.name).catchError((_) {});
+    const channel = MethodChannel('dev.megachat/core');
+    channel.invokeMethod<void>('notifications', _notify.name).catchError((_) {});
+    channel.invokeMethod<void>('language', lang.value.name).catchError((_) {});
   }
 
   Future<void> setNotify(NotifyMode v) async {
@@ -121,6 +125,7 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> setLanguage(Lang l) async {
     lang.value = l;
+    _tellAndroid();
     notifyListeners();
     await _save();
   }

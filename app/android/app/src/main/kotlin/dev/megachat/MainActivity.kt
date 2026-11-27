@@ -75,6 +75,11 @@ class MainActivity : FlutterFragmentActivity() {
                     Notifications.setMode(this, call.arguments as? String ?: "all")
                     result.success(null)
                 }
+                // "en" or "ru": the UI language picked in the app, for notifications.
+                "language" -> {
+                    Notifications.setLanguage(this, call.arguments as? String ?: "en")
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
