@@ -39,7 +39,7 @@ void main() {
       final core = CoreCubit(_NoCore());
       final m = _Messenger(core);
       for (final n in ['one', 'two', 'three']) {
-        m.upsertAccount(pb.Account(id: n, name: n, provider: 'fake', enabled: true));
+        m.upsertAccount(pb.Account(id: n, name: n, provider: 'fake', enabled: true, capabilities: [pb.Capability.CAPABILITY_MESSAGES]));
       }
       await tester.pumpWidget(
         MaterialApp(

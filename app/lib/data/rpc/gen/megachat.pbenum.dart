@@ -451,6 +451,109 @@ class Rsvp extends $pb.ProtobufEnum {
   const Rsvp._(super.value, super.name);
 }
 
+/// What of a repeating event a change or a delete of one occurrence touches.
+class RecurrenceScope extends $pb.ProtobufEnum {
+  static const RecurrenceScope RECURRENCE_SCOPE_THIS =
+      RecurrenceScope._(0, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_THIS');
+  static const RecurrenceScope RECURRENCE_SCOPE_FOLLOWING =
+      RecurrenceScope._(1, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_FOLLOWING');
+  static const RecurrenceScope RECURRENCE_SCOPE_ALL =
+      RecurrenceScope._(2, _omitEnumNames ? '' : 'RECURRENCE_SCOPE_ALL');
+
+  static const $core.List<RecurrenceScope> values = <RecurrenceScope>[
+    RECURRENCE_SCOPE_THIS,
+    RECURRENCE_SCOPE_FOLLOWING,
+    RECURRENCE_SCOPE_ALL,
+  ];
+
+  static final $core.List<RecurrenceScope?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static RecurrenceScope? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RecurrenceScope._(super.value, super.name);
+}
+
+class CloudSyncState_Status extends $pb.ProtobufEnum {
+  static const CloudSyncState_Status STATUS_UNSPECIFIED =
+      CloudSyncState_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
+  static const CloudSyncState_Status OFF =
+      CloudSyncState_Status._(1, _omitEnumNames ? '' : 'OFF');
+  static const CloudSyncState_Status NOT_RUNNING =
+      CloudSyncState_Status._(2, _omitEnumNames ? '' : 'NOT_RUNNING');
+  static const CloudSyncState_Status NO_VAULT =
+      CloudSyncState_Status._(3, _omitEnumNames ? '' : 'NO_VAULT');
+  static const CloudSyncState_Status LOCKED =
+      CloudSyncState_Status._(4, _omitEnumNames ? '' : 'LOCKED');
+  static const CloudSyncState_Status OFFLINE =
+      CloudSyncState_Status._(5, _omitEnumNames ? '' : 'OFFLINE');
+  static const CloudSyncState_Status PAIRING =
+      CloudSyncState_Status._(6, _omitEnumNames ? '' : 'PAIRING');
+  static const CloudSyncState_Status SYNCING =
+      CloudSyncState_Status._(7, _omitEnumNames ? '' : 'SYNCING');
+  static const CloudSyncState_Status SYNCED =
+      CloudSyncState_Status._(8, _omitEnumNames ? '' : 'SYNCED');
+  static const CloudSyncState_Status CONFLICT =
+      CloudSyncState_Status._(9, _omitEnumNames ? '' : 'CONFLICT');
+  static const CloudSyncState_Status NEEDS_PASSWORD =
+      CloudSyncState_Status._(10, _omitEnumNames ? '' : 'NEEDS_PASSWORD');
+  static const CloudSyncState_Status WAITING_UNLOCK =
+      CloudSyncState_Status._(11, _omitEnumNames ? '' : 'WAITING_UNLOCK');
+  static const CloudSyncState_Status ERROR =
+      CloudSyncState_Status._(12, _omitEnumNames ? '' : 'ERROR');
+
+  static const $core.List<CloudSyncState_Status> values =
+      <CloudSyncState_Status>[
+    STATUS_UNSPECIFIED,
+    OFF,
+    NOT_RUNNING,
+    NO_VAULT,
+    LOCKED,
+    OFFLINE,
+    PAIRING,
+    SYNCING,
+    SYNCED,
+    CONFLICT,
+    NEEDS_PASSWORD,
+    WAITING_UNLOCK,
+    ERROR,
+  ];
+
+  static final $core.List<CloudSyncState_Status?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
+  static CloudSyncState_Status? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CloudSyncState_Status._(super.value, super.name);
+}
+
+class ResolveCloudSyncRequest_Choice extends $pb.ProtobufEnum {
+  static const ResolveCloudSyncRequest_Choice CHOICE_UNSPECIFIED =
+      ResolveCloudSyncRequest_Choice._(
+          0, _omitEnumNames ? '' : 'CHOICE_UNSPECIFIED');
+  static const ResolveCloudSyncRequest_Choice USE_SYNCED =
+      ResolveCloudSyncRequest_Choice._(1, _omitEnumNames ? '' : 'USE_SYNCED');
+  static const ResolveCloudSyncRequest_Choice UPLOAD =
+      ResolveCloudSyncRequest_Choice._(2, _omitEnumNames ? '' : 'UPLOAD');
+  static const ResolveCloudSyncRequest_Choice MERGE =
+      ResolveCloudSyncRequest_Choice._(3, _omitEnumNames ? '' : 'MERGE');
+
+  static const $core.List<ResolveCloudSyncRequest_Choice> values =
+      <ResolveCloudSyncRequest_Choice>[
+    CHOICE_UNSPECIFIED,
+    USE_SYNCED,
+    UPLOAD,
+    MERGE,
+  ];
+
+  static final $core.List<ResolveCloudSyncRequest_Choice?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ResolveCloudSyncRequest_Choice? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ResolveCloudSyncRequest_Choice._(super.value, super.name);
+}
+
 class Event_Kind extends $pb.ProtobufEnum {
   static const Event_Kind KIND_UNSPECIFIED =
       Event_Kind._(0, _omitEnumNames ? '' : 'KIND_UNSPECIFIED');
@@ -486,6 +589,8 @@ class Event_Kind extends $pb.ProtobufEnum {
       Event_Kind._(21, _omitEnumNames ? '' : 'KIND_MAIL');
   static const Event_Kind KIND_CALENDAR =
       Event_Kind._(22, _omitEnumNames ? '' : 'KIND_CALENDAR');
+  static const Event_Kind KIND_CLOUDSYNC =
+      Event_Kind._(23, _omitEnumNames ? '' : 'KIND_CLOUDSYNC');
 
   static const $core.List<Event_Kind> values = <Event_Kind>[
     KIND_UNSPECIFIED,
@@ -504,11 +609,13 @@ class Event_Kind extends $pb.ProtobufEnum {
     KIND_MAIL_NEW,
     KIND_MAIL,
     KIND_CALENDAR,
+    KIND_CLOUDSYNC,
   ];
 
-  static final $core.Map<$core.int, Event_Kind> _byValue =
-      $pb.ProtobufEnum.initByValue(values);
-  static Event_Kind? valueOf($core.int value) => _byValue[value];
+  static final $core.List<Event_Kind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 23);
+  static Event_Kind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const Event_Kind._(super.value, super.name);
 }

@@ -171,7 +171,15 @@ class CallCubit extends Cubit<CallUi> {
         await _play(c.outgoing ? 'ringback' : 'ring');
       case pb.CallState.CALL_STATE_CONNECTING || pb.CallState.CALL_STATE_ACTIVE:
         await _play(null);
-        if (_pc == null) await _start();
+        if (_pc == null) {
+          try {
+            await _start();
+          } catch (e) {
+            // The core ends the call and logs why (else it waits for its timeout).
+            _signal(pb.CallSignal(kind: pb.SignalKind.SIGNAL_KIND_FAILED, data: 'peer connection setup: $e'));
+            rethrow;
+          }
+        }
       case pb.CallState.CALL_STATE_ENDED:
         await _ended(c);
       default:

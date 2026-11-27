@@ -126,6 +126,59 @@ class MegaChatClient extends $grpc.Client {
     return $createUnaryCall(_$setVaultPath, request, options: options);
   }
 
+  /// "Sync via CloudSync" (CONNECTOR.md): the vault file is kept in the
+  /// user's CloudSync vault and every device gets the same one. It works
+  /// only while CloudSync runs on this device (desktops: cloudsyncd; Android:
+  /// the CloudSync app) and the app stays usable without it. Changes come as
+  /// KIND_CLOUDSYNC. EnableCloudSync pairs this device (state PAIRING with a
+  /// code the user compares in CloudSync) and syncs; it works while unlocked
+  /// or when there is no vault yet (it then takes the synced one).
+  /// CONFLICT: the synced vault differs from this one, ResolveCloudSync
+  /// picks. NEEDS_PASSWORD: the synced copy has another password,
+  /// CloudSyncPassword gives it. DisableCloudSync keeps the local vault.
+  $grpc.ResponseFuture<$0.CloudSyncState> cloudSync(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cloudSync, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CloudSyncState> enableCloudSync(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$enableCloudSync, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CloudSyncState> cancelCloudSyncPairing(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cancelCloudSyncPairing, request,
+        options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CloudSyncState> resolveCloudSync(
+    $0.ResolveCloudSyncRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$resolveCloudSync, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CloudSyncState> cloudSyncPassword(
+    $0.PasswordRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cloudSyncPassword, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CloudSyncState> disableCloudSync(
+    $0.DisableCloudSyncRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$disableCloudSync, request, options: options);
+  }
+
   /// Providers and accounts.
   $grpc.ResponseFuture<$0.ProvidersReply> providers(
     $0.Empty request, {
@@ -561,6 +614,35 @@ class MegaChatClient extends $grpc.Client {
           '/megachat.v1.MegaChat/SetVaultPath',
           ($0.VaultPathRequest value) => value.writeToBuffer(),
           $0.State.fromBuffer);
+  static final _$cloudSync = $grpc.ClientMethod<$0.Empty, $0.CloudSyncState>(
+      '/megachat.v1.MegaChat/CloudSync',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.CloudSyncState.fromBuffer);
+  static final _$enableCloudSync =
+      $grpc.ClientMethod<$0.Empty, $0.CloudSyncState>(
+          '/megachat.v1.MegaChat/EnableCloudSync',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.CloudSyncState.fromBuffer);
+  static final _$cancelCloudSyncPairing =
+      $grpc.ClientMethod<$0.Empty, $0.CloudSyncState>(
+          '/megachat.v1.MegaChat/CancelCloudSyncPairing',
+          ($0.Empty value) => value.writeToBuffer(),
+          $0.CloudSyncState.fromBuffer);
+  static final _$resolveCloudSync =
+      $grpc.ClientMethod<$0.ResolveCloudSyncRequest, $0.CloudSyncState>(
+          '/megachat.v1.MegaChat/ResolveCloudSync',
+          ($0.ResolveCloudSyncRequest value) => value.writeToBuffer(),
+          $0.CloudSyncState.fromBuffer);
+  static final _$cloudSyncPassword =
+      $grpc.ClientMethod<$0.PasswordRequest, $0.CloudSyncState>(
+          '/megachat.v1.MegaChat/CloudSyncPassword',
+          ($0.PasswordRequest value) => value.writeToBuffer(),
+          $0.CloudSyncState.fromBuffer);
+  static final _$disableCloudSync =
+      $grpc.ClientMethod<$0.DisableCloudSyncRequest, $0.CloudSyncState>(
+          '/megachat.v1.MegaChat/DisableCloudSync',
+          ($0.DisableCloudSyncRequest value) => value.writeToBuffer(),
+          $0.CloudSyncState.fromBuffer);
   static final _$providers = $grpc.ClientMethod<$0.Empty, $0.ProvidersReply>(
       '/megachat.v1.MegaChat/Providers',
       ($0.Empty value) => value.writeToBuffer(),
@@ -847,6 +929,52 @@ abstract class MegaChatServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.VaultPathRequest.fromBuffer(value),
         ($0.State value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CloudSyncState>(
+        'CloudSync',
+        cloudSync_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CloudSyncState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CloudSyncState>(
+        'EnableCloudSync',
+        enableCloudSync_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CloudSyncState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.CloudSyncState>(
+        'CancelCloudSyncPairing',
+        cancelCloudSyncPairing_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.CloudSyncState value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ResolveCloudSyncRequest, $0.CloudSyncState>(
+            'ResolveCloudSync',
+            resolveCloudSync_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ResolveCloudSyncRequest.fromBuffer(value),
+            ($0.CloudSyncState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PasswordRequest, $0.CloudSyncState>(
+        'CloudSyncPassword',
+        cloudSyncPassword_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.PasswordRequest.fromBuffer(value),
+        ($0.CloudSyncState value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.DisableCloudSyncRequest, $0.CloudSyncState>(
+            'DisableCloudSync',
+            disableCloudSync_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.DisableCloudSyncRequest.fromBuffer(value),
+            ($0.CloudSyncState value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.Empty, $0.ProvidersReply>(
         'Providers',
         providers_Pre,
@@ -1259,6 +1387,55 @@ abstract class MegaChatServiceBase extends $grpc.Service {
 
   $async.Future<$0.State> setVaultPath(
       $grpc.ServiceCall call, $0.VaultPathRequest request);
+
+  $async.Future<$0.CloudSyncState> cloudSync_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return cloudSync($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> cloudSync(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CloudSyncState> enableCloudSync_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return enableCloudSync($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> enableCloudSync(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CloudSyncState> cancelCloudSyncPairing_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return cancelCloudSyncPairing($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> cancelCloudSyncPairing(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.CloudSyncState> resolveCloudSync_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.ResolveCloudSyncRequest> $request) async {
+    return resolveCloudSync($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> resolveCloudSync(
+      $grpc.ServiceCall call, $0.ResolveCloudSyncRequest request);
+
+  $async.Future<$0.CloudSyncState> cloudSyncPassword_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.PasswordRequest> $request) async {
+    return cloudSyncPassword($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> cloudSyncPassword(
+      $grpc.ServiceCall call, $0.PasswordRequest request);
+
+  $async.Future<$0.CloudSyncState> disableCloudSync_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.DisableCloudSyncRequest> $request) async {
+    return disableCloudSync($call, await $request);
+  }
+
+  $async.Future<$0.CloudSyncState> disableCloudSync(
+      $grpc.ServiceCall call, $0.DisableCloudSyncRequest request);
 
   $async.Future<$0.ProvidersReply> providers_Pre(
       $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {

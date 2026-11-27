@@ -14,6 +14,7 @@ import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import '../common/hm.dart';
 import '../core/core_cubit.dart';
+import '../settings/cloudsync.dart';
 
 /// After the password was entered once: offers to unlock by fingerprint
 /// next time (Android, a fingerprint is enrolled, not declined before).
@@ -393,6 +394,7 @@ class _SetupState extends State<_Setup> {
             style: HmText.small.copyWith(height: 1.5),
           ),
           const _OtherVault(),
+          const _FromCloudSync(),
           const SizedBox(height: 20),
           if (_error != null) ...[HmBanner(_error!, tone: HmTone.error), SizedBox(height: hm.gapSm)],
           HmTextField(label: tr('Password', 'Пароль'), required: true, password: true, autofocus: true, controller: _password, error: _errors['password']),
@@ -413,6 +415,59 @@ class _SetupState extends State<_Setup> {
           _Actions(
             children: [HmButton(tr('Create vault', 'Создать хранилище'), variant: HmVariant.primary, loading: _busy, expand: hm.mobile, onPressed: _submit)],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Get the vault from CloudSync" (no vault here yet, CloudSync answers):
+/// pairs this device and takes the synced vault; the core then reports
+/// vault_exists and the unlock form replaces this screen. Without a synced
+/// vault the status ends with a message and the create form stays.
+class _FromCloudSync extends StatefulWidget {
+  const _FromCloudSync();
+
+  @override
+  State<_FromCloudSync> createState() => _FromCloudSyncState();
+}
+
+class _FromCloudSyncState extends State<_FromCloudSync> {
+  bool _busy = false;
+
+  Future<void> _get() async {
+    final core = context.read<CoreCubit>();
+    setState(() => _busy = true);
+    try {
+      core.adoptCloudSync(await core.api.enableCloudSync(pb.Empty()));
+    } catch (e) {
+      Toasts.error('${tr('Could not reach CloudSync', 'Не удалось связаться с CloudSync')}: ${errorText(e)}');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.watch<CoreCubit>().state.state?.cloudsync ?? pb.CloudSyncState();
+    if (!showCloudSyncSwitch(cs)) return const SizedBox();
+    final started = cs.enabled || cs.status == pb.CloudSyncState_Status.PAIRING;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (started || cs.message.isNotEmpty) ...[CloudSyncStatus(cs), const SizedBox(height: 8)],
+          if (!started)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: HmButton(
+                tr('Get the vault from CloudSync', 'Получить хранилище из CloudSync'),
+                icon: Icons.cloud_download_outlined,
+                loading: _busy,
+                onPressed: _get,
+              ),
+            ),
         ],
       ),
     );

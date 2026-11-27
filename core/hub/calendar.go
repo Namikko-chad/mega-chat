@@ -10,6 +10,7 @@ import (
 
 	"megachat/core/eventlog"
 	"megachat/core/model"
+	"megachat/core/recur"
 )
 
 // calendarTTL: how long a calendar list is used before it is fetched again.
@@ -160,20 +161,26 @@ func (h *Hub) Events(ctx context.Context, q EventsQuery) ([]model.CalEvent, []Ac
 	return out, errs, nil
 }
 
-// SaveEvent creates or changes an event.
-func (h *Hub) SaveEvent(ctx context.Context, ev model.CalEvent) (model.CalEvent, error) {
+// SaveEvent creates or changes an event; scope says what of a repeating
+// event an occurrence's change touches.
+func (h *Hub) SaveEvent(ctx context.Context, ev model.CalEvent, scope model.RecurScope) (model.CalEvent, error) {
 	if ev.Title == "" {
 		return model.CalEvent{}, errors.New("an event needs a title")
 	}
 	if !ev.End.After(ev.Start) {
 		return model.CalEvent{}, errors.New("an event must end after it starts")
 	}
+	if ev.Recurrence = recur.Clean(ev.Recurrence); ev.Recurrence != "" {
+		if err := recur.Valid(ev.Recurrence); err != nil {
+			return model.CalEvent{}, err
+		}
+	}
 	c, err := h.calendarsOf(ev.AccountID)
 	if err != nil {
 		return model.CalEvent{}, err
 	}
 	acct := ev.AccountID
-	out, err := c.SaveEvent(ctx, ev)
+	out, err := c.SaveEvent(ctx, ev, scope)
 	if err != nil {
 		return model.CalEvent{}, err
 	}
@@ -186,13 +193,14 @@ func (h *Hub) SaveEvent(ctx context.Context, ev model.CalEvent) (model.CalEvent,
 	return out, nil
 }
 
-// DeleteEvent deletes an event.
-func (h *Hub) DeleteEvent(ctx context.Context, acct, calendar, id string) error {
+// DeleteEvent deletes an event; scope says what of a repeating event goes
+// with an occurrence.
+func (h *Hub) DeleteEvent(ctx context.Context, acct, calendar, id string, scope model.RecurScope) error {
 	c, err := h.calendarsOf(acct)
 	if err != nil {
 		return err
 	}
-	if err := c.DeleteEvent(ctx, calendar, id); err != nil {
+	if err := c.DeleteEvent(ctx, calendar, id, scope); err != nil {
 		return err
 	}
 	h.emit(Event{Kind: EvCalendar, AccountID: acct})

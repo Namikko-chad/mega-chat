@@ -6,11 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gotd/td/tg"
@@ -125,6 +127,10 @@ type signaling struct {
 	cancel context.CancelFunc
 	outq   chan []byte
 
+	// What went through, for the log when a call does not connect.
+	pktIn, pktOut, sendErrs, dropped atomic.Int32
+	up                               atomic.Bool // the association is established
+
 	mu      sync.Mutex
 	assoc   *sctp.Association
 	stream  *sctp.Stream
@@ -138,6 +144,7 @@ func newSignaling(key []byte, outgoing bool, send func(context.Context, []byte) 
 		select {
 		case g.outq <- p:
 		default: // SCTP sends it again
+			g.dropped.Add(1)
 		}
 	})
 	return g
@@ -156,8 +163,13 @@ func (g *signaling) sendLoop() {
 			return
 		case p := <-g.outq:
 			ctx, cancel := context.WithTimeout(g.ctx, 15*time.Second)
-			if err := g.send(ctx, p); err != nil && g.ctx.Err() == nil {
-				g.logf("warn", "call signalling: send: %v", err)
+			if err := g.send(ctx, p); err != nil {
+				if g.ctx.Err() == nil {
+					g.sendErrs.Add(1)
+					g.logf("warn", "call signalling: send: %v", err)
+				}
+			} else {
+				g.pktOut.Add(1)
 			}
 			cancel()
 		}
@@ -214,6 +226,7 @@ func (g *signaling) run(mode sigMode) {
 		return
 	}
 	g.assoc, g.stream = a, st
+	g.up.Store(true)
 	pending := g.pending
 	g.pending = nil
 	g.mu.Unlock()
@@ -259,7 +272,20 @@ func (g *signaling) handle(sealed []byte) {
 }
 
 // receive takes a packet that came in updatePhoneCallSignalingData.
-func (g *signaling) receive(p []byte) { g.conn.deliver(p) }
+func (g *signaling) receive(p []byte) {
+	g.pktIn.Add(1)
+	g.conn.deliver(p)
+}
+
+// stats says what went through the channel (no payload).
+func (g *signaling) stats() string {
+	st := "not established"
+	if g.up.Load() {
+		st = "established"
+	}
+	return fmt.Sprintf("sctp %s, packets %d sent / %d received, %d send errors, %d dropped",
+		st, g.pktOut.Load(), g.pktIn.Load(), g.sendErrs.Load(), g.dropped.Load())
+}
 
 // sendJSON sends a message; before the association is up it is queued.
 func (g *signaling) sendJSON(v any) error {
@@ -429,6 +455,27 @@ func iceServers(conns []tg.PhoneConnectionClass) []model.IceServer {
 func reflectorCandidate(sdp string) bool {
 	f := strings.Fields(strings.TrimPrefix(sdp, "a="))
 	return len(f) >= 5 && strings.HasSuffix(strings.ToLower(f[4]), ".reflector")
+}
+
+// candidateKind is a candidate's protocol and type ("udp host", "udp
+// relay", "reflector") for the log; it carries no address.
+func candidateKind(sdp string) string {
+	if reflectorCandidate(sdp) {
+		return "reflector"
+	}
+	f := strings.Fields(strings.TrimPrefix(sdp, "a="))
+	typ := "?"
+	for i := 0; i+1 < len(f); i++ {
+		if f[i] == "typ" {
+			typ = f[i+1]
+			break
+		}
+	}
+	proto := "?"
+	if len(f) >= 3 {
+		proto = strings.ToLower(f[2])
+	}
+	return proto + " " + typ
 }
 
 // --- pion logs -----------------------------------------------------------

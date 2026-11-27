@@ -60,6 +60,16 @@ class MainActivity : FlutterFragmentActivity() {
                         runOnUiThread { result.error("core", t.message, null) }
                     }
                 }
+                // CloudSync, to unlock it or answer a pairing request.
+                "openCloudSync" -> {
+                    val i = packageManager.getLaunchIntentForPackage(CloudSync.PACKAGE)
+                    if (i == null) {
+                        result.error("cloudsync", "CloudSync is not installed", null)
+                    } else {
+                        startActivity(i)
+                        result.success(null)
+                    }
+                }
                 // "all", "mentions" or "off": what message notifications show.
                 "notifications" -> {
                     Notifications.setMode(this, call.arguments as? String ?: "all")

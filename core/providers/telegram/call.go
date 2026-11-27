@@ -102,6 +102,51 @@ type tgCall struct {
 	queued   []model.CallSignal // app signals before sig
 	timer    *time.Timer
 	gen      int // invalidates a superseded timer
+	diag     callDiag
+}
+
+// callDiag counts the signals of a call by kind, for the log when it does
+// not connect: offers, answers and candidates by type, never their content.
+type callDiag struct{ app, peer map[string]int }
+
+func (d *callDiag) note(fromApp bool, what string) {
+	m := &d.peer
+	if fromApp {
+		m = &d.app
+	}
+	if *m == nil {
+		*m = map[string]int{}
+	}
+	(*m)[what]++
+}
+
+func (d *callDiag) String() string {
+	list := func(m map[string]int) string {
+		if len(m) == 0 {
+			return "nothing"
+		}
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		parts := make([]string, len(keys))
+		for i, k := range keys {
+			parts[i] = fmt.Sprintf("%s ×%d", k, m[k])
+		}
+		return strings.Join(parts, ", ")
+	}
+	return "from the app: " + list(d.app) + "; from the peer: " + list(d.peer)
+}
+
+func (c *tgCall) diagLocked() string {
+	out := c.diag.String()
+	if c.sig != nil {
+		out += "; " + c.sig.stats()
+	} else {
+		out += "; no signalling channel"
+	}
+	return out
 }
 
 func (c *tgCall) input() tg.InputPhoneCall { return tg.InputPhoneCall{ID: c.id, AccessHash: c.access} }
@@ -231,6 +276,9 @@ func (s *session) stopLocked(c *tgCall) {
 func (s *session) finishLocked(c *tgCall, end model.CallEnd, why string) bool {
 	if !c.call.Live() {
 		return false
+	}
+	if end == model.EndFailed && c.key != nil {
+		s.env.Logf("info", "call %d: failed while %s: %s", c.id, stateName(c.call.State), c.diagLocked())
 	}
 	c.call.State, c.call.End, c.call.Error = model.CallEnded, end, why
 	s.stopLocked(c)
@@ -587,6 +635,8 @@ func (s *session) confirmed(c *tgCall, p *tg.PhoneCall) {
 	}
 	c.call.ICE = iceServers(p.Connections)
 	c.call.RelayOnly = !p.P2PAllowed
+	s.env.Logf("info", "call %d: connecting (outgoing %v, video %v): %s; p2p %v; peer library %v; custom %s",
+		c.id, c.call.Outgoing, c.call.Video, connectionsSummary(p.Connections), p.P2PAllowed, p.Protocol.LibraryVersions, clip(p.CustomParameters.Data, 300))
 	c.call.Verification = verificationEmoji(c.key, c.ga)
 	c.call.State = model.CallConnecting
 	s.armLocked(c, s.ph.cachedTimes().connect, func() {
@@ -616,6 +666,55 @@ func (s *session) confirmed(c *tgCall, p *tg.PhoneCall) {
 		s.toPeerLocked(c, sig)
 	}
 	c.early, c.queued = nil, nil
+}
+
+// connectionsSummary counts the call's servers by kind (no addresses or
+// credentials).
+func connectionsSummary(conns []tg.PhoneConnectionClass) string {
+	var refl, reflTCP, stun, turn, turnNoCreds int
+	for _, cc := range conns {
+		switch c := cc.(type) {
+		case *tg.PhoneConnection:
+			if c.TCP {
+				reflTCP++
+			} else {
+				refl++
+			}
+		case *tg.PhoneConnectionWebrtc:
+			if c.Stun {
+				stun++
+			}
+			if c.Turn {
+				if c.Username != "" && c.Password != "" {
+					turn++
+				} else {
+					turnNoCreds++
+				}
+			}
+		}
+	}
+	return fmt.Sprintf("servers: %d reflectors (+%d tcp), %d stun, %d turn (+%d without credentials)", refl, reflTCP, stun, turn, turnNoCreds)
+}
+
+func stateName(st model.CallState) string {
+	switch st {
+	case model.CallWaiting:
+		return "waiting"
+	case model.CallRinging:
+		return "ringing"
+	case model.CallConnecting:
+		return "connecting"
+	case model.CallActive:
+		return "active"
+	}
+	return "state " + strconv.Itoa(int(st))
+}
+
+func clip(s string, n int) string {
+	if len(s) > n {
+		return s[:n] + "…"
+	}
+	return s
 }
 
 func customFlag(js, name string) bool {
@@ -663,6 +762,11 @@ func (s *session) fromPeer(c *tgCall, m sigMessage) {
 	defer c.mu.Unlock()
 	if !c.call.Live() {
 		return
+	}
+	if m.Type == "candidate" {
+		c.diag.note(false, "candidate "+candidateKind(m.SDP))
+	} else {
+		c.diag.note(false, m.Type)
 	}
 	switch m.Type {
 	case "offer":
@@ -876,6 +980,16 @@ func (s *session) CallSignal(ctx context.Context, callID string, sig model.CallS
 		return errNoCall
 	}
 	switch sig.Kind {
+	case model.SigOffer:
+		c.diag.note(true, "offer")
+	case model.SigAnswer:
+		c.diag.note(true, "answer")
+	case model.SigCandidate:
+		if sig.SDP != "" {
+			c.diag.note(true, "candidate "+candidateKind(sig.SDP))
+		}
+	}
+	switch sig.Kind {
 	case model.SigOffer, model.SigAnswer, model.SigCandidate:
 		if c.sig == nil {
 			if len(c.queued) < maxQueuedSigs {
@@ -891,11 +1005,13 @@ func (s *session) CallSignal(ctx context.Context, callID string, sig model.CallS
 		}
 	case model.SigConnected:
 		if c.call.State == model.CallConnecting {
+			s.env.Logf("info", "call %d: connected: %s", c.id, c.diagLocked())
 			c.call.State, c.call.Started = model.CallActive, time.Now()
 			s.stopLocked(c)
 			s.emitLocked(c)
 		}
 	case model.SigFailed:
+		s.env.Logf("info", "call %d: the app reports: %s", c.id, clip(sig.Data, 300))
 		s.failLocked(c, model.EndFailed, "The call could not connect", &tg.PhoneCallDiscardReasonDisconnect{})
 	}
 	return nil

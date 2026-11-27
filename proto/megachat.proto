@@ -40,6 +40,23 @@ service MegaChat {
   // NotFound if there is no file). A directory means "vault.mc" in it.
   rpc SetVaultPath(VaultPathRequest) returns (State);
 
+  // "Sync via CloudSync" (CONNECTOR.md): the vault file is kept in the
+  // user's CloudSync vault and every device gets the same one. It works
+  // only while CloudSync runs on this device (desktops: cloudsyncd; Android:
+  // the CloudSync app) and the app stays usable without it. Changes come as
+  // KIND_CLOUDSYNC. EnableCloudSync pairs this device (state PAIRING with a
+  // code the user compares in CloudSync) and syncs; it works while unlocked
+  // or when there is no vault yet (it then takes the synced one).
+  // CONFLICT: the synced vault differs from this one, ResolveCloudSync
+  // picks. NEEDS_PASSWORD: the synced copy has another password,
+  // CloudSyncPassword gives it. DisableCloudSync keeps the local vault.
+  rpc CloudSync(Empty) returns (CloudSyncState);
+  rpc EnableCloudSync(Empty) returns (CloudSyncState);
+  rpc CancelCloudSyncPairing(Empty) returns (CloudSyncState);
+  rpc ResolveCloudSync(ResolveCloudSyncRequest) returns (CloudSyncState);
+  rpc CloudSyncPassword(PasswordRequest) returns (CloudSyncState);
+  rpc DisableCloudSync(DisableCloudSyncRequest) returns (CloudSyncState);
+
   // Providers and accounts.
   rpc Providers(Empty) returns (ProvidersReply);
   // Sign-in is a short dialog driven by the core: StartLogin returns the
@@ -182,6 +199,54 @@ message State {
   reserved 9; // can_shutdown: there is no daemon to stop
   bool can_remember = 10; // this machine has a keychain (desktops)
   bool remembered = 11;   // the password is remembered: UnlockRemembered
+  CloudSyncState cloudsync = 12;
+}
+
+message CloudSyncState {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    OFF = 1;            // sync is off (enabled is false)
+    NOT_RUNNING = 2;    // CloudSync is not installed or not running here
+    NO_VAULT = 3;       // CloudSync is not set up
+    LOCKED = 4;         // the user has to unlock CloudSync
+    OFFLINE = 5;        // CloudSync has no storage yet: changes wait
+    PAIRING = 6;        // waiting for the user to allow it: pairing_code
+    SYNCING = 7;
+    SYNCED = 8;
+    CONFLICT = 9;       // ResolveCloudSync
+    NEEDS_PASSWORD = 10; // CloudSyncPassword
+    WAITING_UNLOCK = 11; // a merge needs the vault unlocked here
+    ERROR = 12;         // message
+  }
+  Status status = 1;
+  bool enabled = 2;
+  // CloudSync answers here (status is not OFF/NOT_RUNNING), so the switch
+  // can be shown; with no_vault false it can be turned on.
+  bool available = 3;
+  string pairing_code = 4; // "123 456"
+  string message = 5;      // what went wrong, or what the user should do
+  int64 synced_ms = 6;     // last successful sync
+  string device_name = 7;  // CloudSync's name for this device
+  // CONFLICT: merging is possible (the same vault on both sides).
+  bool can_merge = 8;
+  // The pairing was revoked or denied: sync went off, offer to pair again.
+  bool unpaired = 9;
+  // The platform can open CloudSync (Android): offer it for LOCKED/PAIRING.
+  bool can_open = 10;
+}
+
+message ResolveCloudSyncRequest {
+  enum Choice {
+    CHOICE_UNSPECIFIED = 0;
+    USE_SYNCED = 1; // the synced vault replaces this one (a backup stays)
+    UPLOAD = 2;     // this vault replaces the synced one
+    MERGE = 3;      // accounts of both (can_merge)
+  }
+  Choice choice = 1;
+}
+
+message DisableCloudSyncRequest {
+  bool remove_synced = 1; // also delete the synced copy from CloudSync
 }
 
 // What a provider can do. Only MESSAGES exists today; the others are
@@ -676,6 +741,7 @@ message Event {
     KIND_MAIL_NEW = 20;      // mail is a new message in account_id's inbox
     KIND_MAIL = 21;          // account_id's mail changed: reload what is shown
     KIND_CALENDAR = 22;      // account_id's events changed: reload the range
+    KIND_CLOUDSYNC = 23;     // CloudSync sync state changed: GetState / CloudSync
   }
   Kind kind = 1;
   Account account = 2;
@@ -988,6 +1054,22 @@ message CalendarEvent {
   Address organizer = 11;
   repeated Attendee attendees = 12;
   string link = 13; // event page or video meeting
+  // The repeating event's rule: an RFC 5545 RRULE value without "RRULE:"
+  // ("FREQ=WEEKLY;BYDAY=MO"); empty: it does not repeat. Occurrences carry
+  // their series' rule. In SaveEvent it sets the rule of a new event, of an
+  // event that did not repeat, of the new series (scope FOLLOWING; the old
+  // rule goes on with what was left of a COUNT), or of the series (scope
+  // ALL); empty keeps the series' rule.
+  string recurrence = 14;
+  // SaveEvent only: what of a repeating event an occurrence's change touches.
+  RecurrenceScope scope = 15;
+}
+
+// What of a repeating event a change or a delete of one occurrence touches.
+enum RecurrenceScope {
+  RECURRENCE_SCOPE_THIS = 0;      // this occurrence only
+  RECURRENCE_SCOPE_FOLLOWING = 1; // this and the following ones
+  RECURRENCE_SCOPE_ALL = 2;       // the whole series
 }
 
 message CalendarRef {
@@ -1011,4 +1093,5 @@ message DeleteEventRequest {
   string account_id = 1;
   string calendar_id = 2;
   string id = 3;
+  RecurrenceScope scope = 4; // for an occurrence of a repeating event
 }

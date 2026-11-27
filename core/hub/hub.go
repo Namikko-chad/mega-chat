@@ -11,6 +11,7 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -420,7 +421,13 @@ func (s *sink) Connected(self model.User) {
 	s.h.mu.Unlock()
 	s.h.setStatus(s.r, StatusOnline, "")
 	s.h.logf(eventlog.Info, s.r.acct.Provider, s.r.acct.ID, "connected as %s", self.Name)
-	go s.h.refreshRun(s.r)
+	// Counted while the session's own goroutine still is, so Close waits
+	// for it (and its own Add never follows Close's Wait).
+	s.h.wg.Add(1)
+	go func() {
+		defer s.h.wg.Done()
+		s.h.refreshRun(s.r)
+	}()
 }
 
 func (s *sink) SaveParams(params map[string]string) error {
@@ -1611,6 +1618,62 @@ func (h *Hub) Remove(ctx context.Context, id string) error {
 	}
 	h.emit(Event{Kind: EvAccount, AccountID: id})
 	return nil
+}
+
+// Reload applies a vault config that came from elsewhere (CloudSync gave
+// this device another device's vault): prev is the config before it.
+// Sessions of removed accounts stop and their cache goes, new accounts
+// start, changed ones restart (a rename only renames).
+func (h *Hub) Reload(prev *vault.Config) {
+	cfg := h.v.Config()
+	old := make(map[string]vault.Account, len(prev.Accounts))
+	for _, a := range prev.Accounts {
+		old[a.ID] = a
+	}
+	now := make(map[string]bool, len(cfg.Accounts))
+	for _, a := range cfg.Accounts {
+		now[a.ID] = true
+	}
+	for id := range old {
+		if now[id] {
+			continue
+		}
+		h.stopRun(id)
+		if err := h.st.DeleteAccount(id); err != nil {
+			h.logf(eventlog.Error, "store", id, "%v", err)
+		}
+		h.logf(eventlog.Info, "vault", id, "removed on another device")
+		h.emit(Event{Kind: EvAccount, AccountID: id})
+	}
+	for _, a := range cfg.Accounts {
+		o, known := old[a.ID]
+		h.mu.Lock()
+		r := h.runs[a.ID]
+		h.mu.Unlock()
+		switch {
+		case known && r != nil && sameButName(o, a):
+			if o.Name == a.Name {
+				continue
+			}
+			h.mu.Lock()
+			r.acct.Name = a.Name
+			h.mu.Unlock()
+		case known || r != nil:
+			h.stopRun(a.ID)
+			h.startRun(a)
+		default:
+			h.logf(eventlog.Info, "vault", a.ID, "added on another device")
+			h.startRun(a)
+		}
+		h.emitAccount(a.ID)
+	}
+}
+
+// sameButName compares accounts apart from their name and Updated.
+func sameButName(a, b vault.Account) bool {
+	a.Name, b.Name = "", ""
+	a.Updated, b.Updated = time.Time{}, time.Time{}
+	return reflect.DeepEqual(a, b)
 }
 
 func (h *Hub) updateAccount(id string, fn func(a *vault.Account)) error {

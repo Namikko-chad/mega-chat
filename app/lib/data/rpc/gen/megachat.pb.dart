@@ -324,6 +324,7 @@ class State extends $pb.GeneratedMessage {
     $core.int? accountsOnline,
     $core.bool? canRemember,
     $core.bool? remembered,
+    CloudSyncState? cloudsync,
   }) {
     final result = State._();
     if (vaultExists != null) result.vaultExists = vaultExists;
@@ -336,6 +337,7 @@ class State extends $pb.GeneratedMessage {
     if (accountsOnline != null) result.accountsOnline = accountsOnline;
     if (canRemember != null) result.canRemember = canRemember;
     if (remembered != null) result.remembered = remembered;
+    if (cloudsync != null) result.cloudsync = cloudsync;
     return result;
   }
 
@@ -362,6 +364,8 @@ class State extends $pb.GeneratedMessage {
     ..aI(8, _omitFieldNames ? '' : 'accountsOnline')
     ..aOB(10, _omitFieldNames ? '' : 'canRemember')
     ..aOB(11, _omitFieldNames ? '' : 'remembered')
+    ..aOM<CloudSyncState>(12, _omitFieldNames ? '' : 'cloudsync',
+        subBuilder: CloudSyncState.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -473,6 +477,307 @@ class State extends $pb.GeneratedMessage {
   $core.bool hasRemembered() => $_has(9);
   @$pb.TagNumber(11)
   void clearRemembered() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  CloudSyncState get cloudsync => $_getN(10);
+  @$pb.TagNumber(12)
+  set cloudsync(CloudSyncState value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasCloudsync() => $_has(10);
+  @$pb.TagNumber(12)
+  void clearCloudsync() => $_clearField(12);
+  @$pb.TagNumber(12)
+  CloudSyncState ensureCloudsync() => $_ensure(10);
+}
+
+class CloudSyncState extends $pb.GeneratedMessage {
+  factory CloudSyncState({
+    CloudSyncState_Status? status,
+    $core.bool? enabled,
+    $core.bool? available,
+    $core.String? pairingCode,
+    $core.String? message,
+    $fixnum.Int64? syncedMs,
+    $core.String? deviceName,
+    $core.bool? canMerge,
+    $core.bool? unpaired,
+    $core.bool? canOpen,
+  }) {
+    final result = CloudSyncState._();
+    if (status != null) result.status = status;
+    if (enabled != null) result.enabled = enabled;
+    if (available != null) result.available = available;
+    if (pairingCode != null) result.pairingCode = pairingCode;
+    if (message != null) result.message = message;
+    if (syncedMs != null) result.syncedMs = syncedMs;
+    if (deviceName != null) result.deviceName = deviceName;
+    if (canMerge != null) result.canMerge = canMerge;
+    if (unpaired != null) result.unpaired = unpaired;
+    if (canOpen != null) result.canOpen = canOpen;
+    return result;
+  }
+
+  CloudSyncState._();
+
+  factory CloudSyncState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      CloudSyncState()..mergeFromBuffer(data, registry);
+  factory CloudSyncState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      CloudSyncState()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CloudSyncState',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: CloudSyncState.$_createMessage)
+    ..aE<CloudSyncState_Status>(1, _omitFieldNames ? '' : 'status',
+        enumValues: CloudSyncState_Status.values)
+    ..aOB(2, _omitFieldNames ? '' : 'enabled')
+    ..aOB(3, _omitFieldNames ? '' : 'available')
+    ..aOS(4, _omitFieldNames ? '' : 'pairingCode')
+    ..aOS(5, _omitFieldNames ? '' : 'message')
+    ..aInt64(6, _omitFieldNames ? '' : 'syncedMs')
+    ..aOS(7, _omitFieldNames ? '' : 'deviceName')
+    ..aOB(8, _omitFieldNames ? '' : 'canMerge')
+    ..aOB(9, _omitFieldNames ? '' : 'unpaired')
+    ..aOB(10, _omitFieldNames ? '' : 'canOpen')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloudSyncState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloudSyncState copyWith(void Function(CloudSyncState) updates) =>
+      super.copyWith((message) => updates(message as CloudSyncState))
+          as CloudSyncState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use CloudSyncState() / CloudSyncState.new instead')
+  static CloudSyncState create() => CloudSyncState._();
+  static $pb.GeneratedMessage $_createMessage() => CloudSyncState._();
+  @$core.override
+  CloudSyncState createEmptyInstance() => CloudSyncState._();
+  @$core.pragma('dart2js:noInline')
+  static CloudSyncState getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CloudSyncState>(
+          CloudSyncState.$_createMessage);
+  static CloudSyncState? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  CloudSyncState_Status get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(CloudSyncState_Status value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get enabled => $_getBF(1);
+  @$pb.TagNumber(2)
+  set enabled($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEnabled() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnabled() => $_clearField(2);
+
+  /// CloudSync answers here (status is not OFF/NOT_RUNNING), so the switch
+  /// can be shown; with no_vault false it can be turned on.
+  @$pb.TagNumber(3)
+  $core.bool get available => $_getBF(2);
+  @$pb.TagNumber(3)
+  set available($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAvailable() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvailable() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get pairingCode => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set pairingCode($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPairingCode() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPairingCode() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get message => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set message($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMessage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMessage() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get syncedMs => $_getI64(5);
+  @$pb.TagNumber(6)
+  set syncedMs($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSyncedMs() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSyncedMs() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get deviceName => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set deviceName($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDeviceName() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDeviceName() => $_clearField(7);
+
+  /// CONFLICT: merging is possible (the same vault on both sides).
+  @$pb.TagNumber(8)
+  $core.bool get canMerge => $_getBF(7);
+  @$pb.TagNumber(8)
+  set canMerge($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasCanMerge() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCanMerge() => $_clearField(8);
+
+  /// The pairing was revoked or denied: sync went off, offer to pair again.
+  @$pb.TagNumber(9)
+  $core.bool get unpaired => $_getBF(8);
+  @$pb.TagNumber(9)
+  set unpaired($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasUnpaired() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearUnpaired() => $_clearField(9);
+
+  /// The platform can open CloudSync (Android): offer it for LOCKED/PAIRING.
+  @$pb.TagNumber(10)
+  $core.bool get canOpen => $_getBF(9);
+  @$pb.TagNumber(10)
+  set canOpen($core.bool value) => $_setBool(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasCanOpen() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearCanOpen() => $_clearField(10);
+}
+
+class ResolveCloudSyncRequest extends $pb.GeneratedMessage {
+  factory ResolveCloudSyncRequest({
+    ResolveCloudSyncRequest_Choice? choice,
+  }) {
+    final result = ResolveCloudSyncRequest._();
+    if (choice != null) result.choice = choice;
+    return result;
+  }
+
+  ResolveCloudSyncRequest._();
+
+  factory ResolveCloudSyncRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ResolveCloudSyncRequest()..mergeFromBuffer(data, registry);
+  factory ResolveCloudSyncRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ResolveCloudSyncRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ResolveCloudSyncRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: ResolveCloudSyncRequest.$_createMessage)
+    ..aE<ResolveCloudSyncRequest_Choice>(1, _omitFieldNames ? '' : 'choice',
+        enumValues: ResolveCloudSyncRequest_Choice.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ResolveCloudSyncRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ResolveCloudSyncRequest copyWith(
+          void Function(ResolveCloudSyncRequest) updates) =>
+      super.copyWith((message) => updates(message as ResolveCloudSyncRequest))
+          as ResolveCloudSyncRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use ResolveCloudSyncRequest() / ResolveCloudSyncRequest.new instead')
+  static ResolveCloudSyncRequest create() => ResolveCloudSyncRequest._();
+  static $pb.GeneratedMessage $_createMessage() => ResolveCloudSyncRequest._();
+  @$core.override
+  ResolveCloudSyncRequest createEmptyInstance() => ResolveCloudSyncRequest._();
+  @$core.pragma('dart2js:noInline')
+  static ResolveCloudSyncRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ResolveCloudSyncRequest>(
+          ResolveCloudSyncRequest.$_createMessage);
+  static ResolveCloudSyncRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ResolveCloudSyncRequest_Choice get choice => $_getN(0);
+  @$pb.TagNumber(1)
+  set choice(ResolveCloudSyncRequest_Choice value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasChoice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChoice() => $_clearField(1);
+}
+
+class DisableCloudSyncRequest extends $pb.GeneratedMessage {
+  factory DisableCloudSyncRequest({
+    $core.bool? removeSynced,
+  }) {
+    final result = DisableCloudSyncRequest._();
+    if (removeSynced != null) result.removeSynced = removeSynced;
+    return result;
+  }
+
+  DisableCloudSyncRequest._();
+
+  factory DisableCloudSyncRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      DisableCloudSyncRequest()..mergeFromBuffer(data, registry);
+  factory DisableCloudSyncRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      DisableCloudSyncRequest()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DisableCloudSyncRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'megachat.v1'),
+      createEmptyInstance: DisableCloudSyncRequest.$_createMessage)
+    ..aOB(1, _omitFieldNames ? '' : 'removeSynced')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DisableCloudSyncRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DisableCloudSyncRequest copyWith(
+          void Function(DisableCloudSyncRequest) updates) =>
+      super.copyWith((message) => updates(message as DisableCloudSyncRequest))
+          as DisableCloudSyncRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use DisableCloudSyncRequest() / DisableCloudSyncRequest.new instead')
+  static DisableCloudSyncRequest create() => DisableCloudSyncRequest._();
+  static $pb.GeneratedMessage $_createMessage() => DisableCloudSyncRequest._();
+  @$core.override
+  DisableCloudSyncRequest createEmptyInstance() => DisableCloudSyncRequest._();
+  @$core.pragma('dart2js:noInline')
+  static DisableCloudSyncRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DisableCloudSyncRequest>(
+          DisableCloudSyncRequest.$_createMessage);
+  static DisableCloudSyncRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get removeSynced => $_getBF(0);
+  @$pb.TagNumber(1)
+  set removeSynced($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRemoveSynced() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRemoveSynced() => $_clearField(1);
 }
 
 class Field extends $pb.GeneratedMessage {
@@ -8116,6 +8421,8 @@ class CalendarEvent extends $pb.GeneratedMessage {
     Address? organizer,
     $core.Iterable<Attendee>? attendees,
     $core.String? link,
+    $core.String? recurrence,
+    RecurrenceScope? scope,
   }) {
     final result = CalendarEvent._();
     if (accountId != null) result.accountId = accountId;
@@ -8131,6 +8438,8 @@ class CalendarEvent extends $pb.GeneratedMessage {
     if (organizer != null) result.organizer = organizer;
     if (attendees != null) result.attendees.addAll(attendees);
     if (link != null) result.link = link;
+    if (recurrence != null) result.recurrence = recurrence;
+    if (scope != null) result.scope = scope;
     return result;
   }
 
@@ -8162,6 +8471,9 @@ class CalendarEvent extends $pb.GeneratedMessage {
     ..pPM<Attendee>(12, _omitFieldNames ? '' : 'attendees',
         subBuilder: Attendee.$_createMessage)
     ..aOS(13, _omitFieldNames ? '' : 'link')
+    ..aOS(14, _omitFieldNames ? '' : 'recurrence')
+    ..aE<RecurrenceScope>(15, _omitFieldNames ? '' : 'scope',
+        enumValues: RecurrenceScope.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -8299,6 +8611,31 @@ class CalendarEvent extends $pb.GeneratedMessage {
   $core.bool hasLink() => $_has(12);
   @$pb.TagNumber(13)
   void clearLink() => $_clearField(13);
+
+  /// The repeating event's rule: an RFC 5545 RRULE value without "RRULE:"
+  /// ("FREQ=WEEKLY;BYDAY=MO"); empty: it does not repeat. Occurrences carry
+  /// their series' rule. In SaveEvent it sets the rule of a new event, of an
+  /// event that did not repeat, of the new series (scope FOLLOWING; the old
+  /// rule goes on with what was left of a COUNT), or of the series (scope
+  /// ALL); empty keeps the series' rule.
+  @$pb.TagNumber(14)
+  $core.String get recurrence => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set recurrence($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasRecurrence() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearRecurrence() => $_clearField(14);
+
+  /// SaveEvent only: what of a repeating event an occurrence's change touches.
+  @$pb.TagNumber(15)
+  RecurrenceScope get scope => $_getN(14);
+  @$pb.TagNumber(15)
+  set scope(RecurrenceScope value) => $_setField(15, value);
+  @$pb.TagNumber(15)
+  $core.bool hasScope() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearScope() => $_clearField(15);
 }
 
 class CalendarRef extends $pb.GeneratedMessage {
@@ -8516,11 +8853,13 @@ class DeleteEventRequest extends $pb.GeneratedMessage {
     $core.String? accountId,
     $core.String? calendarId,
     $core.String? id,
+    RecurrenceScope? scope,
   }) {
     final result = DeleteEventRequest._();
     if (accountId != null) result.accountId = accountId;
     if (calendarId != null) result.calendarId = calendarId;
     if (id != null) result.id = id;
+    if (scope != null) result.scope = scope;
     return result;
   }
 
@@ -8540,6 +8879,8 @@ class DeleteEventRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'accountId')
     ..aOS(2, _omitFieldNames ? '' : 'calendarId')
     ..aOS(3, _omitFieldNames ? '' : 'id')
+    ..aE<RecurrenceScope>(4, _omitFieldNames ? '' : 'scope',
+        enumValues: RecurrenceScope.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -8590,6 +8931,15 @@ class DeleteEventRequest extends $pb.GeneratedMessage {
   $core.bool hasId() => $_has(2);
   @$pb.TagNumber(3)
   void clearId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  RecurrenceScope get scope => $_getN(3);
+  @$pb.TagNumber(4)
+  set scope(RecurrenceScope value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasScope() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearScope() => $_clearField(4);
 }
 
 const $core.bool _omitFieldNames =

@@ -26,6 +26,7 @@ func TestStartServesAndStops(t *testing.T) {
 	o := Options{
 		Dir: dir, Listen: "unix:" + filepath.Join(sockDir, "s"),
 		Endpoint: filepath.Join(dir, "endpoint.json"), LogFile: filepath.Join(dir, "megachat.log"),
+		NoCloudSync: true, // never the user's own CloudSync
 	}
 	c, err := Start(o)
 	if err != nil {

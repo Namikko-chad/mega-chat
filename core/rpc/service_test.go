@@ -244,7 +244,10 @@ func TestSetVaultPath(t *testing.T) {
 	if _, err := c.SetVaultPath(ctx, &pb.VaultPathRequest{Path: moved, Move: false}); err != nil {
 		t.Fatalf("same place: %v", err)
 	}
-	// The remembered key followed the file.
+	// The remembered key followed the file; its mark stays on this device.
+	if _, err := os.Stat(moved + ".remembered"); !os.IsNotExist(err) {
+		t.Fatalf("mark beside the moved vault: %v", err)
+	}
 	if _, err := c.LockVault(ctx, &pb.Empty{}); err != nil {
 		t.Fatal(err)
 	}

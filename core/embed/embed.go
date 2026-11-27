@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"megachat/core/cloudsync"
 	"megachat/core/crypto"
 	"megachat/core/eventlog"
 	"megachat/core/keychain"
@@ -40,6 +41,10 @@ type Options struct {
 	LogFile  string // also log here (empty: Log only)
 	Log      io.Writer
 	Demo     bool // add the Demo messenger
+	// CloudSync reaches CloudSync to sync the vault (CONNECTOR.md); nil:
+	// its desktop daemon (cloudsync.Desktop). NoCloudSync turns it off.
+	CloudSync   cloudsync.Dialer
+	NoCloudSync bool
 }
 
 // Core is a running core.
@@ -103,6 +108,19 @@ func Start(o Options) (*Core, error) {
 		svc.Log = eventlog.New(1000, out)
 	}
 	svc.Keychain = keychain.System()
+	if !o.NoCloudSync {
+		d := o.CloudSync
+		if d == nil {
+			d = cloudsync.Desktop{}
+		}
+		svc.Sync = cloudsync.New(cloudsync.Options{
+			Dialer: d, Host: svc.SyncHost(), Dir: o.Dir, Keychain: svc.Keychain,
+			AppName:     "MegaChat",
+			Description: fmt.Sprintf("MegaChat %s on %s", rpc.Version, o.Platform),
+			Log:         func(level, msg string) { svc.Log.Add(level, "cloudsync", "", msg) },
+			OnChange:    svc.SyncChanged,
+		})
+	}
 	c := &Core{Service: svc, Token: crypto.RandomID(32), lis: lis, opts: o}
 	if logf != nil {
 		c.logf = logf
@@ -121,12 +139,18 @@ func Start(o Options) (*Core, error) {
 	c.srv = grpc.NewServer(rpc.TokenAuth(c.Token)...)
 	pb.RegisterMegaChatServer(c.srv, svc)
 	go c.srv.Serve(lis)
+	if svc.Sync != nil {
+		svc.Sync.Start()
+	}
 	return c, nil
 }
 
 // Stop locks the vault (the sessions close, the cache is flushed) and
 // stops the server.
 func (c *Core) Stop() {
+	if c.Service.Sync != nil {
+		c.Service.Sync.Close()
+	}
 	c.Service.Close()
 	// Open Watch streams would hold GracefulStop forever.
 	stopped := make(chan struct{})

@@ -40,7 +40,13 @@ type Calendars interface {
 	// repeating events expanded into their occurrences.
 	Events(ctx context.Context, calendarID string, from, to time.Time) ([]model.CalEvent, error)
 	// SaveEvent creates (empty ID) or changes an event and returns it as
-	// stored.
-	SaveEvent(ctx context.Context, ev model.CalEvent) (model.CalEvent, error)
-	DeleteEvent(ctx context.Context, calendarID, id string) error
+	// stored. A new event, or one that did not repeat, repeats when
+	// ev.Recurrence is set. For an occurrence of a repeating event scope
+	// says what changes: the occurrence, it and the following ones (a new
+	// series from it; ev.Recurrence its rule, the old one or "" go on with
+	// what was left of a COUNT), or the whole series (moved by as much as
+	// the occurrence moved; ev.Recurrence its new rule, "" keeps it).
+	SaveEvent(ctx context.Context, ev model.CalEvent, scope model.RecurScope) (model.CalEvent, error)
+	// DeleteEvent deletes an event; for an occurrence scope says what goes.
+	DeleteEvent(ctx context.Context, calendarID, id string, scope model.RecurScope) error
 }

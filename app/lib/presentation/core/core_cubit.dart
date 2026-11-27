@@ -78,7 +78,8 @@ class CoreCubit extends Cubit<CoreState> {
         .watch(pb.Empty())
         .listen(
           (ev) {
-            if (ev.kind == pb.Event_Kind.KIND_STATE) unawaited(refreshState());
+            // State carries the CloudSync state too.
+            if (ev.kind == pb.Event_Kind.KIND_STATE || ev.kind == pb.Event_Kind.KIND_CLOUDSYNC) unawaited(refreshState());
             _events.add(ev);
           },
           onError: (_) => _lost(),
@@ -116,6 +117,9 @@ class CoreCubit extends Cubit<CoreState> {
 
   /// Applies a state returned by an unlock / create / lock call.
   void adopt(pb.State st) => emit(state.copyWith(state: st));
+
+  /// Applies a CloudSync state returned by a CloudSync call.
+  void adoptCloudSync(pb.CloudSyncState cs) => adopt((state.state ?? pb.State()).deepCopy()..cloudsync = cs);
 
   Future<void> lockVault() async => adopt(await api.lockVault(pb.Empty()));
 

@@ -21,6 +21,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -59,6 +61,19 @@ type Config struct {
 	Version   uint64    `json:"version"` // bumped on every change
 	MasterKey []byte    `json:"master_key"`
 	Accounts  []Account `json:"accounts"`
+	// Removed are tombstones of removed accounts, so that merging with a
+	// copy made before the removal (CloudSync, merge.go) does not bring
+	// them back. Kept for TombstoneTTL.
+	Removed []Removed `json:"removed,omitempty"`
+	// PasswordChanged is when the password last changed: when copies
+	// sealed with different passwords merge, the latest password wins.
+	PasswordChanged time.Time `json:"password_changed,omitempty"`
+}
+
+// Removed is the tombstone of a removed account.
+type Removed struct {
+	ID string    `json:"id"`
+	At time.Time `json:"at"`
 }
 
 // Account is one signed-in messenger account. Several accounts may share a
@@ -77,6 +92,9 @@ type Account struct {
 	Params   map[string]string `json:"params"`
 	Disabled bool              `json:"disabled,omitempty"`
 	Added    time.Time         `json:"added"`
+	// Updated is when the account last changed (set by Update): the
+	// newest copy of an account wins a merge.
+	Updated time.Time `json:"updated,omitempty"`
 }
 
 // Key returns the master key.
@@ -223,6 +241,35 @@ type Vault struct {
 	path   string
 	sealer *sealer
 	cfg    *Config
+	data   []byte // the file as last read or written
+
+	hookMu  sync.Mutex
+	onWrite func()
+}
+
+// OnWrite sets fn to be called after every change this vault writes
+// (Update, ChangePassword, Merge; not Adopt, which takes a copy from
+// elsewhere). fn runs on the writer's goroutine, outside the vault's lock.
+func (v *Vault) OnWrite(fn func()) {
+	v.hookMu.Lock()
+	v.onWrite = fn
+	v.hookMu.Unlock()
+}
+
+func (v *Vault) wrote() {
+	v.hookMu.Lock()
+	fn := v.onWrite
+	v.hookMu.Unlock()
+	if fn != nil {
+		fn()
+	}
+}
+
+// Bytes returns the vault file as this vault last read or wrote it.
+func (v *Vault) Bytes() []byte {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	return append([]byte{}, v.data...)
 }
 
 // Create writes a new vault file. It fails if the file exists.
@@ -253,7 +300,7 @@ func Open(path string, password []byte) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Vault{path: path, sealer: s, cfg: c}, nil
+	return &Vault{path: path, sealer: s, cfg: c, data: data}, nil
 }
 
 // OpenWithKey unlocks an existing vault file with a key from UnlockKey.
@@ -271,7 +318,7 @@ func OpenWithKey(path string, k crypto.Key) (*Vault, error) {
 		return nil, err
 	}
 	s := &sealer{header: append([]byte{}, data[:headerSize]...), key: k}
-	return &Vault{path: path, sealer: s, cfg: c}, nil
+	return &Vault{path: path, sealer: s, cfg: c, data: data}, nil
 }
 
 // UnlockKey is the key derived from the password for the file as it is
@@ -295,8 +342,17 @@ func (v *Vault) Config() *Config {
 }
 
 // Update applies fn to a copy of the config, bumps the version and saves.
-// If fn returns an error nothing changes.
+// If fn returns an error nothing changes. Accounts fn added or changed get
+// Updated, removed ones a tombstone.
 func (v *Vault) Update(fn func(*Config) error) error {
+	if err := v.update(fn); err != nil {
+		return err
+	}
+	v.wrote()
+	return nil
+}
+
+func (v *Vault) update(fn func(*Config) error) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	next := v.cfg.clone()
@@ -304,6 +360,7 @@ func (v *Vault) Update(fn func(*Config) error) error {
 		return err
 	}
 	next.Version = v.cfg.Version + 1
+	stamp(v.cfg, next, time.Now().UTC())
 	if err := next.validate(); err != nil {
 		return err
 	}
@@ -316,6 +373,34 @@ func (v *Vault) Update(fn func(*Config) error) error {
 	return nil
 }
 
+// stamp sets Updated on the accounts that differ from prev and adds
+// tombstones for the ones that are gone.
+func stamp(prev, next *Config, now time.Time) {
+	old := make(map[string]Account, len(prev.Accounts))
+	for _, a := range prev.Accounts {
+		old[a.ID] = a
+	}
+	for i := range next.Accounts {
+		a := &next.Accounts[i]
+		if o, ok := old[a.ID]; !ok || !sameAccount(o, *a) {
+			a.Updated = now
+		}
+		delete(old, a.ID)
+	}
+	for id := range old {
+		next.Removed = append(next.Removed, Removed{ID: id, At: now})
+	}
+	slices.SortFunc(next.Removed, func(x, y Removed) int { return strings.Compare(x.ID, y.ID) })
+}
+
+// sameAccount compares accounts apart from Updated.
+func sameAccount(a, b Account) bool {
+	a.Updated, b.Updated = time.Time{}, time.Time{}
+	ja, _ := json.Marshal(a)
+	jb, _ := json.Marshal(b)
+	return bytes.Equal(ja, jb)
+}
+
 // ChangePassword re-encrypts the vault with a new password and fresh salt.
 func (v *Vault) ChangePassword(password []byte, p KDFParams) error {
 	s, err := newSealer(password, p)
@@ -323,21 +408,32 @@ func (v *Vault) ChangePassword(password []byte, p KDFParams) error {
 		return err
 	}
 	v.mu.Lock()
-	defer v.mu.Unlock()
 	prevSealer, prevCfg := v.sealer, v.cfg
 	next := v.cfg.clone()
 	next.Version++
+	next.PasswordChanged = time.Now().UTC()
 	v.sealer, v.cfg = s, next
 	if err := v.write(); err != nil {
 		v.sealer, v.cfg = prevSealer, prevCfg
+		v.mu.Unlock()
 		return err
 	}
+	v.mu.Unlock()
+	v.wrote()
 	return nil
 }
 
 // MoveTo writes the vault to path, keeps it there from now on and removes
 // the old file. It fails if path exists; on failure the vault stays put.
 func (v *Vault) MoveTo(path string) error {
+	if err := v.moveTo(path); err != nil {
+		return err
+	}
+	v.wrote() // sealed anew: the file's bytes changed
+	return nil
+}
+
+func (v *Vault) moveTo(path string) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if _, err := os.Stat(path); err == nil {
@@ -361,7 +457,16 @@ func (v *Vault) write() error {
 	if err != nil {
 		return err
 	}
-	dir := filepath.Dir(v.path)
+	if err := writeFile(v.path, data); err != nil {
+		return err
+	}
+	v.data = data
+	return nil
+}
+
+// writeFile writes data to path atomically, readable by the user only.
+func writeFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
@@ -384,5 +489,5 @@ func (v *Vault) write() error {
 	if err := os.Chmod(tmp.Name(), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), v.path)
+	return os.Rename(tmp.Name(), path)
 }

@@ -234,7 +234,7 @@ func (s *Service) SaveEvent(ctx context.Context, r *pb.CalendarEvent) (*pb.Calen
 	if err != nil {
 		return nil, err
 	}
-	ev, err := h.SaveEvent(ctx, calEvent(r))
+	ev, err := h.SaveEvent(ctx, calEvent(r), model.RecurScope(r.Scope))
 	if err != nil {
 		return nil, toStatus(err)
 	}
@@ -246,7 +246,7 @@ func (s *Service) DeleteEvent(ctx context.Context, r *pb.DeleteEventRequest) (*p
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Empty{}, toStatus(h.DeleteEvent(ctx, r.AccountId, r.CalendarId, r.Id))
+	return &pb.Empty{}, toStatus(h.DeleteEvent(ctx, r.AccountId, r.CalendarId, r.Id, model.RecurScope(r.Scope)))
 }
 
 func eventToCalPB(e *model.CalEvent) *pb.CalendarEvent {
@@ -254,7 +254,7 @@ func eventToCalPB(e *model.CalEvent) *pb.CalendarEvent {
 		AccountId: e.AccountID, CalendarId: e.CalendarID, Id: e.ID, Title: e.Title,
 		Location: e.Location, Description: e.Description,
 		StartMs: e.Start.UnixMilli(), EndMs: e.End.UnixMilli(), AllDay: e.AllDay, Recurring: e.Recurring,
-		Link: e.Link,
+		Link: e.Link, Recurrence: e.Recurrence,
 	}
 	if e.Organizer.Email != "" || e.Organizer.Name != "" {
 		out.Organizer = addressToPB(e.Organizer)
@@ -270,6 +270,7 @@ func calEvent(r *pb.CalendarEvent) model.CalEvent {
 		AccountID: r.AccountId, CalendarID: r.CalendarId, ID: r.Id, Title: r.Title,
 		Location: r.Location, Description: r.Description,
 		Start: time.UnixMilli(r.StartMs), End: time.UnixMilli(r.EndMs), AllDay: r.AllDay,
+		Recurring: r.Recurring, Recurrence: r.Recurrence,
 	}
 	if e.AllDay {
 		e.Start, e.End = e.Start.UTC(), e.End.UTC()

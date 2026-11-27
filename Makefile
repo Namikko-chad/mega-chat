@@ -69,18 +69,25 @@ core-dll:
 		go build -buildmode=c-shared -ldflags '$(GO_LDFLAGS)' -o $(CORE_DLL) ./desktopbind
 
 # Go and Dart code from proto/megachat.proto (protoc-gen-go, -go-grpc and
-# "dart pub global activate protoc_plugin").
+# "dart pub global activate protoc_plugin"), and the Go client of CloudSync's
+# Connector API from proto/connector.proto (a byte-for-byte copy of
+# CloudSync's, see CONNECTOR.md).
 proto:
 	protoc -I proto \
 		--go_out=core/rpc/pb --go_opt=paths=source_relative \
 		--go-grpc_out=core/rpc/pb --go-grpc_opt=paths=source_relative \
 		proto/megachat.proto
 	protoc -I proto --plugin=protoc-gen-dart=$(PROTOC_DART) --dart_out=grpc:app/lib/data/rpc/gen proto/megachat.proto
+	protoc -I proto \
+		--go_out=core/cloudsync/pb --go_opt=paths=source_relative --go_opt=Mconnector.proto=megachat/core/cloudsync/pb \
+		--go-grpc_out=core/cloudsync/pb --go-grpc_opt=paths=source_relative --go-grpc_opt=Mconnector.proto=megachat/core/cloudsync/pb \
+		proto/connector.proto
 
-# The core for Android (gomobile, NDK from ~/Android/Sdk/ndk).
+# The core for Android (gomobile, NDK from ~/Android/Sdk/ndk). -checklinkname=0:
+# pion's github.com/wlynxg/anet go:linknames net.zoneCache on Android (see its README).
 aar:
 	ANDROID_NDK_HOME=$(NDK) gomobile bind -target=android/arm64,android/amd64 -androidapi 26 \
-		-javapkg dev.megachat -ldflags='-s -w $(GO_LDFLAGS)' -o app/android/app/libs/megachat.aar ./mobilebind
+		-javapkg dev.megachat -ldflags='-s -w -checklinkname=0 $(GO_LDFLAGS)' -o app/android/app/libs/megachat.aar ./mobilebind
 
 # The app with the Demo messenger, for working on it without accounts.
 run-demo: app-deps

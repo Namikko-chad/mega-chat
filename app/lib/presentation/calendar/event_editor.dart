@@ -15,6 +15,7 @@ import '../mail/compose.dart' show formatAddresses, parseAddresses;
 import '../mail/mail_screen.dart' show accountName, addressName;
 import 'calendar_cubit.dart';
 import 'calendar_screen.dart' show eventTime;
+import 'recurrence.dart';
 
 String rsvpName(pb.Rsvp r) => switch (r) {
   pb.Rsvp.RSVP_ACCEPTED => tr('accepted', 'придёт'),
@@ -25,6 +26,35 @@ String rsvpName(pb.Rsvp r) => switch (r) {
 };
 
 Widget _field(String label, String value) => HmField(label, SelectableText(value));
+
+/// Asks what of a repeating event a change or a delete touches; null when
+/// cancelled. A new rule cannot go to one occurrence ([ruleChanged]).
+Future<pb.RecurrenceScope?> askScope(BuildContext context, {required bool delete, bool ruleChanged = false}) {
+  final choices = <pb.RecurrenceScope, (String, IconData)>{
+    pb.RecurrenceScope.RECURRENCE_SCOPE_THIS: (tr('This event', 'Только это событие'), Icons.event_outlined),
+    pb.RecurrenceScope.RECURRENCE_SCOPE_FOLLOWING: (tr('This and following events', 'Это и следующие'), Icons.east),
+    pb.RecurrenceScope.RECURRENCE_SCOPE_ALL: (tr('All events', 'Все события'), Icons.repeat),
+  };
+  return showHmModal<pb.RecurrenceScope>(
+    context,
+    size: HmModalSize.sm,
+    title: delete ? tr('Delete a repeating event', 'Удалить повторяющееся событие') : tr('Change a repeating event', 'Изменить повторяющееся событие'),
+    body: (ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final MapEntry(key: scope, value: (label, icon)) in choices.entries)
+          if (scopeFits(scope, ruleChanged: ruleChanged))
+            HmListItem(
+              leading: Icon(icon, size: 18, color: delete ? HmColors.error : HmColors.muted),
+              title: Text(label),
+              onTap: () => Navigator.pop(ctx, scope),
+            ),
+      ],
+    ),
+    actions: (ctx) => [HmButton(tr('Cancel', 'Отмена'), variant: HmVariant.neutral, onPressed: () => Navigator.pop(ctx))],
+  );
+}
 
 /// An event with what is known about it; edit and delete when its
 /// calendar may be written.
@@ -53,7 +83,8 @@ Future<void> showEventDetails(BuildContext context, pb.CalendarEvent e) {
           ],
         ),
         const SizedBox(height: 12),
-        _field(tr('When', 'Когда'), '${formatDay(eventSpan(e).$1)}, ${eventTime(e)}${e.recurring ? tr(' · repeats', ' · повторяется') : ''}'),
+        _field(tr('When', 'Когда'), '${formatDay(eventSpan(e).$1)}, ${eventTime(e)}'),
+        if (e.recurring || e.recurrence.isNotEmpty) _field(tr('Repeats', 'Повтор'), describeRule(e.recurrence)),
         if (e.location.isNotEmpty) _field(tr('Where', 'Где'), e.location),
         if (e.link.isNotEmpty) _field(tr('Link', 'Ссылка'), e.link),
         if (e.hasOrganizer() && e.organizer.email.isNotEmpty) _field(tr('Organizer', 'Организатор'), addressName(e.organizer)),
@@ -73,18 +104,23 @@ Future<void> showEventDetails(BuildContext context, pb.CalendarEvent e) {
                 variant: HmVariant.red,
                 icon: Icons.delete_outline,
                 onPressed: () async {
-                  final ok = await confirm(
-                    ctx,
-                    title: tr('Delete the event?', 'Удалить событие?'),
-                    message: e.recurring
-                        ? tr('Only this occurrence is deleted.', 'Будет удалено только это повторение.')
-                        : tr('It is deleted from the calendar for everyone.', 'Оно будет удалено из календаря у всех.'),
-                    action: tr('Delete', 'Удалить'),
-                    destructive: true,
-                  );
-                  if (!ok) return;
+                  var scope = pb.RecurrenceScope.RECURRENCE_SCOPE_THIS;
+                  if (e.recurring) {
+                    final s = await askScope(ctx, delete: true);
+                    if (s == null) return;
+                    scope = s;
+                  } else {
+                    final ok = await confirm(
+                      ctx,
+                      title: tr('Delete the event?', 'Удалить событие?'),
+                      message: tr('It is deleted from the calendar for everyone.', 'Оно будет удалено из календаря у всех.'),
+                      action: tr('Delete', 'Удалить'),
+                      destructive: true,
+                    );
+                    if (!ok) return;
+                  }
                   try {
-                    await cubit.delete(e);
+                    await cubit.delete(e, scope: scope);
                     if (ctx.mounted) Navigator.pop(ctx);
                   } catch (err) {
                     Toasts.error(tr('Could not delete', 'Не удалось удалить'), errorText(err));
@@ -146,6 +182,7 @@ class _EditorState extends State<_Editor> {
   late CalKey _cal;
   late bool _allDay;
   late DateTime _start, _end; // all day: dates, end inclusive here
+  String _repeat = ''; // the rule; for an occurrence, its series' one
   String? _error, _titleError, _guestsError;
   bool _saving = false;
 
@@ -160,6 +197,7 @@ class _EditorState extends State<_Editor> {
       _guests.text = formatAddresses(e.attendees.where((a) => !a.self).map((a) => a.address));
       _cal = eventCal(e);
       _allDay = e.allDay;
+      _repeat = e.recurrence;
       final (s, end) = eventSpan(e);
       _start = s;
       _end = e.allDay ? end.subtract(const Duration(days: 1)) : end;
@@ -223,6 +261,13 @@ class _EditorState extends State<_Editor> {
       if (_allDay ? _end.isBefore(dayOf(_start)) : !_end.isAfter(_start)) _error = tr('It must end after it starts', 'Конец должен быть позже начала');
     });
     if (_titleError != null || _guestsError != null || _error != null) return;
+    final old = widget.event;
+    var scope = pb.RecurrenceScope.RECURRENCE_SCOPE_THIS;
+    if (old != null && old.recurring) {
+      final s = await askScope(context, delete: false, ruleChanged: _repeat != old.recurrence);
+      if (s == null || !mounted) return;
+      scope = s;
+    }
     final e = pb.CalendarEvent(
       accountId: _cal.account,
       calendarId: _cal.calendar,
@@ -234,6 +279,9 @@ class _EditorState extends State<_Editor> {
       startMs: _allDay ? dateMs(_start) : Int64(_start.millisecondsSinceEpoch),
       endMs: _allDay ? dateMs(DateTime(_end.year, _end.month, _end.day + 1)) : Int64(_end.millisecondsSinceEpoch),
       attendees: [for (final g in guests!) pb.Attendee(address: g)],
+      recurring: old?.recurring ?? false,
+      recurrence: _repeat,
+      scope: scope,
     );
     setState(() => _saving = true);
     final cubit = context.read<CalendarCubit>();
@@ -249,6 +297,16 @@ class _EditorState extends State<_Editor> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  // An occurrence whose series' rule did not come cannot show one.
+  bool get _repeatShown => !(widget.event?.recurring ?? false) || widget.event!.recurrence.isNotEmpty;
+
+  Map<String, String> _repeatOptions() {
+    final o = repeatChoices(_start, current: _repeat);
+    // A series is not turned into one event here: delete the rest instead.
+    if (widget.event?.recurring ?? false) o.remove('');
+    return o;
   }
 
   @override
@@ -280,7 +338,8 @@ class _EditorState extends State<_Editor> {
           label: tr('Calendar', 'Календарь'),
           options: {for (final c in widget.calendars) calKey(c): '${c.name} · ${accountName(m.account(c.accountId))}'},
           value: _cal,
-          onChanged: (v) => setState(() => _cal = v),
+          // A series stays in its calendar: moving makes a new event.
+          onChanged: (v) => setState(() => _cal = (widget.event?.recurring ?? false) ? _cal : v),
         ),
         SizedBox(height: hm.gapSm),
         HmToggleRow(label: tr('All day', 'Весь день'), value: _allDay, onChanged: (v) => setState(() => _allDay = v)),
@@ -288,6 +347,10 @@ class _EditorState extends State<_Editor> {
         when(tr('Starts', 'Начало'), _start, true),
         SizedBox(height: hm.gapSm),
         when(tr('Ends', 'Конец'), _end, false),
+        if (_repeatShown) ...[
+          SizedBox(height: hm.gapSm),
+          HmSelect<String>(label: tr('Repeat', 'Повтор'), options: _repeatOptions(), value: _repeat, onChanged: (v) => setState(() => _repeat = v)),
+        ],
         SizedBox(height: hm.gapSm),
         HmTextField(label: tr('Where', 'Где'), controller: _location),
         SizedBox(height: hm.gapSm),
@@ -311,13 +374,6 @@ class _EditorState extends State<_Editor> {
             HmButton(tr('Save', 'Сохранить'), variant: HmVariant.primary, loading: _saving, onPressed: _saving ? null : _save),
           ],
         ),
-        if (widget.event?.recurring ?? false) ...[
-          const SizedBox(height: 8),
-          Text(
-            tr('Changes apply to this occurrence only.', 'Изменения коснутся только этого повторения.'),
-            style: HmText.small.copyWith(color: HmColors.muted),
-          ),
-        ],
       ],
     );
   }

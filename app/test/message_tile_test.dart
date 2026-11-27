@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:megachat/core/theme/app_theme.dart';
 import 'package:megachat/data/rpc/gen/megachat.pbgrpc.dart' as pb;
 import 'package:megachat/presentation/chats/chat_view.dart';
+import 'package:megachat/presentation/common/lists.dart';
 
 pb.Message msg({String text = 'hello brave world'}) => pb.Message(
   id: '1',
@@ -114,5 +115,27 @@ void main() {
     );
     expect(find.text('Forwarded from Carl'), findsOneWidget);
     expect(find.text('the fragment'), findsOneWidget);
+  });
+
+  testWidgets('a group message shows the sender avatar with presence to the left', (tester) async {
+    await tester.pumpWidget(
+      host(
+        MessageTile(
+          message: msg(),
+          quoted: null,
+          showSender: true,
+          gap: true,
+          leading: const HmAvatar(label: 'Ann', size: 32, online: true),
+        ),
+      ),
+    );
+    // The dot is there (its label merges into the tile's semantics here).
+    expect(
+      find.descendant(of: find.byType(HmAvatar), matching: find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'online')),
+      findsOneWidget,
+    );
+    final avatar = tester.getTopLeft(find.byType(HmAvatar));
+    final name = tester.getTopLeft(find.text('Ann'));
+    expect(avatar.dx, lessThan(name.dx));
   });
 }

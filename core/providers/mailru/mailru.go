@@ -225,6 +225,7 @@ type session struct {
 
 	imu sync.Mutex // one IMAP command at a time
 	c   *client.Client
+	idx map[string]*folderIndex // by folder; under imu
 
 	mu       sync.Mutex
 	inbox    *imap.MailboxStatus // last seen
@@ -252,7 +253,7 @@ func (p *Provider) Open(acct provider.Account, env provider.Env) (provider.Sessi
 	if cfg.CalDAV == "" {
 		return s, nil
 	}
-	cal, err := newCalClient(hc, cfg)
+	cal, err := newCalClient(hc, cfg, func(f string, a ...any) { env.Logf("warn", f, a...) })
 	if err != nil {
 		return nil, err
 	}
@@ -377,10 +378,12 @@ func (s calSession) Events(ctx context.Context, cal string, from, to time.Time) 
 	return s.cal.eventsAs(ctx, cal, from, to, s.cfg.Email)
 }
 
-func (s calSession) SaveEvent(ctx context.Context, ev model.CalEvent) (model.CalEvent, error) {
-	return s.cal.save(ctx, ev, s.cfg.Email)
+func (s calSession) SaveEvent(ctx context.Context, ev model.CalEvent, scope model.RecurScope) (model.CalEvent, error) {
+	return s.cal.save(ctx, ev, s.cfg.Email, scope)
 }
 
-func (s calSession) DeleteEvent(ctx context.Context, cal, id string) error {
-	return s.cal.remove(ctx, id)
+func (s calSession) DeleteEvent(ctx context.Context, cal, id string, scope model.RecurScope) error {
+	return s.cal.remove(ctx, id, scope)
 }
+
+var _ provider.Calendars = calSession{}

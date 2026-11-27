@@ -158,11 +158,11 @@ func TestMergedCalendar(t *testing.T) {
 	}
 
 	start := from.Add(36 * time.Hour)
-	saved, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "personal", Title: "Dentist", Start: start, End: start.Add(time.Hour)})
+	saved, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "personal", Title: "Dentist", Start: start, End: start.Add(time.Hour)}, model.ScopeThis)
 	if err != nil || saved.ID == "" || saved.AccountID != b.ID {
 		t.Fatalf("save %+v %v", saved, err)
 	}
-	if _, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "personal", Title: "Bad", Start: start, End: start}); err == nil {
+	if _, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "personal", Title: "Bad", Start: start, End: start}, model.ScopeThis); err == nil {
 		t.Fatal("an empty event must fail")
 	}
 	has := func() bool {
@@ -172,11 +172,56 @@ func TestMergedCalendar(t *testing.T) {
 	if !has() {
 		t.Fatal("saved event not listed")
 	}
-	if err := e.h.DeleteEvent(ctx, b.ID, "personal", saved.ID); err != nil || has() {
+	if err := e.h.DeleteEvent(ctx, b.ID, "personal", saved.ID, model.ScopeThis); err != nil || has() {
 		t.Fatal("not deleted", err)
 	}
 	if _, _, err := e.h.Events(ctx, EventsQuery{From: to, To: from}); err == nil {
 		t.Fatal("an empty range must fail")
+	}
+}
+
+func TestRecurringEvents(t *testing.T) {
+	e := newEnv(t)
+	_, b := onlineBoth(t, e)
+	ctx := context.Background()
+	day := time.Now().Truncate(24*time.Hour).AddDate(0, 0, 1).Add(7 * time.Hour)
+	from, to := day.Add(-time.Hour), day.AddDate(0, 0, 5)
+	if _, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "work", Title: "Daily", Start: day, End: day.Add(time.Hour), Recurrence: "nonsense"}, model.ScopeThis); err == nil {
+		t.Fatal("a bad rule must fail")
+	}
+	if _, err := e.h.SaveEvent(ctx, model.CalEvent{AccountID: b.ID, CalendarID: "work", Title: "Daily", Start: day, End: day.Add(time.Hour), Recurrence: "RRULE:FREQ=DAILY;COUNT=4"}, model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	titles := func() (out []string, evs []model.CalEvent) {
+		all, _, _ := e.h.Events(ctx, EventsQuery{Calendars: []CalendarKey{{b.ID, "work"}}, From: from, To: to})
+		for _, ev := range all {
+			if ev.Title != "Stand-up" && ev.Title != "Design review" {
+				out = append(out, ev.Title)
+				evs = append(evs, ev)
+			}
+		}
+		return out, evs
+	}
+	got, evs := titles()
+	if !slices.Equal(got, []string{"Daily", "Daily", "Daily", "Daily"}) || !evs[0].Recurring || evs[0].Recurrence != "FREQ=DAILY;COUNT=4" {
+		t.Fatalf("series %v %+v", got, evs)
+	}
+	third := evs[2]
+	third.Title = "Later"
+	if _, err := e.h.SaveEvent(ctx, third, model.ScopeFollowing); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.h.DeleteEvent(ctx, b.ID, "work", evs[1].ID, model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := titles(); !slices.Equal(got, []string{"Daily", "Later", "Later"}) {
+		t.Fatalf("after following + this: %v", got)
+	}
+	if err := e.h.DeleteEvent(ctx, b.ID, "work", evs[0].ID, model.ScopeAll); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := titles(); !slices.Equal(got, []string{"Later", "Later"}) {
+		t.Fatalf("after all: %v", got)
 	}
 }
 

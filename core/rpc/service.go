@@ -4,6 +4,8 @@ package rpc
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io/fs"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"megachat/core/cloudsync"
 	"megachat/core/crypto"
 	"megachat/core/eventlog"
 	"megachat/core/hub"
@@ -45,8 +48,12 @@ type Service struct {
 	// Keychain remembers the vault's unlock key on this machine; nil: the
 	// platform has none (can_remember is false).
 	Keychain keychain.Keychain
+	// Sync keeps the vault in CloudSync (cloudsync.go); nil: not here.
+	Sync *cloudsync.Syncer
 
 	pathMu sync.Mutex
+	// vaultOp keeps a vault taken from CloudSync from meeting a lock.
+	vaultOp sync.Mutex
 
 	previewOnce sync.Once
 	previews    *linkpreview.Fetcher
@@ -202,6 +209,7 @@ func (s *Service) state() *pb.State {
 		VaultExists: err == nil, VaultPath: s.vaultPath(), Platform: s.Platform,
 		CoreVersion: Version, CoreBuild: Build,
 		CanRemember: s.Keychain != nil,
+		Cloudsync:   s.syncState(),
 	}
 	if s.Keychain != nil {
 		_, err := os.Stat(s.rememberedMark())
@@ -234,6 +242,9 @@ func (s *Service) CreateVault(_ context.Context, r *pb.PasswordRequest) (*pb.Sta
 		return nil, toStatus(err)
 	}
 	s.forget() // left from a vault that was here before
+	if s.Sync != nil {
+		s.Sync.VaultSwitched()
+	}
 	return s.open(v)
 }
 
@@ -264,6 +275,8 @@ func (s *Service) open(v *vault.Vault) (*pb.State, error) {
 	}
 	h := hub.New(v, st, s.Registry, s.Log)
 	s.v, s.st, s.h = v, st, h
+	v.OnWrite(s.syncKick)
+	defer s.syncKick()
 	s.unsub = h.Subscribe(func(ev hub.Event) { s.publish(eventToPB(ev)) })
 	h.Start()
 	s.Log.Add(eventlog.Info, "vault", "", "unlocked")
@@ -280,6 +293,8 @@ func (s *Service) LockVault(context.Context, *pb.Empty) (*pb.State, error) {
 
 // Close locks the vault: sessions stop, the cache closes.
 func (s *Service) Close() {
+	s.vaultOp.Lock()
+	defer s.vaultOp.Unlock()
 	s.mu.Lock()
 	h, st, unsub := s.h, s.st, s.unsub
 	s.h, s.st, s.v, s.unsub = nil, nil, nil, nil
@@ -331,7 +346,24 @@ func (s *Service) CheckPassword(_ context.Context, r *pb.PasswordRequest) (*pb.E
 
 // rememberedMark is a file that says a key is kept in the keychain, so
 // GetState does not ask the keychain (it may prompt to unlock itself).
-func (s *Service) rememberedMark() string { return s.vaultPath() + ".remembered" }
+// It is this device's state: it lives in the data dir, never beside a
+// vault moved elsewhere (a synced folder would lose it or hand it to
+// other devices). The default vault keeps its old name.
+func (s *Service) rememberedMark() string {
+	p := s.vaultPath()
+	if s.DataRoot == "" {
+		return p + ".remembered"
+	}
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		abs = p
+	}
+	if def, err := filepath.Abs(filepath.Join(s.DataRoot, "vault.mc")); err == nil && def == abs {
+		return filepath.Join(s.DataRoot, "vault.mc.remembered")
+	}
+	sum := sha256.Sum256([]byte(abs))
+	return filepath.Join(s.DataRoot, "remembered-"+hex.EncodeToString(sum[:8]))
+}
 
 // keychainName names the vault's key in the keychain: one per vault file.
 func (s *Service) keychainName() string {
@@ -535,6 +567,9 @@ func (s *Service) useVault(path string) error {
 		return status.Errorf(codes.Internal, "keep the vault place: %v", err)
 	}
 	s.Log.Addf(eventlog.Info, "vault", "", "using the vault at %s", path)
+	if s.Sync != nil {
+		s.Sync.VaultSwitched()
+	}
 	return nil
 }
 

@@ -19,63 +19,69 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MegaChat_GetState_FullMethodName          = "/megachat.v1.MegaChat/GetState"
-	MegaChat_CreateVault_FullMethodName       = "/megachat.v1.MegaChat/CreateVault"
-	MegaChat_Unlock_FullMethodName            = "/megachat.v1.MegaChat/Unlock"
-	MegaChat_LockVault_FullMethodName         = "/megachat.v1.MegaChat/LockVault"
-	MegaChat_ChangePassword_FullMethodName    = "/megachat.v1.MegaChat/ChangePassword"
-	MegaChat_CheckPassword_FullMethodName     = "/megachat.v1.MegaChat/CheckPassword"
-	MegaChat_RememberPassword_FullMethodName  = "/megachat.v1.MegaChat/RememberPassword"
-	MegaChat_ForgetPassword_FullMethodName    = "/megachat.v1.MegaChat/ForgetPassword"
-	MegaChat_UnlockRemembered_FullMethodName  = "/megachat.v1.MegaChat/UnlockRemembered"
-	MegaChat_SetVaultPath_FullMethodName      = "/megachat.v1.MegaChat/SetVaultPath"
-	MegaChat_Providers_FullMethodName         = "/megachat.v1.MegaChat/Providers"
-	MegaChat_StartLogin_FullMethodName        = "/megachat.v1.MegaChat/StartLogin"
-	MegaChat_LoginStep_FullMethodName         = "/megachat.v1.MegaChat/LoginStep"
-	MegaChat_CancelLogin_FullMethodName       = "/megachat.v1.MegaChat/CancelLogin"
-	MegaChat_Relogin_FullMethodName           = "/megachat.v1.MegaChat/Relogin"
-	MegaChat_Accounts_FullMethodName          = "/megachat.v1.MegaChat/Accounts"
-	MegaChat_RenameAccount_FullMethodName     = "/megachat.v1.MegaChat/RenameAccount"
-	MegaChat_SetAccountEnabled_FullMethodName = "/megachat.v1.MegaChat/SetAccountEnabled"
-	MegaChat_RemoveAccount_FullMethodName     = "/megachat.v1.MegaChat/RemoveAccount"
-	MegaChat_ReorderAccounts_FullMethodName   = "/megachat.v1.MegaChat/ReorderAccounts"
-	MegaChat_Chats_FullMethodName             = "/megachat.v1.MegaChat/Chats"
-	MegaChat_RefreshChats_FullMethodName      = "/megachat.v1.MegaChat/RefreshChats"
-	MegaChat_History_FullMethodName           = "/megachat.v1.MegaChat/History"
-	MegaChat_Send_FullMethodName              = "/megachat.v1.MegaChat/Send"
-	MegaChat_Forward_FullMethodName           = "/megachat.v1.MegaChat/Forward"
-	MegaChat_MarkRead_FullMethodName          = "/megachat.v1.MegaChat/MarkRead"
-	MegaChat_Thread_FullMethodName            = "/megachat.v1.MegaChat/Thread"
-	MegaChat_Topics_FullMethodName            = "/megachat.v1.MegaChat/Topics"
-	MegaChat_React_FullMethodName             = "/megachat.v1.MegaChat/React"
-	MegaChat_Edit_FullMethodName              = "/megachat.v1.MegaChat/Edit"
-	MegaChat_Delete_FullMethodName            = "/megachat.v1.MegaChat/Delete"
-	MegaChat_LinkPreview_FullMethodName       = "/megachat.v1.MegaChat/LinkPreview"
-	MegaChat_Members_FullMethodName           = "/megachat.v1.MegaChat/Members"
-	MegaChat_Media_FullMethodName             = "/megachat.v1.MegaChat/Media"
-	MegaChat_Profile_FullMethodName           = "/megachat.v1.MegaChat/Profile"
-	MegaChat_ManageChat_FullMethodName        = "/megachat.v1.MegaChat/ManageChat"
-	MegaChat_ChatFolders_FullMethodName       = "/megachat.v1.MegaChat/ChatFolders"
-	MegaChat_StartCall_FullMethodName         = "/megachat.v1.MegaChat/StartCall"
-	MegaChat_AcceptCall_FullMethodName        = "/megachat.v1.MegaChat/AcceptCall"
-	MegaChat_EndCall_FullMethodName           = "/megachat.v1.MegaChat/EndCall"
-	MegaChat_CallSignal_FullMethodName        = "/megachat.v1.MegaChat/CallSignal"
-	MegaChat_SetCallMedia_FullMethodName      = "/megachat.v1.MegaChat/SetCallMedia"
-	MegaChat_Calls_FullMethodName             = "/megachat.v1.MegaChat/Calls"
-	MegaChat_CallSignals_FullMethodName       = "/megachat.v1.MegaChat/CallSignals"
-	MegaChat_Folders_FullMethodName           = "/megachat.v1.MegaChat/Folders"
-	MegaChat_MailList_FullMethodName          = "/megachat.v1.MegaChat/MailList"
-	MegaChat_GetMail_FullMethodName           = "/megachat.v1.MegaChat/GetMail"
-	MegaChat_SendMail_FullMethodName          = "/megachat.v1.MegaChat/SendMail"
-	MegaChat_UpdateMail_FullMethodName        = "/megachat.v1.MegaChat/UpdateMail"
-	MegaChat_MoveMail_FullMethodName          = "/megachat.v1.MegaChat/MoveMail"
-	MegaChat_Calendars_FullMethodName         = "/megachat.v1.MegaChat/Calendars"
-	MegaChat_Events_FullMethodName            = "/megachat.v1.MegaChat/Events"
-	MegaChat_SaveEvent_FullMethodName         = "/megachat.v1.MegaChat/SaveEvent"
-	MegaChat_DeleteEvent_FullMethodName       = "/megachat.v1.MegaChat/DeleteEvent"
-	MegaChat_Watch_FullMethodName             = "/megachat.v1.MegaChat/Watch"
-	MegaChat_Logs_FullMethodName              = "/megachat.v1.MegaChat/Logs"
-	MegaChat_ClearLogs_FullMethodName         = "/megachat.v1.MegaChat/ClearLogs"
+	MegaChat_GetState_FullMethodName               = "/megachat.v1.MegaChat/GetState"
+	MegaChat_CreateVault_FullMethodName            = "/megachat.v1.MegaChat/CreateVault"
+	MegaChat_Unlock_FullMethodName                 = "/megachat.v1.MegaChat/Unlock"
+	MegaChat_LockVault_FullMethodName              = "/megachat.v1.MegaChat/LockVault"
+	MegaChat_ChangePassword_FullMethodName         = "/megachat.v1.MegaChat/ChangePassword"
+	MegaChat_CheckPassword_FullMethodName          = "/megachat.v1.MegaChat/CheckPassword"
+	MegaChat_RememberPassword_FullMethodName       = "/megachat.v1.MegaChat/RememberPassword"
+	MegaChat_ForgetPassword_FullMethodName         = "/megachat.v1.MegaChat/ForgetPassword"
+	MegaChat_UnlockRemembered_FullMethodName       = "/megachat.v1.MegaChat/UnlockRemembered"
+	MegaChat_SetVaultPath_FullMethodName           = "/megachat.v1.MegaChat/SetVaultPath"
+	MegaChat_CloudSync_FullMethodName              = "/megachat.v1.MegaChat/CloudSync"
+	MegaChat_EnableCloudSync_FullMethodName        = "/megachat.v1.MegaChat/EnableCloudSync"
+	MegaChat_CancelCloudSyncPairing_FullMethodName = "/megachat.v1.MegaChat/CancelCloudSyncPairing"
+	MegaChat_ResolveCloudSync_FullMethodName       = "/megachat.v1.MegaChat/ResolveCloudSync"
+	MegaChat_CloudSyncPassword_FullMethodName      = "/megachat.v1.MegaChat/CloudSyncPassword"
+	MegaChat_DisableCloudSync_FullMethodName       = "/megachat.v1.MegaChat/DisableCloudSync"
+	MegaChat_Providers_FullMethodName              = "/megachat.v1.MegaChat/Providers"
+	MegaChat_StartLogin_FullMethodName             = "/megachat.v1.MegaChat/StartLogin"
+	MegaChat_LoginStep_FullMethodName              = "/megachat.v1.MegaChat/LoginStep"
+	MegaChat_CancelLogin_FullMethodName            = "/megachat.v1.MegaChat/CancelLogin"
+	MegaChat_Relogin_FullMethodName                = "/megachat.v1.MegaChat/Relogin"
+	MegaChat_Accounts_FullMethodName               = "/megachat.v1.MegaChat/Accounts"
+	MegaChat_RenameAccount_FullMethodName          = "/megachat.v1.MegaChat/RenameAccount"
+	MegaChat_SetAccountEnabled_FullMethodName      = "/megachat.v1.MegaChat/SetAccountEnabled"
+	MegaChat_RemoveAccount_FullMethodName          = "/megachat.v1.MegaChat/RemoveAccount"
+	MegaChat_ReorderAccounts_FullMethodName        = "/megachat.v1.MegaChat/ReorderAccounts"
+	MegaChat_Chats_FullMethodName                  = "/megachat.v1.MegaChat/Chats"
+	MegaChat_RefreshChats_FullMethodName           = "/megachat.v1.MegaChat/RefreshChats"
+	MegaChat_History_FullMethodName                = "/megachat.v1.MegaChat/History"
+	MegaChat_Send_FullMethodName                   = "/megachat.v1.MegaChat/Send"
+	MegaChat_Forward_FullMethodName                = "/megachat.v1.MegaChat/Forward"
+	MegaChat_MarkRead_FullMethodName               = "/megachat.v1.MegaChat/MarkRead"
+	MegaChat_Thread_FullMethodName                 = "/megachat.v1.MegaChat/Thread"
+	MegaChat_Topics_FullMethodName                 = "/megachat.v1.MegaChat/Topics"
+	MegaChat_React_FullMethodName                  = "/megachat.v1.MegaChat/React"
+	MegaChat_Edit_FullMethodName                   = "/megachat.v1.MegaChat/Edit"
+	MegaChat_Delete_FullMethodName                 = "/megachat.v1.MegaChat/Delete"
+	MegaChat_LinkPreview_FullMethodName            = "/megachat.v1.MegaChat/LinkPreview"
+	MegaChat_Members_FullMethodName                = "/megachat.v1.MegaChat/Members"
+	MegaChat_Media_FullMethodName                  = "/megachat.v1.MegaChat/Media"
+	MegaChat_Profile_FullMethodName                = "/megachat.v1.MegaChat/Profile"
+	MegaChat_ManageChat_FullMethodName             = "/megachat.v1.MegaChat/ManageChat"
+	MegaChat_ChatFolders_FullMethodName            = "/megachat.v1.MegaChat/ChatFolders"
+	MegaChat_StartCall_FullMethodName              = "/megachat.v1.MegaChat/StartCall"
+	MegaChat_AcceptCall_FullMethodName             = "/megachat.v1.MegaChat/AcceptCall"
+	MegaChat_EndCall_FullMethodName                = "/megachat.v1.MegaChat/EndCall"
+	MegaChat_CallSignal_FullMethodName             = "/megachat.v1.MegaChat/CallSignal"
+	MegaChat_SetCallMedia_FullMethodName           = "/megachat.v1.MegaChat/SetCallMedia"
+	MegaChat_Calls_FullMethodName                  = "/megachat.v1.MegaChat/Calls"
+	MegaChat_CallSignals_FullMethodName            = "/megachat.v1.MegaChat/CallSignals"
+	MegaChat_Folders_FullMethodName                = "/megachat.v1.MegaChat/Folders"
+	MegaChat_MailList_FullMethodName               = "/megachat.v1.MegaChat/MailList"
+	MegaChat_GetMail_FullMethodName                = "/megachat.v1.MegaChat/GetMail"
+	MegaChat_SendMail_FullMethodName               = "/megachat.v1.MegaChat/SendMail"
+	MegaChat_UpdateMail_FullMethodName             = "/megachat.v1.MegaChat/UpdateMail"
+	MegaChat_MoveMail_FullMethodName               = "/megachat.v1.MegaChat/MoveMail"
+	MegaChat_Calendars_FullMethodName              = "/megachat.v1.MegaChat/Calendars"
+	MegaChat_Events_FullMethodName                 = "/megachat.v1.MegaChat/Events"
+	MegaChat_SaveEvent_FullMethodName              = "/megachat.v1.MegaChat/SaveEvent"
+	MegaChat_DeleteEvent_FullMethodName            = "/megachat.v1.MegaChat/DeleteEvent"
+	MegaChat_Watch_FullMethodName                  = "/megachat.v1.MegaChat/Watch"
+	MegaChat_Logs_FullMethodName                   = "/megachat.v1.MegaChat/Logs"
+	MegaChat_ClearLogs_FullMethodName              = "/megachat.v1.MegaChat/ClearLogs"
 )
 
 // MegaChatClient is the client API for MegaChat service.
@@ -117,6 +123,22 @@ type MegaChatClient interface {
 	// existing vault to use from now on (FailedPrecondition while unlocked,
 	// NotFound if there is no file). A directory means "vault.mc" in it.
 	SetVaultPath(ctx context.Context, in *VaultPathRequest, opts ...grpc.CallOption) (*State, error)
+	// "Sync via CloudSync" (CONNECTOR.md): the vault file is kept in the
+	// user's CloudSync vault and every device gets the same one. It works
+	// only while CloudSync runs on this device (desktops: cloudsyncd; Android:
+	// the CloudSync app) and the app stays usable without it. Changes come as
+	// KIND_CLOUDSYNC. EnableCloudSync pairs this device (state PAIRING with a
+	// code the user compares in CloudSync) and syncs; it works while unlocked
+	// or when there is no vault yet (it then takes the synced one).
+	// CONFLICT: the synced vault differs from this one, ResolveCloudSync
+	// picks. NEEDS_PASSWORD: the synced copy has another password,
+	// CloudSyncPassword gives it. DisableCloudSync keeps the local vault.
+	CloudSync(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error)
+	EnableCloudSync(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error)
+	CancelCloudSyncPairing(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error)
+	ResolveCloudSync(ctx context.Context, in *ResolveCloudSyncRequest, opts ...grpc.CallOption) (*CloudSyncState, error)
+	CloudSyncPassword(ctx context.Context, in *PasswordRequest, opts ...grpc.CallOption) (*CloudSyncState, error)
+	DisableCloudSync(ctx context.Context, in *DisableCloudSyncRequest, opts ...grpc.CallOption) (*CloudSyncState, error)
 	// Providers and accounts.
 	Providers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProvidersReply, error)
 	// Sign-in is a short dialog driven by the core: StartLogin returns the
@@ -327,6 +349,66 @@ func (c *megaChatClient) SetVaultPath(ctx context.Context, in *VaultPathRequest,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(State)
 	err := c.cc.Invoke(ctx, MegaChat_SetVaultPath_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) CloudSync(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_CloudSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) EnableCloudSync(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_EnableCloudSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) CancelCloudSyncPairing(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_CancelCloudSyncPairing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) ResolveCloudSync(ctx context.Context, in *ResolveCloudSyncRequest, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_ResolveCloudSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) CloudSyncPassword(ctx context.Context, in *PasswordRequest, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_CloudSyncPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *megaChatClient) DisableCloudSync(ctx context.Context, in *DisableCloudSyncRequest, opts ...grpc.CallOption) (*CloudSyncState, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloudSyncState)
+	err := c.cc.Invoke(ctx, MegaChat_DisableCloudSync_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -851,6 +933,22 @@ type MegaChatServer interface {
 	// existing vault to use from now on (FailedPrecondition while unlocked,
 	// NotFound if there is no file). A directory means "vault.mc" in it.
 	SetVaultPath(context.Context, *VaultPathRequest) (*State, error)
+	// "Sync via CloudSync" (CONNECTOR.md): the vault file is kept in the
+	// user's CloudSync vault and every device gets the same one. It works
+	// only while CloudSync runs on this device (desktops: cloudsyncd; Android:
+	// the CloudSync app) and the app stays usable without it. Changes come as
+	// KIND_CLOUDSYNC. EnableCloudSync pairs this device (state PAIRING with a
+	// code the user compares in CloudSync) and syncs; it works while unlocked
+	// or when there is no vault yet (it then takes the synced one).
+	// CONFLICT: the synced vault differs from this one, ResolveCloudSync
+	// picks. NEEDS_PASSWORD: the synced copy has another password,
+	// CloudSyncPassword gives it. DisableCloudSync keeps the local vault.
+	CloudSync(context.Context, *Empty) (*CloudSyncState, error)
+	EnableCloudSync(context.Context, *Empty) (*CloudSyncState, error)
+	CancelCloudSyncPairing(context.Context, *Empty) (*CloudSyncState, error)
+	ResolveCloudSync(context.Context, *ResolveCloudSyncRequest) (*CloudSyncState, error)
+	CloudSyncPassword(context.Context, *PasswordRequest) (*CloudSyncState, error)
+	DisableCloudSync(context.Context, *DisableCloudSyncRequest) (*CloudSyncState, error)
 	// Providers and accounts.
 	Providers(context.Context, *Empty) (*ProvidersReply, error)
 	// Sign-in is a short dialog driven by the core: StartLogin returns the
@@ -996,6 +1094,24 @@ func (UnimplementedMegaChatServer) UnlockRemembered(context.Context, *Empty) (*S
 }
 func (UnimplementedMegaChatServer) SetVaultPath(context.Context, *VaultPathRequest) (*State, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetVaultPath not implemented")
+}
+func (UnimplementedMegaChatServer) CloudSync(context.Context, *Empty) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloudSync not implemented")
+}
+func (UnimplementedMegaChatServer) EnableCloudSync(context.Context, *Empty) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnableCloudSync not implemented")
+}
+func (UnimplementedMegaChatServer) CancelCloudSyncPairing(context.Context, *Empty) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelCloudSyncPairing not implemented")
+}
+func (UnimplementedMegaChatServer) ResolveCloudSync(context.Context, *ResolveCloudSyncRequest) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveCloudSync not implemented")
+}
+func (UnimplementedMegaChatServer) CloudSyncPassword(context.Context, *PasswordRequest) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloudSyncPassword not implemented")
+}
+func (UnimplementedMegaChatServer) DisableCloudSync(context.Context, *DisableCloudSyncRequest) (*CloudSyncState, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisableCloudSync not implemented")
 }
 func (UnimplementedMegaChatServer) Providers(context.Context, *Empty) (*ProvidersReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Providers not implemented")
@@ -1335,6 +1451,114 @@ func _MegaChat_SetVaultPath_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MegaChatServer).SetVaultPath(ctx, req.(*VaultPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_CloudSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).CloudSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_CloudSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).CloudSync(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_EnableCloudSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).EnableCloudSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_EnableCloudSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).EnableCloudSync(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_CancelCloudSyncPairing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).CancelCloudSyncPairing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_CancelCloudSyncPairing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).CancelCloudSyncPairing(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_ResolveCloudSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveCloudSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).ResolveCloudSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_ResolveCloudSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).ResolveCloudSync(ctx, req.(*ResolveCloudSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_CloudSyncPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).CloudSyncPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_CloudSyncPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).CloudSyncPassword(ctx, req.(*PasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MegaChat_DisableCloudSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableCloudSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MegaChatServer).DisableCloudSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MegaChat_DisableCloudSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MegaChatServer).DisableCloudSync(ctx, req.(*DisableCloudSyncRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2224,6 +2448,30 @@ var MegaChat_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetVaultPath",
 			Handler:    _MegaChat_SetVaultPath_Handler,
+		},
+		{
+			MethodName: "CloudSync",
+			Handler:    _MegaChat_CloudSync_Handler,
+		},
+		{
+			MethodName: "EnableCloudSync",
+			Handler:    _MegaChat_EnableCloudSync_Handler,
+		},
+		{
+			MethodName: "CancelCloudSyncPairing",
+			Handler:    _MegaChat_CancelCloudSyncPairing_Handler,
+		},
+		{
+			MethodName: "ResolveCloudSync",
+			Handler:    _MegaChat_ResolveCloudSync_Handler,
+		},
+		{
+			MethodName: "CloudSyncPassword",
+			Handler:    _MegaChat_CloudSyncPassword_Handler,
+		},
+		{
+			MethodName: "DisableCloudSync",
+			Handler:    _MegaChat_DisableCloudSync_Handler,
 		},
 		{
 			MethodName: "Providers",

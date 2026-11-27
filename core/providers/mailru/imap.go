@@ -72,6 +72,8 @@ func (s *session) listFolders(c *client.Client) ([]*imap.MailboxInfo, error) {
 	for m := range ch {
 		if !slices.Contains(m.Attributes, imap.NoSelectAttr) && !slices.Contains(m.Attributes, "\\NonExistent") {
 			out = append(out, m)
+		} else {
+			s.env.Logf("info", "imap: folder %q not selectable %v", m.Name, m.Attributes)
 		}
 	}
 	return out, <-done
@@ -92,7 +94,8 @@ func (s *session) Folders(ctx context.Context) ([]model.Folder, error) {
 			}
 			st, err := c.Status(info.Name, []imap.StatusItem{imap.StatusMessages, imap.StatusUnseen})
 			if err != nil {
-				continue // listed but not readable
+				s.env.Logf("warn", "imap: folder %q listed but not readable: %v", info.Name, err)
+				continue
 			}
 			role := roleOf(info)
 			if role != model.FolderOther && seen[role] {
@@ -208,6 +211,52 @@ func fetch(c *client.Client, uid bool, set *imap.SeqSet, items []imap.FetchItem)
 	return out, <-done
 }
 
+// dated is a message of a folder with its date.
+type dated struct {
+	uid uint32
+	t   time.Time
+}
+
+// folderIndex lists a folder's messages newest first. Sequence numbers
+// follow arrival, not date: mail moved in (a whole inbox thrown into the
+// trash) arrives in any order, so pages are cut by date from this index.
+type folderIndex struct {
+	validity, uidNext, count uint32
+	msgs                     []dated
+}
+
+// index returns the date index of the selected folder, fetched again when
+// the folder's counters changed (flags do not move dates).
+func (s *session) index(c *client.Client, folder string, st *imap.MailboxStatus) (*folderIndex, error) {
+	if x := s.idx[folder]; x != nil && st.UidNext != 0 && x.validity == st.UidValidity && x.uidNext == st.UidNext && x.count == st.Messages {
+		return x, nil
+	}
+	set := new(imap.SeqSet)
+	set.AddRange(1, 0) // 1:*
+	msgs, err := fetch(c, false, set, []imap.FetchItem{imap.FetchUid, imap.FetchInternalDate})
+	if err != nil {
+		return nil, err
+	}
+	x := &folderIndex{validity: st.UidValidity, uidNext: st.UidNext, count: st.Messages}
+	for _, m := range msgs {
+		if m.Uid != 0 {
+			x.msgs = append(x.msgs, dated{m.Uid, m.InternalDate})
+		}
+	}
+	sort.Slice(x.msgs, func(i, j int) bool {
+		a, b := x.msgs[i], x.msgs[j]
+		if !a.t.Equal(b.t) {
+			return a.t.After(b.t)
+		}
+		return a.uid > b.uid
+	})
+	if s.idx == nil {
+		s.idx = map[string]*folderIndex{}
+	}
+	s.idx[folder] = x
+	return x, nil
+}
+
 func (s *session) Mail(ctx context.Context, folder string, before time.Time, limit int) ([]model.Mail, bool, error) {
 	var out []model.Mail
 	more := false
@@ -220,50 +269,40 @@ func (s *session) Mail(ctx context.Context, folder string, before time.Time, lim
 		if st.Messages == 0 {
 			return nil
 		}
-		// Sequence numbers follow arrival, so the newest are at the end.
-		var seqs []uint32
-		if before.IsZero() {
-			for n := st.Messages; n >= 1 && len(seqs) < limit; n-- {
-				seqs = append(seqs, n)
-			}
-			slices.Reverse(seqs)
-		} else {
-			// SEARCH takes whole days (server time); the exact cut follows.
-			crit := imap.NewSearchCriteria()
-			crit.Before = before.AddDate(0, 0, 2)
-			if seqs, err = c.Search(crit); err != nil {
-				return err
-			}
-			sort.Slice(seqs, func(i, j int) bool { return seqs[i] < seqs[j] })
+		idx, err := s.index(c, folder, st)
+		if err != nil {
+			return err
 		}
-		end := len(seqs)
-		for end > 0 && len(out) < limit {
-			if ctx.Err() != nil {
-				return ctx.Err()
+		var pick []uint32
+		for _, d := range idx.msgs {
+			if !before.IsZero() && d.t.After(before) {
+				continue
 			}
-			start := max(0, end-limit-10)
-			set := new(imap.SeqSet)
-			set.AddNum(seqs[start:end]...)
-			msgs, err := fetch(c, false, set, summaryItems)
-			if err != nil {
-				return err
+			if len(pick) == limit {
+				more = true
+				break
 			}
-			for _, m := range msgs {
-				x := summary(m, st.UidValidity, folder)
-				if before.IsZero() || !x.Time.After(before) {
-					out = append(out, x)
-				}
+			pick = append(pick, d.uid)
+		}
+		if len(pick) == 0 {
+			return nil
+		}
+		set := new(imap.SeqSet)
+		set.AddNum(pick...)
+		msgs, err := fetch(c, true, set, summaryItems)
+		if err != nil {
+			return err
+		}
+		byUID := map[uint32]*imap.Message{}
+		for _, m := range msgs {
+			byUID[m.Uid] = m
+		}
+		for _, uid := range pick {
+			if m := byUID[uid]; m != nil {
+				out = append(out, summary(m, st.UidValidity, folder))
 			}
-			end = start
 		}
-		sort.SliceStable(out, func(i, j int) bool { return out[i].Time.After(out[j].Time) })
-		if len(out) > limit {
-			out, more = out[:limit], true
-		}
-		if end > 0 || (before.IsZero() && len(seqs) > 0 && seqs[0] > 1) {
-			more = true
-		}
-		return nil
+		return ctx.Err()
 	})
 	return out, more, err
 }

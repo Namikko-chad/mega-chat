@@ -50,6 +50,29 @@ DateTime gridStart(DateTime month) {
 
 const _palette = [HmColors.accent, HmColors.ok, HmColors.purpleLight, HmColors.warning, HmColors.active, HmColors.error];
 
+/// Distinct colours for [calendars] in their order (see [CalendarState.color]).
+/// Past the palette, hues go round the colour wheel by the golden angle.
+Map<CalKey, Color> calendarColors(List<pb.Calendar> calendars) {
+  final out = <CalKey, Color>{};
+  final used = <int>{};
+  var next = 0;
+  Color fresh() {
+    while (true) {
+      final i = next++;
+      final c = i < _palette.length ? _palette[i] : HSVColor.fromAHSV(1, ((i - _palette.length) * 137.508 + 20) % 360, 0.65, 0.95).toColor();
+      if (!used.contains(c.toARGB32() & 0xFFFFFF)) return c;
+    }
+  }
+
+  for (final cal in calendars) {
+    final own = cal.color & 0xFFFFFF;
+    final c = own != 0 && !used.contains(own) ? Color(0xFF000000 | own) : fresh();
+    used.add(c.toARGB32() & 0xFFFFFF);
+    out[calKey(cal)] = c;
+  }
+  return out;
+}
+
 class CalendarState extends Equatable {
   CalendarState({
     this.loading = false,
@@ -84,12 +107,12 @@ class CalendarState extends Equatable {
 
   pb.Calendar? calendar(CalKey k) => calendars.where((c) => calKey(c) == k).firstOrNull;
 
-  Color color(CalKey k) {
-    final i = calendars.indexWhere((c) => calKey(c) == k);
-    if (i < 0) return HmColors.muted;
-    final c = calendars[i];
-    return c.color != 0 ? Color(0xFF000000 | c.color) : _palette[i % _palette.length];
-  }
+  /// One colour per calendar, the same for its mark and its events: the
+  /// provider's own unless an earlier calendar already has it, else the next
+  /// palette colour no calendar uses.
+  late final Map<CalKey, Color> _colors = calendarColors(calendars);
+
+  Color color(CalKey k) => _colors[k] ?? HmColors.muted;
 
   CalendarState copyWith({
     bool? loading,
@@ -229,14 +252,22 @@ class CalendarCubit extends Cubit<CalendarState> {
     emit(state.copyWith(hidden: hidden));
   }
 
+  /// Shows or hides several calendars at once (all of an account's).
+  void setShown(Iterable<CalKey> keys, bool on) {
+    final hidden = Set.of(state.hidden);
+    on ? hidden.removeAll(keys) : hidden.addAll(keys);
+    emit(state.copyWith(hidden: hidden));
+  }
+
   Future<pb.CalendarEvent> save(pb.CalendarEvent e) async {
     final out = await api.saveEvent(e);
     await loadEvents();
     return out;
   }
 
-  Future<void> delete(pb.CalendarEvent e) async {
-    await api.deleteEvent(pb.DeleteEventRequest(accountId: e.accountId, calendarId: e.calendarId, id: e.id));
+  /// Deletes an event; of a repeating one, what [scope] says.
+  Future<void> delete(pb.CalendarEvent e, {pb.RecurrenceScope scope = pb.RecurrenceScope.RECURRENCE_SCOPE_THIS}) async {
+    await api.deleteEvent(pb.DeleteEventRequest(accountId: e.accountId, calendarId: e.calendarId, id: e.id, scope: scope));
     emit(state.copyWith(events: state.events.where((x) => !(x.accountId == e.accountId && x.id == e.id)).toList()));
     await loadEvents();
   }

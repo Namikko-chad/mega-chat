@@ -18,24 +18,32 @@ import (
 
 	"megachat/core/crypto"
 	"megachat/core/model"
-	"megachat/core/provider"
+	"megachat/core/recur"
 )
 
-// ErrRepeating: occurrences of a repeating CalDAV event cannot be changed
-// one by one yet.
-var ErrRepeating = fmt.Errorf("a repeating event can only be changed in its own calendar app: %w", provider.ErrUnsupported)
-
 type calClient struct {
-	c    *caldav.Client
+	c    *caldav.Client // discovery
+	raw  davRaw         // objects
 	home string
+	logf func(string, ...any)
 }
 
-func davClient(hc *http.Client, cfg config, base string) (*caldav.Client, error) {
+// davClient talks CalDAV at base; logf (may be nil) is told which request
+// a server refused, since its errors carry only the status.
+func davClient(hc *http.Client, cfg config, base string, logf func(string, ...any)) (*caldav.Client, error) {
+	c, _, err := davClients(hc, cfg, base, logf)
+	return c, err
+}
+
+// davClients returns go-webdav's client and one for raw requests.
+func davClients(hc *http.Client, cfg config, base string, logf func(string, ...any)) (*caldav.Client, davRaw, error) {
 	u, err := url.Parse(base)
 	if err != nil {
-		return nil, err
+		return nil, davRaw{}, err
 	}
-	return caldav.NewClient(keepSlash{webdav.HTTPClientWithBasicAuth(hc, cfg.Email, cfg.Password), u.Path}, base)
+	h := keepSlash{webdav.HTTPClientWithBasicAuth(hc, cfg.Email, cfg.Password), u.Path, logf}
+	c, err := caldav.NewClient(h, base)
+	return c, davRaw{hc: h, base: u}, err
 }
 
 // keepSlash puts back the trailing slash of the base path: go-webdav drops
@@ -44,6 +52,7 @@ func davClient(hc *http.Client, cfg config, base string) (*caldav.Client, error)
 type keepSlash struct {
 	webdav.HTTPClient
 	base string
+	logf func(string, ...any)
 }
 
 func (k keepSlash) Do(req *http.Request) (*http.Response, error) {
@@ -51,7 +60,12 @@ func (k keepSlash) Do(req *http.Request) (*http.Response, error) {
 		req = req.Clone(req.Context())
 		req.URL.Path, req.URL.RawPath = k.base, ""
 	}
-	return k.HTTPClient.Do(req)
+	resp, err := k.HTTPClient.Do(req)
+	if err == nil && resp.StatusCode >= 400 && k.logf != nil {
+		depth := req.Header.Get("Depth")
+		k.logf("caldav: %s %s (depth %q): %s", req.Method, req.URL.Path, depth, resp.Status)
+	}
+	return resp, err
 }
 
 // discoverCalendars finds the account's calendar home set: the principal
@@ -59,7 +73,7 @@ func (k keepSlash) Do(req *http.Request) (*http.Response, error) {
 func discoverCalendars(ctx context.Context, hc *http.Client, cfg config) (string, error) {
 	var firstErr error
 	for _, base := range []string{cfg.CalDAV, strings.TrimSuffix(cfg.CalDAV, "/") + "/.well-known/caldav"} {
-		c, err := davClient(hc, cfg, base)
+		c, err := davClient(hc, cfg, base, nil)
 		if err != nil {
 			return "", err
 		}
@@ -77,7 +91,7 @@ func discoverCalendars(ctx context.Context, hc *http.Client, cfg config) (string
 		}
 	}
 	// The address may name the principal itself.
-	if c, err := davClient(hc, cfg, cfg.CalDAV); err == nil {
+	if c, err := davClient(hc, cfg, cfg.CalDAV, nil); err == nil {
 		if u, err := url.Parse(cfg.CalDAV); err == nil {
 			if home, err := c.FindCalendarHomeSet(ctx, u.Path); err == nil {
 				if _, err = c.FindCalendars(ctx, home); err == nil {
@@ -89,12 +103,15 @@ func discoverCalendars(ctx context.Context, hc *http.Client, cfg config) (string
 	return "", firstErr
 }
 
-func newCalClient(hc *http.Client, cfg config) (*calClient, error) {
-	c, err := davClient(hc, cfg, cfg.CalDAV)
+func newCalClient(hc *http.Client, cfg config, logf func(string, ...any)) (*calClient, error) {
+	if logf == nil {
+		logf = func(string, ...any) {}
+	}
+	c, raw, err := davClients(hc, cfg, cfg.CalDAV, logf)
 	if err != nil {
 		return nil, err
 	}
-	return &calClient{c: c, home: cfg.CalHome}, nil
+	return &calClient{c: c, raw: raw, home: cfg.CalHome, logf: logf}, nil
 }
 
 func (k *calClient) homeSet(ctx context.Context) (string, error) {
@@ -151,13 +168,7 @@ func (k *calClient) state(ctx context.Context) (string, error) {
 	h := sha256.New()
 	for _, c := range cals {
 		now := time.Now()
-		q := &caldav.CalendarQuery{
-			CompRequest: caldav.CalendarCompRequest{Name: ical.CompCalendar, Props: []string{ical.PropUID}},
-			CompFilter: caldav.CompFilter{Name: ical.CompCalendar, Comps: []caldav.CompFilter{
-				{Name: ical.CompEvent, Start: now.AddDate(0, -1, 0).UTC(), End: now.AddDate(0, 6, 0).UTC()},
-			}},
-		}
-		objs, err := k.c.QueryCalendar(ctx, c.ID, q)
+		objs, err := k.raw.query(ctx, c.ID, now.AddDate(0, -1, 0), now.AddDate(0, 6, 0), false, k.logf)
 		if err != nil {
 			return "", err
 		}
@@ -294,6 +305,9 @@ func expand(path string, cal *ical.Calendar, from, to time.Time, self string) []
 		}
 		e := eventOf(c, id, start, end, allDay, self)
 		e.Recurring = recurring
+		if recurring && master != nil {
+			e.Recurrence = ruleOf(master)
+		}
 		out = append(out, e)
 	}
 	if master == nil {
@@ -337,6 +351,7 @@ func expand(path string, cal *ical.Calendar, from, to time.Time, self string) []
 		}
 		e := eventOf(master, id, t, t.Add(dur), allDay, self)
 		e.Recurring = true
+		e.Recurrence = ruleOf(master)
 		out = append(out, e)
 	}
 	return out
@@ -347,13 +362,7 @@ func (k *calClient) events(ctx context.Context, calPath string, from, to time.Ti
 }
 
 func (k *calClient) eventsAs(ctx context.Context, calPath string, from, to time.Time, self string) ([]model.CalEvent, error) {
-	q := &caldav.CalendarQuery{
-		CompRequest: caldav.CalendarCompRequest{Name: ical.CompCalendar, AllProps: true, AllComps: true},
-		CompFilter: caldav.CompFilter{Name: ical.CompCalendar, Comps: []caldav.CompFilter{
-			{Name: ical.CompEvent, Start: from.UTC(), End: to.UTC()},
-		}},
-	}
-	objs, err := k.c.QueryCalendar(ctx, calPath, q)
+	objs, err := k.raw.query(ctx, calPath, from, to, true, k.logf)
 	if err != nil {
 		return nil, err
 	}
@@ -366,11 +375,23 @@ func (k *calClient) eventsAs(ctx context.Context, calPath string, from, to time.
 	return out, nil
 }
 
+// setTime writes a DTSTART-like property: a date, a time in the zone the
+// property had (a repeating event keeps its wall clock over DST), or UTC.
 func setTime(props ical.Props, name string, t time.Time, allDay bool) {
 	p := ical.NewProp(name)
-	if allDay {
+	switch {
+	case allDay:
 		p.SetDate(t.UTC())
-	} else {
+	default:
+		if old := props.Get(name); old != nil {
+			if tz := old.Params.Get(ical.PropTimezoneID); tz != "" {
+				if loc, err := time.LoadLocation(tz); err == nil {
+					p.Params.Set(ical.PropTimezoneID, tz)
+					p.Value = t.In(loc).Format("20060102T150405")
+					break
+				}
+			}
+		}
 		p.SetDateTime(t.UTC())
 	}
 	props.Set(p)
@@ -404,18 +425,109 @@ func fill(c *ical.Component, ev model.CalEvent) {
 	}
 }
 
-func (k *calClient) save(ctx context.Context, ev model.CalEvent, self string) (model.CalEvent, error) {
-	if strings.Contains(ev.ID, "#") {
-		return model.CalEvent{}, ErrRepeating
+// setRule sets (or, empty, drops) a VEVENT's RRULE.
+func setRule(c *ical.Component, rule string) {
+	c.Props.Del(ical.PropRecurrenceRule)
+	if rule != "" {
+		p := ical.NewProp(ical.PropRecurrenceRule)
+		p.Value = rule
+		c.Props.Set(p)
 	}
-	var cal *ical.Calendar
-	path := ev.ID
-	if path == "" {
-		uid := crypto.RandomID(16) + "@megachat"
-		path = strings.TrimSuffix(ev.CalendarID, "/") + "/" + url.PathEscape(uid) + ".ics"
-		cal = ical.NewCalendar()
-		cal.Props.SetText(ical.PropVersion, "2.0")
-		cal.Props.SetText(ical.PropProductID, "-//MegaChat//EN")
+}
+
+// ruleOf returns a VEVENT's RRULE value, "" when it has none.
+func ruleOf(c *ical.Component) string {
+	if p := c.Props.Get(ical.PropRecurrenceRule); p != nil {
+		return recur.Clean(p.Value)
+	}
+	return ""
+}
+
+// splitID parses an event id: an object path and, for an occurrence of a
+// repeating event, the occurrence's (original) start.
+func splitID(id string) (path string, occ time.Time, isOcc bool, err error) {
+	path, at, isOcc := strings.Cut(id, "#")
+	if !isOcc {
+		return path, time.Time{}, false, nil
+	}
+	occ, err = time.ParseInLocation(occurrenceFormat, at, time.UTC)
+	if err != nil {
+		return "", time.Time{}, false, fmt.Errorf("mailru: bad event id %q", id)
+	}
+	return path, occ, true, nil
+}
+
+// seriesOf returns the VEVENT of a calendar object that is the series (or
+// the single event), and the overrides of single occurrences.
+func seriesOf(cal *ical.Calendar) (master *ical.Component, overrides []*ical.Component) {
+	for _, c := range cal.Children {
+		if c.Name != ical.CompEvent {
+			continue
+		}
+		if c.Props.Get(ical.PropRecurrenceID) != nil {
+			overrides = append(overrides, c)
+		} else if master == nil {
+			master = c
+		}
+	}
+	return master, overrides
+}
+
+// recurrenceID reads an override's RECURRENCE-ID.
+func recurrenceID(c *ical.Component) (time.Time, bool) {
+	t, _, err := propTime(c.Props.Get(ical.PropRecurrenceID))
+	return t, err == nil
+}
+
+// occurrenceProp makes a RECURRENCE-ID or EXDATE for an occurrence of a
+// series whose start is all day or not.
+func occurrenceProp(name string, occ time.Time, allDay bool) ical.Prop {
+	p := ical.NewProp(name)
+	if allDay {
+		p.SetDate(occ.UTC())
+	} else {
+		p.SetDateTime(occ.UTC())
+	}
+	return *p
+}
+
+// dropChildren removes the VEVENTs keep says no to.
+func dropChildren(cal *ical.Calendar, keep func(*ical.Component) bool) {
+	out := cal.Children[:0]
+	for _, c := range cal.Children {
+		if c.Name != ical.CompEvent || keep(c) {
+			out = append(out, c)
+		}
+	}
+	cal.Children = out
+}
+
+// cloneEvent copies a VEVENT's properties (not its alarms and other
+// children).
+func cloneEvent(c *ical.Component) *ical.Component {
+	out := ical.NewComponent(c.Name)
+	for name, ps := range c.Props {
+		out.Props[name] = append([]ical.Prop(nil), ps...)
+	}
+	return out
+}
+
+func newObjectPath(calendarID string) (path, uid string) {
+	uid = crypto.RandomID(16) + "@megachat"
+	return strings.TrimSuffix(calendarID, "/") + "/" + url.PathEscape(uid) + ".ics", uid
+}
+
+func newCalendarObject() *ical.Calendar {
+	cal := ical.NewCalendar()
+	cal.Props.SetText(ical.PropVersion, "2.0")
+	cal.Props.SetText(ical.PropProductID, "-//MegaChat//EN")
+	return cal
+}
+
+func (k *calClient) save(ctx context.Context, ev model.CalEvent, self string, scope model.RecurScope) (model.CalEvent, error) {
+	if ev.ID == "" {
+		path, uid := newObjectPath(ev.CalendarID)
+		cal := newCalendarObject()
 		e := ical.NewEvent()
 		e.Props.SetText(ical.PropUID, uid)
 		if len(ev.Attendees) > 0 && self != "" {
@@ -424,37 +536,174 @@ func (k *calClient) save(ctx context.Context, ev model.CalEvent, self string) (m
 			e.Props.Set(o)
 		}
 		fill(e.Component, ev)
+		setRule(e.Component, ev.Recurrence)
 		cal.Children = append(cal.Children, e.Component)
-	} else {
-		obj, err := k.c.GetCalendarObject(ctx, path)
-		if err != nil {
+		if err := k.raw.put(ctx, path, cal); err != nil {
 			return model.CalEvent{}, err
 		}
-		cal = obj.Data
-		var master *ical.Component
-		for _, c := range cal.Children {
-			if c.Name == ical.CompEvent && c.Props.Get(ical.PropRecurrenceID) == nil {
-				master = c
-			}
-		}
-		if master == nil {
-			return model.CalEvent{}, fmt.Errorf("mailru: no event in %s", path)
-		}
-		if master.Props.Get(ical.PropRecurrenceRule) != nil {
-			return model.CalEvent{}, ErrRepeating
-		}
-		fill(master, ev)
+		ev.ID = path
+		return ev, nil
 	}
-	if _, err := k.c.PutCalendarObject(ctx, path, cal); err != nil {
+	path, occ, isOcc, err := splitID(ev.ID)
+	if err != nil {
 		return model.CalEvent{}, err
 	}
-	ev.ID = path
+	obj, err := k.raw.get(ctx, path)
+	if err != nil {
+		return model.CalEvent{}, err
+	}
+	cal := obj.Data
+	master, overrides := seriesOf(cal)
+	if master == nil {
+		return model.CalEvent{}, fmt.Errorf("mailru: no event in %s", path)
+	}
+	mStart, mEnd, mAllDay, err := span(master)
+	if err != nil {
+		return model.CalEvent{}, err
+	}
+	rule := ruleOf(master)
+	if !isOcc || rule == "" {
+		// A single event; it repeats from now on when given a rule.
+		fill(master, ev)
+		if ev.Recurrence != "" {
+			setRule(master, ev.Recurrence)
+		}
+		if err := k.raw.put(ctx, path, cal); err != nil {
+			return model.CalEvent{}, err
+		}
+		ev.ID = path
+		return ev, nil
+	}
+	if scope == model.ScopeFollowing && !occ.After(mStart) {
+		scope = model.ScopeAll // from the first one: the whole series
+	}
+	switch scope {
+	case model.ScopeThis:
+		var o *ical.Component
+		for _, c := range overrides {
+			if t, ok := recurrenceID(c); ok && t.Equal(occ) {
+				o = c
+			}
+		}
+		if o == nil {
+			o = cloneEvent(master)
+			for _, name := range []string{ical.PropRecurrenceRule, ical.PropRecurrenceDates, ical.PropExceptionDates} {
+				o.Props.Del(name)
+			}
+			rid := occurrenceProp(ical.PropRecurrenceID, occ, mAllDay)
+			o.Props.Set(&rid)
+			cal.Children = append(cal.Children, o)
+		}
+		fill(o, ev)
+		ev.ID = path + "#" + occ.UTC().Format(occurrenceFormat)
+	case model.ScopeAll:
+		delta := ev.Start.Sub(occ)
+		moved := ev
+		moved.Start = mStart.Add(delta)
+		moved.End = moved.Start.Add(ev.End.Sub(ev.Start))
+		if ev.AllDay != mAllDay {
+			moved.Start, moved.End = ev.Start, ev.End // a new kind of time: from this occurrence
+		}
+		fill(master, moved)
+		if ev.Recurrence != "" {
+			setRule(master, ev.Recurrence)
+		}
+		if delta != 0 || ev.AllDay != mAllDay || moved.End.Sub(moved.Start) != mEnd.Sub(mStart) {
+			// The occurrences moved: their own changes no longer fit.
+			dropChildren(cal, func(c *ical.Component) bool { return c.Props.Get(ical.PropRecurrenceID) == nil })
+			if delta != 0 || ev.AllDay != mAllDay {
+				// Deleted occurrences stay deleted where they moved to.
+				ex := propTimes(master.Props.Values(ical.PropExceptionDates))
+				master.Props.Del(ical.PropExceptionDates)
+				if ev.AllDay == mAllDay {
+					for _, t := range ex {
+						p := occurrenceProp(ical.PropExceptionDates, t.Add(delta), ev.AllDay)
+						master.Props.Add(&p)
+					}
+				}
+			}
+		}
+		ev.ID = path + "#" + moved.Start.UTC().Format(occurrenceFormat)
+	case model.ScopeFollowing:
+		next := newCalendarObject()
+		for _, c := range cal.Children {
+			if c.Name != ical.CompEvent { // the time zones
+				next.Children = append(next.Children, c)
+			}
+		}
+		n := cloneEvent(master)
+		for _, name := range []string{ical.PropRecurrenceDates, ical.PropExceptionDates} {
+			n.Props.Del(name)
+		}
+		newPath, uid := newObjectPath(path[:strings.LastIndex(path, "/")+1])
+		n.Props.SetText(ical.PropUID, uid)
+		fill(n, ev)
+		nr := ev.Recurrence
+		if nr == "" || nr == rule {
+			nr = recur.Remaining(rule, mStart, occ)
+		}
+		setRule(n, nr)
+		next.Children = append(next.Children, n)
+		setRule(master, recur.Ending(rule, occ, mAllDay))
+		dropChildren(cal, func(c *ical.Component) bool {
+			t, ok := recurrenceID(c)
+			return !ok || t.Before(occ)
+		})
+		if err := k.raw.put(ctx, newPath, next); err != nil {
+			return model.CalEvent{}, err
+		}
+		ev.ID = newPath + "#" + ev.Start.UTC().Format(occurrenceFormat)
+	default:
+		return model.CalEvent{}, fmt.Errorf("mailru: unknown scope %d", scope)
+	}
+	if err := k.raw.put(ctx, path, cal); err != nil {
+		return model.CalEvent{}, err
+	}
+	ev.Recurrence = ruleOf(master)
+	if scope == model.ScopeFollowing {
+		ev.Recurrence = ""
+	}
 	return ev, nil
 }
 
-func (k *calClient) remove(ctx context.Context, id string) error {
-	if strings.Contains(id, "#") {
-		return ErrRepeating
+func (k *calClient) remove(ctx context.Context, id string, scope model.RecurScope) error {
+	path, occ, isOcc, err := splitID(id)
+	if err != nil {
+		return err
 	}
-	return k.c.RemoveAll(ctx, id)
+	if !isOcc || scope == model.ScopeAll {
+		return k.c.RemoveAll(ctx, path)
+	}
+	obj, err := k.raw.get(ctx, path)
+	if err != nil {
+		return err
+	}
+	cal := obj.Data
+	master, _ := seriesOf(cal)
+	if master == nil {
+		return k.c.RemoveAll(ctx, path)
+	}
+	mStart, _, mAllDay, err := span(master)
+	if err != nil {
+		return err
+	}
+	rule := ruleOf(master)
+	switch {
+	case scope == model.ScopeFollowing && !occ.After(mStart):
+		return k.c.RemoveAll(ctx, path)
+	case scope == model.ScopeFollowing && rule != "":
+		setRule(master, recur.Ending(rule, occ, mAllDay))
+		dropChildren(cal, func(c *ical.Component) bool {
+			t, ok := recurrenceID(c)
+			return !ok || t.Before(occ)
+		})
+	default: // this occurrence
+		ex := occurrenceProp(ical.PropExceptionDates, occ, mAllDay)
+		master.Props.Add(&ex)
+		dropChildren(cal, func(c *ical.Component) bool {
+			t, ok := recurrenceID(c)
+			return !ok || !t.Equal(occ)
+		})
+	}
+	return k.raw.put(ctx, path, cal)
 }

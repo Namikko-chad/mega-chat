@@ -25,6 +25,8 @@ object Core {
         val dir = File(app.filesDir, "megachat").apply { mkdirs() }
         // A unix socket path must stay under ~100 bytes: keep it short.
         val socket = File(app.filesDir, "mc.sock").absolutePath
+        CloudSync.init(app)
+        Mobilebind.setCloudSync(CloudSync)
         val token = Mobilebind.start(dir.absolutePath, app.cacheDir.absolutePath, socket)
         Mobilebind.setListener(object : Listener {
             override fun onEvent(kind: Long, json: String?) {

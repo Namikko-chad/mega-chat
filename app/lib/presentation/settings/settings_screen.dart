@@ -19,6 +19,7 @@ import '../core/core_cubit.dart';
 import '../core/messenger_cubit.dart';
 import '../shell/app_shell.dart' show AppShell, BuildInfo, Section, StatusPills;
 import '../unlock/unlock_screen.dart' show rememberHint, rememberPassword;
+import 'cloudsync.dart';
 
 /// This device, app preferences and the vault password: the "profile" of
 /// the app (§ 4.6). On phones it also carries the footer's status (App. D).
@@ -360,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+        if (s.cloudsync.status != pb.CloudSyncState_Status.STATUS_UNSPECIFIED) const CloudSyncSection(),
         _preferences(s, gap),
         HmCard(
           padding: const EdgeInsets.all(20),

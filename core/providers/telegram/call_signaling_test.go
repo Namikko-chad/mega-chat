@@ -69,6 +69,16 @@ func TestCallICE(t *testing.T) {
 			t.Fatalf("%q: %v", sdp, !refl)
 		}
 	}
+	for sdp, kind := range map[string]string{
+		"candidate:1 1 udp 2122260223 192.168.1.2 51000 typ host generation 0":                          "udp host",
+		"a=candidate:4 1 UDP 16777215 1.2.3.4 3478 typ relay raddr 0.0.0.0 rport 0":                     "udp relay",
+		"candidate:2 1 udp 41885439 reflector-1-a1b2c3d4.reflector 530 typ relay raddr 0.0.0.0 rport 0": "reflector",
+		"": "? ?",
+	} {
+		if got := candidateKind(sdp); got != kind {
+			t.Fatalf("%q: %q, want %q", sdp, got, kind)
+		}
+	}
 	if !customFlag(`{"network_use_mtproto":true,"x":1}`, "network_use_mtproto") || customFlag(`{"network_use_mtproto":false}`, "network_use_mtproto") || customFlag(``, "x") {
 		t.Fatal("custom parameters")
 	}

@@ -8,13 +8,14 @@ import (
 	"megachat/core/providers/mailru"
 	"megachat/core/providers/slack"
 	"megachat/core/providers/telegram"
+	"megachat/core/providers/vk"
 	"megachat/core/providers/vkteams"
 )
 
 // Registry returns the providers; demo adds the in-memory "fake" one for
 // working on the app without real accounts.
 func Registry(demo bool) *provider.Registry {
-	r := provider.NewRegistry(telegram.New(), slack.New(), vkteams.New(), google.New(), mailru.New())
+	r := provider.NewRegistry(telegram.New(), slack.New(), vk.New(), vkteams.New(), google.New(), mailru.New())
 	if demo {
 		f := fake.New()
 		f.Special = true

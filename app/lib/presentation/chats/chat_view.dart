@@ -138,6 +138,7 @@ class _ChatBodyState extends State<_ChatBody> {
               scroll: _scroll,
               seen: _seen,
               direct: chat?.kind == pb.ChatKind.CHAT_KIND_DIRECT,
+              group: chat?.kind == pb.ChatKind.CHAT_KIND_GROUP,
               canReact: (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_REACTIONS) && !(chat?.readOnly ?? false),
               account: chat?.readOnly ?? false ? null : account,
               canThread: (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_THREADS),
@@ -404,6 +405,7 @@ class _Messages extends StatelessWidget {
     required this.scroll,
     required this.seen,
     required this.direct,
+    required this.group,
     required this.canReact,
     required this.canThread,
     this.account,
@@ -413,6 +415,9 @@ class _Messages extends StatelessWidget {
   final ScrollController scroll;
   final _SeenTracker seen;
   final bool direct;
+
+  /// A group: people's avatars beside their messages, with presence.
+  final bool group;
   final bool canReact;
 
   /// For editing: the account's capabilities (null: never; a read-only chat).
@@ -453,6 +458,20 @@ class _Messages extends StatelessWidget {
     }
     if (s.more || s.older) entries.add(const _Older());
     final hm = Hm.of(context);
+    // Presence of the people writing here: the member list's, and of
+    // anyone whose direct chat (same id) is online now.
+    final directOnline = group
+        ? context
+              .select<MessengerCubit, String>(
+                (c) => [
+                  for (final ch in c.state.chats.values)
+                    if (ch.online && ch.kind == pb.ChatKind.CHAT_KIND_DIRECT && ch.accountId == s.messages.first.accountId) ch.id,
+                ].join('\n'),
+              )
+              .split('\n')
+              .toSet()
+        : const <String>{};
+    bool online(pb.User u) => s.online.contains(u.id) || directOnline.contains(u.id);
     final placing = seen.placing;
     if (placing) seen.schedule();
     final list = NotificationListener<UserScrollNotification>(
@@ -514,6 +533,12 @@ class _Messages extends StatelessWidget {
                   ? () => showThread(context, (account: m.accountId, chat: m.chatId, thread: m.thread.id), m)
                   : null,
               threadOpen: openThread?.thread == m.thread.id && openThread?.chat == m.chatId,
+              // The avatar by the first message of a run; the rest keep its room.
+              leading: !group || m.outgoing
+                  ? null
+                  : first
+                  ? MediaAvatar(account: m.accountId, photo: m.sender.avatarUrl, label: senderName(m), size: _avatarSize, online: online(m.sender))
+                  : const SizedBox(width: _avatarSize),
             );
             // The first unread message is the top one when it starts the list.
             final top = i == 0 && unread(i);
@@ -542,6 +567,9 @@ Future<void> _react(BuildContext context, ChatCubit cubit, pb.Message m, String 
 /// shows the text in a sheet to select from.
 final bool _inlineSelect = !(Platform.isAndroid || Platform.isIOS);
 
+/// Sender avatars beside group messages.
+const double _avatarSize = 32;
+
 /// One message: sender, quote, text, attachments, reactions and the
 /// thread under it. Used by the chat and by the thread pane.
 class MessageTile extends StatefulWidget {
@@ -564,6 +592,7 @@ class MessageTile extends StatefulWidget {
     this.selecting = false,
     this.selected = false,
     this.threadOpen = false,
+    this.leading,
   });
 
   final pb.Message message;
@@ -605,6 +634,9 @@ class MessageTile extends StatefulWidget {
 
   /// The thread of this message is open next to the chat.
   final bool threadOpen;
+
+  /// Left of the bubble: the sender's avatar in group chats (null: none).
+  final Widget? leading;
 
   @override
   State<MessageTile> createState() => _MessageTileState();
@@ -811,12 +843,22 @@ class _MessageTileState extends State<MessageTile> {
       ),
     );
     final lit = widget.threadOpen || widget.selected;
+    final row = widget.leading == null
+        ? bubble
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              widget.leading!,
+              const SizedBox(width: 8),
+              Expanded(child: bubble),
+            ],
+          );
     Widget body = lit
         ? DecoratedBox(
             decoration: BoxDecoration(color: HmColors.tint(HmColors.accent, HmColors.subtle)),
-            child: bubble,
+            child: row,
           )
-        : bubble;
+        : row;
     if (widget.selecting) {
       // Picking: the whole row is a check box; nothing inside reacts.
       body = MouseRegion(

@@ -7,8 +7,8 @@ import '../../core/theme/colors.dart';
 import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../accounts/account_rail.dart';
 import '../accounts/login_wizard.dart';
-import '../accounts/providers.dart';
 import '../common/hm.dart';
 import '../core/messenger_cubit.dart';
 import '../mail/mail_screen.dart' show accountName;
@@ -49,7 +49,7 @@ class CalendarScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = context.watch<MessengerCubit>().state;
-    if (!m.accounts.any(hasCalendar)) {
+    if (calendarAccounts(m).isEmpty) {
       return Center(
         child: HmEmptyState(
           tr(
@@ -110,51 +110,43 @@ class _CalendarList extends StatelessWidget {
     final s = context.watch<CalendarCubit>().state;
     final m = context.watch<MessengerCubit>().state;
     final cubit = context.read<CalendarCubit>();
-    final accounts = m.accounts.where(hasCalendar).toList();
-    return Container(
-      decoration: const BoxDecoration(
-        color: HmColors.surface,
-        border: Border(right: BorderSide(color: HmColors.border)),
+    return AccountRail(
+      top: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: HmButton(
+          tr('New event', 'Новое событие'),
+          variant: HmVariant.primary,
+          icon: Icons.add,
+          onPressed: () => showEventEditor(context, day: s.day),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: HmButton(
-              tr('New event', 'Новое событие'),
-              variant: HmVariant.primary,
-              icon: Icons.add,
-              onPressed: () => showEventEditor(context, day: s.day),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                for (final a in accounts) ...[
-                  HmListHeader(accountName(a)),
-                  for (final c in s.calendars.where((c) => c.accountId == a.id))
-                    _CalendarToggle(
-                      name: c.name,
-                      color: s.color(calKey(c)),
-                      on: !s.hidden.contains(calKey(c)),
-                      readOnly: c.readOnly,
-                      onTap: () => cubit.toggle(calKey(c)),
-                    ),
-                  if (!s.calendars.any((c) => c.accountId == a.id))
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                      child: Text(accountStatus(a).$1, style: HmText.small),
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ],
+      child: ReorderableAccounts(
+        accounts: calendarAccounts(m),
+        item: (a) {
+          final keys = [for (final c in s.calendars.where((c) => c.accountId == a.id)) calKey(c)];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // A tap shows all of the account's calendars, or hides them when all are shown.
+              AccountTile(account: a, count: 0, onTap: keys.isEmpty ? null : () => cubit.setShown(keys, keys.any(s.hidden.contains))),
+              for (final k in keys)
+                _CalendarToggle(
+                  name: s.calendar(k)!.name,
+                  color: s.color(k),
+                  on: !s.hidden.contains(k),
+                  readOnly: s.calendar(k)!.readOnly,
+                  onTap: () => cubit.toggle(k),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 }
+
+/// The accounts with calendars, in the user's order.
+List<pb.Account> calendarAccounts(MessengerState m) => accountsOffering(m, pb.Capability.CAPABILITY_CALENDAR);
 
 class _CalendarToggle extends StatelessWidget {
   const _CalendarToggle({required this.name, required this.color, required this.on, required this.readOnly, required this.onTap});
@@ -166,7 +158,7 @@ class _CalendarToggle extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => HmListItem(
+  Widget build(BuildContext context) => AccountSubItem(
     leading: AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       width: 16,
@@ -185,7 +177,6 @@ class _CalendarToggle extends StatelessWidget {
     ),
     trailing: readOnly ? const Icon(Icons.lock_outline, size: 12, color: HmColors.muted) : null,
     onTap: onTap,
-    dense: true,
   );
 }
 

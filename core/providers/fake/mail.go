@@ -10,6 +10,7 @@ import (
 
 	"megachat/core/model"
 	"megachat/core/provider"
+	"megachat/core/recur"
 )
 
 // The demo mailbox and calendars of a fake account: a few folders with
@@ -19,8 +20,9 @@ import (
 type mailbox struct {
 	mails  []model.Mail // all folders, any order
 	seq    int
-	events map[string][]model.CalEvent // own events by calendar
-	gone   map[string]bool             // deleted generated occurrences
+	events map[string][]model.CalEvent // own events (and series) by calendar
+	gone   map[string]bool             // deleted occurrences
+	cut    map[string]time.Time        // generated series hidden from then on
 }
 
 var demoPeople = []model.Address{
@@ -56,7 +58,7 @@ func (s *Server) box(login string) *mailbox {
 	if u.mail != nil {
 		return u.mail
 	}
-	b := &mailbox{events: map[string][]model.CalEvent{}, gone: map[string]bool{}}
+	b := &mailbox{events: map[string][]model.CalEvent{}, gone: map[string]bool{}, cut: map[string]time.Time{}}
 	u.mail = b
 	// Logins get different times, so merged inboxes interleave.
 	salt := 0
@@ -262,7 +264,7 @@ func (c *session) generated(cal string, from, to time.Time) []model.CalEvent {
 		case "work":
 			if wd != time.Saturday && wd != time.Sunday {
 				out = append(out, model.CalEvent{
-					ID: "standup-" + key, Title: "Stand-up", Start: at(10, 0), End: at(10, 15), Recurring: true,
+					ID: "standup-" + key, Title: "Stand-up", Start: at(10, 0), End: at(10, 15), Recurring: true, Recurrence: generatedRules["standup"],
 					Link: "https://meet.example.com/standup", Organizer: demoPeople[0],
 				})
 				if n%3 == 0 {
@@ -274,7 +276,7 @@ func (c *session) generated(cal string, from, to time.Time) []model.CalEvent {
 			}
 		case "personal":
 			if wd == time.Tuesday || wd == time.Thursday {
-				out = append(out, model.CalEvent{ID: "gym-" + key, Title: "Gym", Start: at(19, 0), End: at(20, 0), Recurring: true})
+				out = append(out, model.CalEvent{ID: "gym-" + key, Title: "Gym", Start: at(19, 0), End: at(20, 0), Recurring: true, Recurrence: generatedRules["gym"]})
 			}
 			if n%10 == 4 {
 				out = append(out, model.CalEvent{ID: "dinner-" + key, Title: "Dinner with friends", Location: "Bistro", Start: at(20, 30), End: at(22, 30)})
@@ -289,13 +291,60 @@ func (c *session) generated(cal string, from, to time.Time) []model.CalEvent {
 	return out
 }
 
+// generatedRules are the rules of the generated repeating events.
+var generatedRules = map[string]string{"standup": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", "gym": "FREQ=WEEKLY;BYDAY=TU,TH"}
+
+// generatedSeries returns the series of a generated occurrence's id.
+func generatedSeries(id string) (string, bool) {
+	name, _, ok := strings.Cut(id, "-")
+	_, known := generatedRules[name]
+	return name, ok && known
+}
+
+// cutOff reports a generated occurrence hidden by a change of its series.
+func (b *mailbox) cutOff(e model.CalEvent) bool {
+	name, ok := generatedSeries(e.ID)
+	if !ok {
+		return false
+	}
+	at, cut := b.cut[name]
+	return cut && !e.Start.Before(at)
+}
+
+func occurrenceID(series string, t time.Time) string {
+	return series + "#" + strconv.FormatInt(t.Unix(), 10)
+}
+
+// expand turns own events into what overlaps [from, to): series into
+// their occurrences.
+func (b *mailbox) expand(evs []model.CalEvent, from, to time.Time) []model.CalEvent {
+	var out []model.CalEvent
+	for _, e := range evs {
+		if e.Recurrence == "" {
+			out = append(out, e)
+			continue
+		}
+		dur := e.End.Sub(e.Start)
+		starts, err := recur.Between(e.Recurrence, e.Start, from.Add(-dur), to)
+		if err != nil {
+			continue
+		}
+		for _, t := range starts {
+			o := e
+			o.ID, o.Start, o.End, o.Recurring = occurrenceID(e.ID, t), t, t.Add(dur), true
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
 func (c *session) Events(_ context.Context, cal string, from, to time.Time) ([]model.CalEvent, error) {
 	c.s.mu.Lock()
 	defer c.s.mu.Unlock()
 	b := c.s.box(c.login)
 	var out []model.CalEvent
-	for _, e := range append(c.generated(cal, from.AddDate(0, 0, -1), to), b.events[cal]...) {
-		if b.gone[e.ID] || !e.End.After(from) || !e.Start.Before(to) {
+	for _, e := range append(c.generated(cal, from.AddDate(0, 0, -1), to), b.expand(b.events[cal], from, to)...) {
+		if b.gone[e.ID] || b.cutOff(e) || !e.End.After(from) || !e.Start.Before(to) {
 			continue
 		}
 		e.CalendarID = cal
@@ -304,7 +353,19 @@ func (c *session) Events(_ context.Context, cal string, from, to time.Time) ([]m
 	return out, nil
 }
 
-func (c *session) SaveEvent(_ context.Context, ev model.CalEvent) (model.CalEvent, error) {
+// own returns the index of an own event (or series).
+func (b *mailbox) own(cal, id string) int {
+	return slices.IndexFunc(b.events[cal], func(e model.CalEvent) bool { return e.ID == id })
+}
+
+func (b *mailbox) add(ev model.CalEvent) model.CalEvent {
+	b.seq++
+	ev.ID, ev.Recurring = "ev"+strconv.Itoa(b.seq), false
+	b.events[ev.CalendarID] = append(b.events[ev.CalendarID], ev)
+	return ev
+}
+
+func (c *session) SaveEvent(_ context.Context, ev model.CalEvent, scope model.RecurScope) (model.CalEvent, error) {
 	c.s.mu.Lock()
 	defer c.s.mu.Unlock()
 	if ev.CalendarID == "holidays" {
@@ -312,25 +373,113 @@ func (c *session) SaveEvent(_ context.Context, ev model.CalEvent) (model.CalEven
 	}
 	b := c.s.box(c.login)
 	if ev.ID == "" {
-		b.seq++
-		ev.ID = "ev" + strconv.Itoa(b.seq)
-	} else if !slices.ContainsFunc(b.events[ev.CalendarID], func(e model.CalEvent) bool { return e.ID == ev.ID }) {
-		// A generated event becomes an own one.
-		b.gone[ev.ID] = true
-		b.seq++
-		ev.ID = "ev" + strconv.Itoa(b.seq)
+		return b.add(ev), nil
 	}
-	evs := slices.DeleteFunc(b.events[ev.CalendarID], func(e model.CalEvent) bool { return e.ID == ev.ID })
-	ev.Recurring = false
-	b.events[ev.CalendarID] = append(evs, ev)
-	return ev, nil
+	series, _, isOcc := strings.Cut(ev.ID, "#")
+	if name, ok := generatedSeries(ev.ID); ok && scope != model.ScopeThis {
+		// A generated series: hidden from this one (or whole), an own one goes on.
+		at := ev.Start
+		if scope == model.ScopeAll {
+			at = time.Time{}
+		}
+		b.cut[name] = at
+		if ev.Recurrence == "" && scope == model.ScopeFollowing {
+			ev.Recurrence = generatedRules[name]
+		}
+		return b.add(ev), nil
+	}
+	i := b.own(ev.CalendarID, series)
+	if i < 0 { // a generated event or occurrence becomes an own one
+		b.gone[ev.ID] = true
+		ev.Recurrence = ""
+		return b.add(ev), nil
+	}
+	evs := b.events[ev.CalendarID]
+	m := evs[i]
+	if !isOcc || m.Recurrence == "" {
+		ev.ID = m.ID
+		evs[i] = ev
+		return ev, nil
+	}
+	occ, err := c.occurrence(ev.ID)
+	if err != nil {
+		return model.CalEvent{}, err
+	}
+	if scope == model.ScopeFollowing && !occ.After(m.Start) {
+		scope = model.ScopeAll
+	}
+	switch scope {
+	case model.ScopeThis:
+		b.gone[ev.ID] = true
+		ev.Recurrence = ""
+		return b.add(ev), nil
+	case model.ScopeFollowing:
+		if ev.Recurrence == "" || ev.Recurrence == m.Recurrence {
+			ev.Recurrence = recur.Remaining(m.Recurrence, m.Start, occ)
+		}
+		evs[i].Recurrence = recur.Ending(m.Recurrence, occ, m.AllDay)
+		return b.add(ev), nil
+	default:
+		moved := ev
+		moved.ID = m.ID
+		moved.Start = m.Start.Add(ev.Start.Sub(occ))
+		moved.End = moved.Start.Add(ev.End.Sub(ev.Start))
+		if moved.Recurrence == "" {
+			moved.Recurrence = m.Recurrence
+		}
+		evs[i] = moved
+		return moved, nil
+	}
 }
 
-func (c *session) DeleteEvent(_ context.Context, cal, id string) error {
+func (c *session) occurrence(id string) (time.Time, error) {
+	_, at, _ := strings.Cut(id, "#")
+	n, err := strconv.ParseInt(at, 10, 64)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("fake: bad event id %q", id)
+	}
+	return time.Unix(n, 0), nil
+}
+
+func (c *session) DeleteEvent(_ context.Context, cal, id string, scope model.RecurScope) error {
 	c.s.mu.Lock()
 	defer c.s.mu.Unlock()
 	b := c.s.box(c.login)
-	b.events[cal] = slices.DeleteFunc(b.events[cal], func(e model.CalEvent) bool { return e.ID == id })
-	b.gone[id] = true
+	if name, ok := generatedSeries(id); ok && scope != model.ScopeThis {
+		at := time.Time{}
+		if scope == model.ScopeFollowing {
+			for _, e := range c.generated(cal, time.Now().AddDate(-1, 0, 0), time.Now().AddDate(1, 0, 0)) {
+				if e.ID == id {
+					at = e.Start
+				}
+			}
+		}
+		b.cut[name] = at
+		return nil
+	}
+	series, _, isOcc := strings.Cut(id, "#")
+	i := b.own(cal, series)
+	if i < 0 || !isOcc || scope == model.ScopeThis && b.events[cal][i].Recurrence == "" {
+		if i >= 0 && !isOcc {
+			b.events[cal] = slices.Delete(b.events[cal], i, i+1)
+		}
+		b.gone[id] = true
+		return nil
+	}
+	m := b.events[cal][i]
+	occ, err := c.occurrence(id)
+	if err != nil {
+		return err
+	}
+	switch {
+	case scope == model.ScopeThis:
+		b.gone[id] = true
+	case scope == model.ScopeAll || !occ.After(m.Start):
+		b.events[cal] = slices.Delete(b.events[cal], i, i+1)
+	default:
+		b.events[cal][i].Recurrence = recur.Ending(m.Recurrence, occ, m.AllDay)
+	}
 	return nil
 }
+
+var _ provider.Calendars = (*session)(nil)

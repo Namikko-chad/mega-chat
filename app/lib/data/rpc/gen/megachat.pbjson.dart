@@ -274,6 +274,21 @@ final $typed_data.Uint8List rsvpDescriptor = $convert.base64Decode(
     'CgRSc3ZwEhQKEFJTVlBfVU5TUEVDSUZJRUQQABIVChFSU1ZQX05FRURTX0FDVElPThABEhEKDV'
     'JTVlBfQUNDRVBURUQQAhISCg5SU1ZQX1RFTlRBVElWRRADEhEKDVJTVlBfREVDTElORUQQBA==');
 
+@$core.Deprecated('Use recurrenceScopeDescriptor instead')
+const RecurrenceScope$json = {
+  '1': 'RecurrenceScope',
+  '2': [
+    {'1': 'RECURRENCE_SCOPE_THIS', '2': 0},
+    {'1': 'RECURRENCE_SCOPE_FOLLOWING', '2': 1},
+    {'1': 'RECURRENCE_SCOPE_ALL', '2': 2},
+  ],
+};
+
+/// Descriptor for `RecurrenceScope`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List recurrenceScopeDescriptor = $convert.base64Decode(
+    'Cg9SZWN1cnJlbmNlU2NvcGUSGQoVUkVDVVJSRU5DRV9TQ09QRV9USElTEAASHgoaUkVDVVJSRU'
+    '5DRV9TQ09QRV9GT0xMT1dJTkcQARIYChRSRUNVUlJFTkNFX1NDT1BFX0FMTBAC');
+
 @$core.Deprecated('Use emptyDescriptor instead')
 const Empty$json = {
   '1': 'Empty',
@@ -349,6 +364,14 @@ const State$json = {
     {'1': 'accounts_online', '3': 8, '4': 1, '5': 5, '10': 'accountsOnline'},
     {'1': 'can_remember', '3': 10, '4': 1, '5': 8, '10': 'canRemember'},
     {'1': 'remembered', '3': 11, '4': 1, '5': 8, '10': 'remembered'},
+    {
+      '1': 'cloudsync',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.megachat.v1.CloudSyncState',
+      '10': 'cloudsync'
+    },
   ],
   '9': [
     {'1': 9, '2': 10},
@@ -362,8 +385,115 @@ final $typed_data.Uint8List stateDescriptor = $convert.base64Decode(
     'cm0YBCABKAlSCHBsYXRmb3JtEiEKDGNvcmVfdmVyc2lvbhgFIAEoCVILY29yZVZlcnNpb24SHQ'
     'oKY29yZV9idWlsZBgGIAEoCVIJY29yZUJ1aWxkEhoKCGFjY291bnRzGAcgASgFUghhY2NvdW50'
     'cxInCg9hY2NvdW50c19vbmxpbmUYCCABKAVSDmFjY291bnRzT25saW5lEiEKDGNhbl9yZW1lbW'
-    'JlchgKIAEoCFILY2FuUmVtZW1iZXISHgoKcmVtZW1iZXJlZBgLIAEoCFIKcmVtZW1iZXJlZEoE'
-    'CAkQCg==');
+    'JlchgKIAEoCFILY2FuUmVtZW1iZXISHgoKcmVtZW1iZXJlZBgLIAEoCFIKcmVtZW1iZXJlZBI5'
+    'CgljbG91ZHN5bmMYDCABKAsyGy5tZWdhY2hhdC52MS5DbG91ZFN5bmNTdGF0ZVIJY2xvdWRzeW'
+    '5jSgQICRAK');
+
+@$core.Deprecated('Use cloudSyncStateDescriptor instead')
+const CloudSyncState$json = {
+  '1': 'CloudSyncState',
+  '2': [
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.megachat.v1.CloudSyncState.Status',
+      '10': 'status'
+    },
+    {'1': 'enabled', '3': 2, '4': 1, '5': 8, '10': 'enabled'},
+    {'1': 'available', '3': 3, '4': 1, '5': 8, '10': 'available'},
+    {'1': 'pairing_code', '3': 4, '4': 1, '5': 9, '10': 'pairingCode'},
+    {'1': 'message', '3': 5, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'synced_ms', '3': 6, '4': 1, '5': 3, '10': 'syncedMs'},
+    {'1': 'device_name', '3': 7, '4': 1, '5': 9, '10': 'deviceName'},
+    {'1': 'can_merge', '3': 8, '4': 1, '5': 8, '10': 'canMerge'},
+    {'1': 'unpaired', '3': 9, '4': 1, '5': 8, '10': 'unpaired'},
+    {'1': 'can_open', '3': 10, '4': 1, '5': 8, '10': 'canOpen'},
+  ],
+  '4': [CloudSyncState_Status$json],
+};
+
+@$core.Deprecated('Use cloudSyncStateDescriptor instead')
+const CloudSyncState_Status$json = {
+  '1': 'Status',
+  '2': [
+    {'1': 'STATUS_UNSPECIFIED', '2': 0},
+    {'1': 'OFF', '2': 1},
+    {'1': 'NOT_RUNNING', '2': 2},
+    {'1': 'NO_VAULT', '2': 3},
+    {'1': 'LOCKED', '2': 4},
+    {'1': 'OFFLINE', '2': 5},
+    {'1': 'PAIRING', '2': 6},
+    {'1': 'SYNCING', '2': 7},
+    {'1': 'SYNCED', '2': 8},
+    {'1': 'CONFLICT', '2': 9},
+    {'1': 'NEEDS_PASSWORD', '2': 10},
+    {'1': 'WAITING_UNLOCK', '2': 11},
+    {'1': 'ERROR', '2': 12},
+  ],
+};
+
+/// Descriptor for `CloudSyncState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cloudSyncStateDescriptor = $convert.base64Decode(
+    'Cg5DbG91ZFN5bmNTdGF0ZRI6CgZzdGF0dXMYASABKA4yIi5tZWdhY2hhdC52MS5DbG91ZFN5bm'
+    'NTdGF0ZS5TdGF0dXNSBnN0YXR1cxIYCgdlbmFibGVkGAIgASgIUgdlbmFibGVkEhwKCWF2YWls'
+    'YWJsZRgDIAEoCFIJYXZhaWxhYmxlEiEKDHBhaXJpbmdfY29kZRgEIAEoCVILcGFpcmluZ0NvZG'
+    'USGAoHbWVzc2FnZRgFIAEoCVIHbWVzc2FnZRIbCglzeW5jZWRfbXMYBiABKANSCHN5bmNlZE1z'
+    'Eh8KC2RldmljZV9uYW1lGAcgASgJUgpkZXZpY2VOYW1lEhsKCWNhbl9tZXJnZRgIIAEoCFIIY2'
+    'FuTWVyZ2USGgoIdW5wYWlyZWQYCSABKAhSCHVucGFpcmVkEhkKCGNhbl9vcGVuGAogASgIUgdj'
+    'YW5PcGVuIsgBCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASBwoDT0ZGEAESDwoLTk'
+    '9UX1JVTk5JTkcQAhIMCghOT19WQVVMVBADEgoKBkxPQ0tFRBAEEgsKB09GRkxJTkUQBRILCgdQ'
+    'QUlSSU5HEAYSCwoHU1lOQ0lORxAHEgoKBlNZTkNFRBAIEgwKCENPTkZMSUNUEAkSEgoOTkVFRF'
+    'NfUEFTU1dPUkQQChISCg5XQUlUSU5HX1VOTE9DSxALEgkKBUVSUk9SEAw=');
+
+@$core.Deprecated('Use resolveCloudSyncRequestDescriptor instead')
+const ResolveCloudSyncRequest$json = {
+  '1': 'ResolveCloudSyncRequest',
+  '2': [
+    {
+      '1': 'choice',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.megachat.v1.ResolveCloudSyncRequest.Choice',
+      '10': 'choice'
+    },
+  ],
+  '4': [ResolveCloudSyncRequest_Choice$json],
+};
+
+@$core.Deprecated('Use resolveCloudSyncRequestDescriptor instead')
+const ResolveCloudSyncRequest_Choice$json = {
+  '1': 'Choice',
+  '2': [
+    {'1': 'CHOICE_UNSPECIFIED', '2': 0},
+    {'1': 'USE_SYNCED', '2': 1},
+    {'1': 'UPLOAD', '2': 2},
+    {'1': 'MERGE', '2': 3},
+  ],
+};
+
+/// Descriptor for `ResolveCloudSyncRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resolveCloudSyncRequestDescriptor = $convert.base64Decode(
+    'ChdSZXNvbHZlQ2xvdWRTeW5jUmVxdWVzdBJDCgZjaG9pY2UYASABKA4yKy5tZWdhY2hhdC52MS'
+    '5SZXNvbHZlQ2xvdWRTeW5jUmVxdWVzdC5DaG9pY2VSBmNob2ljZSJHCgZDaG9pY2USFgoSQ0hP'
+    'SUNFX1VOU1BFQ0lGSUVEEAASDgoKVVNFX1NZTkNFRBABEgoKBlVQTE9BRBACEgkKBU1FUkdFEA'
+    'M=');
+
+@$core.Deprecated('Use disableCloudSyncRequestDescriptor instead')
+const DisableCloudSyncRequest$json = {
+  '1': 'DisableCloudSyncRequest',
+  '2': [
+    {'1': 'remove_synced', '3': 1, '4': 1, '5': 8, '10': 'removeSynced'},
+  ],
+};
+
+/// Descriptor for `DisableCloudSyncRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List disableCloudSyncRequestDescriptor =
+    $convert.base64Decode(
+        'ChdEaXNhYmxlQ2xvdWRTeW5jUmVxdWVzdBIjCg1yZW1vdmVfc3luY2VkGAEgASgIUgxyZW1vdm'
+        'VTeW5jZWQ=');
 
 @$core.Deprecated('Use fieldDescriptor instead')
 const Field$json = {
@@ -1547,6 +1677,7 @@ const Event_Kind$json = {
     {'1': 'KIND_MAIL_NEW', '2': 20},
     {'1': 'KIND_MAIL', '2': 21},
     {'1': 'KIND_CALENDAR', '2': 22},
+    {'1': 'KIND_CLOUDSYNC', '2': 23},
   ],
 };
 
@@ -1558,13 +1689,13 @@ final $typed_data.Uint8List eventDescriptor = $convert.base64Decode(
     'QudjEuTWVzc2FnZVIHbWVzc2FnZRIdCgphY2NvdW50X2lkGAUgASgJUglhY2NvdW50SWQSJQoE'
     'Y2FsbBgGIAEoCzIRLm1lZ2FjaGF0LnYxLkNhbGxSBGNhbGwSLwoGc2lnbmFsGAcgASgLMhcubW'
     'VnYWNoYXQudjEuQ2FsbFNpZ25hbFIGc2lnbmFsEiUKBG1haWwYCCABKAsyES5tZWdhY2hhdC52'
-    'MS5NYWlsUgRtYWlsEhYKBm5vdGlmeRgJIAEoCFIGbm90aWZ5IsUCCgRLaW5kEhQKEEtJTkRfVU'
+    'MS5NYWlsUgRtYWlsEhYKBm5vdGlmeRgJIAEoCFIGbm90aWZ5ItkCCgRLaW5kEhQKEEtJTkRfVU'
     '5TUEVDSUZJRUQQABIOCgpLSU5EX1NUQVRFEAESEAoMS0lORF9BQ0NPVU5UEAISDQoJS0lORF9D'
     'SEFUEAMSFAoQS0lORF9NRVNTQUdFX05FVxAEEhUKEUtJTkRfTUVTU0FHRV9FRElUEAUSFwoTS0'
     'lORF9NRVNTQUdFX0RFTEVURRAGEg8KC0tJTkRfVFlQSU5HEAcSFQoRS0lORF9DSEFUX1JFTU9W'
     'RUQQCBIXChNLSU5EX1RIUkVBRF9NRVNTQUdFEAkSDQoJS0lORF9DQUxMEAoSFAoQS0lORF9DQU'
     'xMX1NJR05BTBALEhUKEUtJTkRfQ0hBVF9GT0xERVJTEAwSEQoNS0lORF9NQUlMX05FVxAUEg0K'
-    'CUtJTkRfTUFJTBAVEhEKDUtJTkRfQ0FMRU5EQVIQFg==');
+    'CUtJTkRfTUFJTBAVEhEKDUtJTkRfQ0FMRU5EQVIQFhISCg5LSU5EX0NMT1VEU1lOQxAX');
 
 @$core.Deprecated('Use logsRequestDescriptor instead')
 const LogsRequest$json = {
@@ -2344,6 +2475,15 @@ const CalendarEvent$json = {
       '10': 'attendees'
     },
     {'1': 'link', '3': 13, '4': 1, '5': 9, '10': 'link'},
+    {'1': 'recurrence', '3': 14, '4': 1, '5': 9, '10': 'recurrence'},
+    {
+      '1': 'scope',
+      '3': 15,
+      '4': 1,
+      '5': 14,
+      '6': '.megachat.v1.RecurrenceScope',
+      '10': 'scope'
+    },
   ],
 };
 
@@ -2356,7 +2496,8 @@ final $typed_data.Uint8List calendarEventDescriptor = $convert.base64Decode(
     'UgVlbmRNcxIXCgdhbGxfZGF5GAkgASgIUgZhbGxEYXkSHAoJcmVjdXJyaW5nGAogASgIUglyZW'
     'N1cnJpbmcSMgoJb3JnYW5pemVyGAsgASgLMhQubWVnYWNoYXQudjEuQWRkcmVzc1IJb3JnYW5p'
     'emVyEjMKCWF0dGVuZGVlcxgMIAMoCzIVLm1lZ2FjaGF0LnYxLkF0dGVuZGVlUglhdHRlbmRlZX'
-    'MSEgoEbGluaxgNIAEoCVIEbGluaw==');
+    'MSEgoEbGluaxgNIAEoCVIEbGluaxIeCgpyZWN1cnJlbmNlGA4gASgJUgpyZWN1cnJlbmNlEjIK'
+    'BXNjb3BlGA8gASgOMhwubWVnYWNoYXQudjEuUmVjdXJyZW5jZVNjb3BlUgVzY29wZQ==');
 
 @$core.Deprecated('Use calendarRefDescriptor instead')
 const CalendarRef$json = {
@@ -2432,10 +2573,19 @@ const DeleteEventRequest$json = {
     {'1': 'account_id', '3': 1, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'calendar_id', '3': 2, '4': 1, '5': 9, '10': 'calendarId'},
     {'1': 'id', '3': 3, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'scope',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.megachat.v1.RecurrenceScope',
+      '10': 'scope'
+    },
   ],
 };
 
 /// Descriptor for `DeleteEventRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deleteEventRequestDescriptor = $convert.base64Decode(
     'ChJEZWxldGVFdmVudFJlcXVlc3QSHQoKYWNjb3VudF9pZBgBIAEoCVIJYWNjb3VudElkEh8KC2'
-    'NhbGVuZGFyX2lkGAIgASgJUgpjYWxlbmRhcklkEg4KAmlkGAMgASgJUgJpZA==');
+    'NhbGVuZGFyX2lkGAIgASgJUgpjYWxlbmRhcklkEg4KAmlkGAMgASgJUgJpZBIyCgVzY29wZRgE'
+    'IAEoDjIcLm1lZ2FjaGF0LnYxLlJlY3VycmVuY2VTY29wZVIFc2NvcGU=');

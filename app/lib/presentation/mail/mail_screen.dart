@@ -11,6 +11,7 @@ import '../../core/theme/layout.dart';
 import '../../core/theme/typography.dart';
 import '../../data/rpc/core_client.dart';
 import '../../data/rpc/gen/megachat.pbgrpc.dart' as pb;
+import '../accounts/account_rail.dart';
 import '../accounts/login_wizard.dart';
 import '../accounts/providers.dart';
 import '../chats/media.dart';
@@ -72,7 +73,7 @@ class MailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = context.watch<MessengerCubit>().state;
     final s = context.watch<MailCubit>().state;
-    if (!m.accounts.any(hasMail)) {
+    if (mailAccounts(m).isEmpty) {
       return Center(
         child: HmEmptyState(
           tr(
@@ -94,7 +95,7 @@ class MailScreen extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, box) {
-        final railW = box.maxWidth >= 1280 ? 240.0 : 200.0;
+        final railW = box.maxWidth >= 1280 ? 240.0 : 220.0;
         final listW = box.maxWidth >= 1100 ? 380.0 : 320.0;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -145,64 +146,68 @@ class _FolderRail extends StatelessWidget {
     final s = context.watch<MailCubit>().state;
     final m = context.watch<MessengerCubit>().state;
     final mail = context.read<MailCubit>();
-    final accounts = m.accounts.where(hasMail).toList();
-    Widget item(String label, IconData icon, int count, bool selected, VoidCallback onTap) => HmListItem(
+    final accounts = mailAccounts(m);
+    Widget folder(String label, IconData icon, int count, bool selected, VoidCallback onTap) => AccountSubItem(
       leading: Icon(icon, size: 18, color: selected ? HmColors.accent : HmColors.muted),
       title: Text(label, overflow: TextOverflow.ellipsis),
       trailing: HmCount(count),
       selected: selected,
       onTap: onTap,
-      dense: true,
     );
-    return Container(
-      decoration: const BoxDecoration(
-        color: HmColors.surface,
-        border: Border(right: BorderSide(color: HmColors.border)),
+    void inbox(String account) {
+      final f = s.foldersOf(account).where((f) => f.role == pb.FolderRole.FOLDER_ROLE_INBOX).firstOrNull;
+      if (f != null) mail.setView((role: f.role, account: account, folder: f.id));
+    }
+
+    return AccountRail(
+      top: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: HmButton(tr('Write', 'Написать'), variant: HmVariant.primary, icon: Icons.edit_outlined, onPressed: () => showCompose(context)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: HmButton(tr('Write', 'Написать'), variant: HmVariant.primary, icon: Icons.edit_outlined, onPressed: () => showCompose(context)),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                HmListHeader(tr('All accounts', 'Все аккаунты')),
-                for (final r in unifiedRoles)
-                  if (r == pb.FolderRole.FOLDER_ROLE_INBOX || s.folders.any((f) => f.role == r))
-                    item(
-                      roleName(r),
-                      roleIcon(r),
-                      r == pb.FolderRole.FOLDER_ROLE_INBOX ? s.unreadOf(r) : 0,
-                      s.view.account.isEmpty && s.view.role == r,
-                      () => mail.setView((role: r, account: '', folder: '')),
-                    ),
-                for (final a in accounts) ...[
-                  HmListHeader(accountName(a), count: a.mailUnread),
-                  for (final f in s.foldersOf(a.id))
-                    item(
-                      folderName(f),
-                      roleIcon(f.role),
-                      f.role == pb.FolderRole.FOLDER_ROLE_SPAM || f.role == pb.FolderRole.FOLDER_ROLE_TRASH ? 0 : f.unread,
-                      s.view.account == a.id && s.view.folder == f.id,
-                      () => mail.setView((role: f.role, account: a.id, folder: f.id)),
-                    ),
-                  if (s.foldersOf(a.id).isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                      child: Text(accountStatus(a).$1, style: HmText.small),
-                    ),
-                ],
-              ],
+      child: ReorderableAccounts(
+        accounts: accounts,
+        first: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            HmListItem(
+              leading: const HmAvatar(label: '', icon: Icons.all_inbox_outlined),
+              title: Text(tr('All mail', 'Вся почта')),
+              subtitle: Text(tr('${accounts.length} accounts', 'аккаунтов: ${accounts.length}')),
+              trailing: HmCount(s.unreadOf(pb.FolderRole.FOLDER_ROLE_INBOX)),
+              onTap: () => mail.setView((role: pb.FolderRole.FOLDER_ROLE_INBOX, account: '', folder: '')),
             ),
-          ),
-        ],
+            for (final r in unifiedRoles)
+              if (r == pb.FolderRole.FOLDER_ROLE_INBOX || s.folders.any((f) => f.role == r))
+                folder(
+                  roleName(r),
+                  roleIcon(r),
+                  r == pb.FolderRole.FOLDER_ROLE_INBOX ? s.unreadOf(r) : 0,
+                  s.view.account.isEmpty && s.view.role == r,
+                  () => mail.setView((role: r, account: '', folder: '')),
+                ),
+          ],
+        ),
+        item: (a) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AccountTile(account: a, count: a.mailUnread, onTap: () => inbox(a.id)),
+            for (final f in s.foldersOf(a.id))
+              folder(
+                folderName(f),
+                roleIcon(f.role),
+                f.role == pb.FolderRole.FOLDER_ROLE_SPAM || f.role == pb.FolderRole.FOLDER_ROLE_TRASH ? 0 : f.unread,
+                s.view.account == a.id && s.view.folder == f.id,
+                () => mail.setView((role: f.role, account: a.id, folder: f.id)),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
+
+/// The accounts with mail, in the user's order.
+List<pb.Account> mailAccounts(MessengerState m) => accountsOffering(m, pb.Capability.CAPABILITY_MAIL);
 
 /// Phone: the current folder as a picker, and the compose button.
 class _FolderBar extends StatelessWidget {
@@ -217,7 +222,7 @@ class _FolderBar extends StatelessWidget {
       for (final r in unifiedRoles)
         if (r == pb.FolderRole.FOLDER_ROLE_INBOX || s.folders.any((f) => f.role == r))
           (role: r, account: '', folder: ''): '${roleName(r)} · ${tr('all accounts', 'все аккаунты')}',
-      for (final a in m.accounts.where(hasMail))
+      for (final a in mailAccounts(m))
         for (final f in s.foldersOf(a.id)) (role: f.role, account: a.id, folder: f.id): '${accountName(a)} · ${folderName(f)}',
     };
     return Container(
@@ -698,7 +703,11 @@ class MailReader extends StatelessWidget {
                     child: Center(child: HmSpinner()),
                   )
                 else
-                  HmRichText(body.text.isEmpty ? tr('(empty message)', '(пустое письмо)') : body.text, spans: body.format, style: HmText.body.copyWith(height: 1.6)),
+                  HmRichText(
+                    body.text.isEmpty ? tr('(empty message)', '(пустое письмо)') : body.text,
+                    spans: body.format,
+                    style: HmText.body.copyWith(height: 1.6),
+                  ),
               ],
             ),
           ),

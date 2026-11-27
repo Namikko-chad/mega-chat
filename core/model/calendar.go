@@ -52,4 +52,18 @@ type CalEvent struct {
 	Attendees []Attendee `json:"attendees,omitempty"`
 	// Link is a page or video meeting of the event (Google Meet, ...).
 	Link string `json:"link,omitempty"`
+	// Recurrence is the rule of a repeating event: an RFC 5545 RRULE value
+	// without "RRULE:" ("FREQ=WEEKLY;BYDAY=MO"); occurrences carry their
+	// series' rule, "" when it is not known. See SaveEvent for its use there.
+	Recurrence string `json:"recurrence,omitempty"`
 }
+
+// RecurScope is what of a repeating event a change or a delete of one of
+// its occurrences touches.
+type RecurScope int
+
+const (
+	ScopeThis      RecurScope = iota // this occurrence only
+	ScopeFollowing                   // this and the following occurrences
+	ScopeAll                         // the whole series
+)

@@ -34,4 +34,20 @@ void main() {
     expect(gridStart(DateTime(2026, 11)), DateTime(2026, 10, 26));
     expect(gridStart(DateTime(2026, 6)), DateTime(2026, 6, 1)); // a Monday
   });
+
+  test('every calendar gets a colour of its own', () {
+    pb.Calendar cal(String a, String id, [int color = 0]) => pb.Calendar(accountId: a, id: id, color: color);
+    final cals = [
+      cal('g1', 'primary', 0x9fe1e7),
+      cal('g2', 'primary', 0x9fe1e7), // same id and colour in another account
+      cal('m1', '/cal/a/'),
+      cal('m1', '/cal/b/'),
+      for (var i = 0; i < 12; i++) cal('m2', 'c$i'),
+    ];
+    final m = calendarColors(cals);
+    expect(m.length, cals.length);
+    expect(m.values.map((c) => c.toARGB32()).toSet().length, cals.length);
+    expect(m[(account: 'g1', calendar: 'primary')]!.toARGB32(), 0xFF9FE1E7);
+    expect(CalendarState(calendars: cals).color((account: 'm1', calendar: '/cal/b/')), m[(account: 'm1', calendar: '/cal/b/')]);
+  });
 }

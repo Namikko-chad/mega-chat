@@ -19,6 +19,11 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    // CloudSync's bound service (src/main/aidl/dev/cloudsync/connector, CONNECTOR.md).
+    buildFeatures {
+        aidl = true
+    }
+
     defaultConfig {
         applicationId = "dev.megachat"
         // startForegroundService and notification channels.

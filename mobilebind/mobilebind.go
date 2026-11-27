@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"megachat/core/cloudsync"
 	"megachat/core/embed"
 	"megachat/core/rpc/pb"
 )
@@ -25,10 +26,43 @@ type Listener interface {
 }
 
 var (
-	mu    sync.Mutex
-	core  *embed.Core
-	unsub func()
+	mu        sync.Mutex
+	core      *embed.Core
+	unsub     func()
+	cloudSync CloudSyncBinder
 )
+
+// CloudSyncBinder is CloudSync's bound service (ICloudSyncConnector.aidl,
+// CONNECTOR.md § 3.2), bound by the Kotlin side. Call returns the
+// serialized CallReply of the method; an error means CloudSync is not
+// installed or the binding broke. Calls come from Go's goroutines, never
+// the main thread, and may block (AwaitPairing up to 60 s).
+type CloudSyncBinder interface {
+	Call(method string, request []byte) ([]byte, error)
+	// Watch starts a watch that sends serialized Change messages to w,
+	// then one OnEnd; it returns the handle for Unwatch.
+	Watch(w CloudSyncWatcher) (int64, error)
+	Unwatch(handle int64)
+}
+
+// CloudSyncWatcher gets one watch's changes (implemented in Go).
+type CloudSyncWatcher interface {
+	OnChange(change []byte)
+	OnEnd(reply []byte)
+}
+
+// SetCloudSync gives the core CloudSync's binder; call it before Start.
+func SetCloudSync(b CloudSyncBinder) {
+	mu.Lock()
+	defer mu.Unlock()
+	cloudSync = b
+}
+
+type binder struct{ b CloudSyncBinder }
+
+func (b binder) Call(method string, req []byte) ([]byte, error) { return b.b.Call(method, req) }
+func (b binder) Watch(w cloudsync.BinderWatcher) (int64, error) { return b.b.Watch(w) }
+func (b binder) Unwatch(h int64)                                { b.b.Unwatch(h) }
 
 // Start runs the core: the vault and the cache live in dataDir, temporary
 // files go to cacheDir, gRPC listens on the unix socket sock. It returns
@@ -51,7 +85,11 @@ func Start(dataDir, cacheDir, sock string) (string, error) {
 	// Only this app can reach its files dir: a socket left by a killed
 	// process is stale.
 	os.Remove(sock)
-	c, err := embed.Start(embed.Options{Dir: dataDir, Platform: "android", Listen: "unix:" + sock})
+	o := embed.Options{Dir: dataDir, Platform: "android", Listen: "unix:" + sock}
+	if cloudSync != nil {
+		o.CloudSync = cloudsync.Android{Binder: binder{cloudSync}}
+	}
+	c, err := embed.Start(o)
 	if err != nil {
 		return "", err
 	}

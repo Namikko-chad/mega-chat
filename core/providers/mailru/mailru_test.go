@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -441,20 +442,18 @@ func TestCalDAV(t *testing.T) {
 		if e.Title == "Holiday" && (!e.AllDay || e.End.Sub(e.Start) != 24*time.Hour) {
 			t.Fatalf("all-day %+v", e)
 		}
-		if e.Recurring {
-			if _, err := c.SaveEvent(ctx, e); !errors.Is(err, provider.ErrUnsupported) {
-				t.Fatalf("editing an occurrence: %v", err)
-			}
+		if e.Title == "Planning" && e.Recurrence != "FREQ=WEEKLY;BYDAY=MO,WE" {
+			t.Fatalf("rule %q", e.Recurrence)
 		}
 	}
 
 	start := time.Date(2026, 11, 20, 9, 0, 0, 0, msk)
-	saved, err := c.SaveEvent(ctx, model.CalEvent{CalendarID: calPath, Title: "Dentist", Location: "Clinic", Start: start, End: start.Add(time.Hour)})
+	saved, err := c.SaveEvent(ctx, model.CalEvent{CalendarID: calPath, Title: "Dentist", Location: "Clinic", Start: start, End: start.Add(time.Hour)}, model.ScopeThis)
 	if err != nil || !strings.HasPrefix(saved.ID, calPath) {
 		t.Fatalf("save %+v %v", saved, err)
 	}
 	saved.Title = "Dentist (late)"
-	if _, err := c.SaveEvent(ctx, saved); err != nil {
+	if _, err := c.SaveEvent(ctx, saved, model.ScopeThis); err != nil {
 		t.Fatal(err)
 	}
 	evs, _ = c.Events(ctx, calPath, from, to)
@@ -464,7 +463,7 @@ func TestCalDAV(t *testing.T) {
 		t.Fatalf("edited event not found in %+v", evs)
 	}
 	before, _ := sess.(calSession).cal.state(ctx)
-	if err := c.DeleteEvent(ctx, calPath, saved.ID); err != nil {
+	if err := c.DeleteEvent(ctx, calPath, saved.ID, model.ScopeThis); err != nil {
 		t.Fatal(err)
 	}
 	if after, _ := sess.(calSession).cal.state(ctx); after == before {
@@ -490,7 +489,7 @@ func TestCalDAVKeepsBaseSlash(t *testing.T) {
 		io.WriteString(w, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/principals/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/principals/example.com/me/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>`)
 	}))
 	defer ts.Close()
-	c, err := davClient(ts.Client(), config{Email: "me@example.com", Password: "p"}, ts.URL+"/principals/")
+	c, err := davClient(ts.Client(), config{Email: "me@example.com", Password: "p"}, ts.URL+"/principals/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,4 +497,227 @@ func TestCalDAVKeepsBaseSlash(t *testing.T) {
 	if err != nil || got != "/principals/example.com/me/" {
 		t.Fatalf("%q %v", got, err)
 	}
+}
+
+// Mail moved into a folder in bulk arrives in any order: pages go by date,
+// not by sequence number.
+func TestMailPagesByDate(t *testing.T) {
+	imapAddr, _ := imapServer(t)
+	p := &Provider{Plain: true, Poll: time.Hour}
+	cfg := config{Email: "username", Password: "password", IMAP: imapAddr, SMTP: "127.0.0.1:1"}
+	sess, err := p.Open(provider.Account{Login: "username", Params: cfg.params(methodServer)}, provider.Env{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := sess.(*session)
+	defer s.closeIMAP()
+	ctx := context.Background()
+	// Newest first, the way a whole inbox lands in the trash.
+	base := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	for i := 5; i >= 0; i-- {
+		raw := fmt.Sprintf("From: a@x\r\nSubject: n%d\r\n\r\nhi\r\n", i)
+		if err := s.imapDo(func(c *client.Client) error {
+			return c.Append("Корзина", nil, base.AddDate(0, i, 0), literal{strings.NewReader(raw), len(raw)})
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	subjects := func(ms []model.Mail) (out []string) {
+		for _, m := range ms {
+			out = append(out, m.Subject)
+		}
+		return out
+	}
+	page, more, err := s.Mail(ctx, "Корзина", time.Time{}, 2)
+	if err != nil || !more || !slices.Equal(subjects(page), []string{"n5", "n4"}) {
+		t.Fatalf("first page %v %v %v", subjects(page), more, err)
+	}
+	next, more, _ := s.Mail(ctx, "Корзина", page[1].Time.Add(-time.Second), 3)
+	if !more || !slices.Equal(subjects(next), []string{"n3", "n2", "n1"}) {
+		t.Fatalf("older page %v %v", subjects(next), more)
+	}
+	last, more, _ := s.Mail(ctx, "Корзина", next[2].Time.Add(-time.Second), 3)
+	if more || !slices.Equal(subjects(last), []string{"n0"}) {
+		t.Fatalf("last page %v %v", subjects(last), more)
+	}
+	// A message moved in later shows up: the index follows the folder.
+	raw := "From: a@x\r\nSubject: newest\r\n\r\nhi\r\n"
+	s.imapDo(func(c *client.Client) error {
+		return c.Append("Корзина", nil, base.AddDate(1, 0, 0), literal{strings.NewReader(raw), len(raw)})
+	})
+	if top, _, _ := s.Mail(ctx, "Корзина", time.Time{}, 1); len(top) != 1 || top[0].Subject != "newest" {
+		t.Fatalf("after append %v", subjects(top))
+	}
+}
+
+// Mail.ru sends bare ETags and calendar-query responses without
+// calendar-data: those objects come by multiget or GET, and one that
+// cannot be read is left out instead of failing the calendar.
+func TestCalDAVLenientObjects(t *testing.T) {
+	const ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:x\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20261125T100000Z\r\nDTSTART:20261126T080000Z\r\nDTEND:20261126T090000Z\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	resp := func(href, etag, data, status string) string {
+		var d string
+		if data != "" {
+			d = "<c:calendar-data>" + data + "</c:calendar-data>"
+		}
+		return `<d:response><d:href>` + href + `</d:href><d:propstat><d:prop><d:getetag>` + etag + `</d:getetag>` + d + `</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>` +
+			`<d:propstat><d:prop><c:calendar-data/></d:prop><d:status>HTTP/1.1 ` + status + `</d:status></d:propstat></d:response>`
+	}
+	var puts int
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		switch {
+		case r.Method == "REPORT" && strings.Contains(string(body), "calendar-query"):
+			w.WriteHeader(http.StatusMultiStatus)
+			io.WriteString(w, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">`+
+				`<d:response><d:href>/cal/</d:href><d:propstat><d:prop/><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`+
+				resp("/cal/a.ics", "abc", fmt.Sprintf(ics, "a", "A"), "200 OK")+
+				resp("/cal/b.ics", "bcd", "", "404 Not Found")+
+				resp("/cal/c.ics", "cde", "", "404 Not Found")+
+				resp("/cal/gone.ics", "x", "", "404 Not Found")+`</d:multistatus>`)
+		case r.Method == "REPORT": // multiget: b only
+			if !strings.Contains(string(body), "/cal/b.ics") {
+				t.Errorf("multiget %s", body)
+			}
+			w.WriteHeader(http.StatusMultiStatus)
+			io.WriteString(w, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">`+
+				resp("/cal/b.ics", "bcd2", fmt.Sprintf(ics, "b", "B"), "200 OK")+`</d:multistatus>`)
+		case r.Method == http.MethodGet && r.URL.Path == "/cal/c.ics":
+			w.Header().Set("ETag", "cde")
+			fmt.Fprintf(w, ics, "c", "C")
+		case r.Method == http.MethodPut && r.URL.Path == "/cal/c.ics":
+			puts++
+			w.Header().Set("ETag", "new")
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+	var logged []string
+	k, err := newCalClient(ts.Client(), config{Email: "me@example.com", Password: "p", CalDAV: ts.URL + "/principals/"}, func(f string, a ...any) { logged = append(logged, fmt.Sprintf(f, a...)) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := time.Date(2026, 11, 26, 0, 0, 0, 0, time.UTC)
+	evs, err := k.events(context.Background(), "/cal/", from, from.AddDate(0, 0, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	for _, e := range evs {
+		titles = append(titles, e.Title)
+	}
+	if !slices.Equal(titles, []string{"A", "B", "C"}) || len(logged) != 2 || !strings.Contains(logged[1], "gone.ics: no calendar data") {
+		t.Fatalf("events %v, logged %v", titles, logged)
+	}
+	objs, err := k.raw.query(context.Background(), "/cal/", from, from.AddDate(0, 0, 1), false, k.logf)
+	if err != nil || len(objs) != 4 || objs[0].ETag != "abc" {
+		t.Fatalf("etags %+v %v", objs, err)
+	}
+	ev := evs[2]
+	ev.Title = "C2"
+	if _, err := k.save(context.Background(), ev, "", model.ScopeThis); err != nil || puts != 1 {
+		t.Fatalf("save %v, puts %d", err, puts)
+	}
+}
+
+// Occurrences of a repeating event are changed and deleted one by one, from
+// one on, or as a whole series.
+func TestCalDAVRecurring(t *testing.T) {
+	davURL, be := davServer(t)
+	cfg := config{Email: "username@mail.ru", Password: "password", IMAP: "x:1", CalDAV: davURL, CalHome: "/username/calendars/"}
+	k, err := newCalClient(http.DefaultClient, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	msk, _ := time.LoadLocation("Europe/Moscow")
+	from, to := time.Date(2026, 11, 1, 0, 0, 0, 0, msk), time.Date(2026, 12, 1, 0, 0, 0, 0, msk)
+	list := func() (got []string, byDay map[string]model.CalEvent) {
+		evs, err := k.events(ctx, calPath, from, to)
+		if err != nil {
+			t.Fatal(err)
+		}
+		byDay = map[string]model.CalEvent{}
+		for _, e := range evs {
+			if e.AllDay {
+				continue
+			}
+			d := e.Start.In(msk).Format("01-02")
+			got = append(got, d+" "+e.Start.In(msk).Format("15:04")+" "+e.Title)
+			byDay[d] = e
+		}
+		slices.Sort(got)
+		return got, byDay
+	}
+	check := func(step string, want ...string) map[string]model.CalEvent {
+		t.Helper()
+		got, byDay := list()
+		if !slices.Equal(got, want) {
+			t.Fatalf("%s\n got %q\nwant %q", step, got, want)
+		}
+		return byDay
+	}
+	days := check("start",
+		"11-02 10:00 Planning", "11-04 10:00 Planning", "11-09 10:00 Planning", "11-16 15:00 Planning (moved)",
+		"11-18 10:00 Planning", "11-23 10:00 Planning", "11-25 10:00 Planning", "11-30 10:00 Planning")
+
+	// This occurrence: a new override; the 16th's own one is kept.
+	e := days["11-18"]
+	e.Title = "Planning (18)"
+	if _, err := k.save(ctx, e, "", model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	if err := k.remove(ctx, days["11-09"].ID, model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	days = check("this",
+		"11-02 10:00 Planning", "11-04 10:00 Planning", "11-16 15:00 Planning (moved)",
+		"11-18 10:00 Planning (18)", "11-23 10:00 Planning", "11-25 10:00 Planning", "11-30 10:00 Planning")
+
+	// This and the following: a new series from the 23rd at 11.
+	e = days["11-23"]
+	e.Title, e.Start, e.End = "Planning v2", e.Start.Add(time.Hour), e.End.Add(time.Hour)
+	if _, err := k.save(ctx, e, "", model.ScopeFollowing); err != nil {
+		t.Fatal(err)
+	}
+	days = check("following",
+		"11-02 10:00 Planning", "11-04 10:00 Planning", "11-16 15:00 Planning (moved)",
+		"11-18 10:00 Planning (18)", "11-23 11:00 Planning v2", "11-25 11:00 Planning v2", "11-30 11:00 Planning v2")
+	if r := days["11-02"].Recurrence; !strings.Contains(r, "UNTIL=20261123T065959Z") {
+		t.Fatalf("old series' rule %q", r)
+	}
+	be.mu.Lock()
+	n := len(be.objs)
+	be.mu.Unlock()
+	if n != 3 {
+		t.Fatalf("objects: %d", n)
+	}
+
+	// The whole (old) series half an hour later: overrides go, the cut stays.
+	e = days["11-04"]
+	e.Start, e.End = e.Start.Add(30*time.Minute), e.End.Add(30*time.Minute)
+	if _, err := k.save(ctx, e, "", model.ScopeAll); err != nil {
+		t.Fatal(err)
+	}
+	days = check("all",
+		"11-02 10:30 Planning", "11-04 10:30 Planning", "11-16 10:30 Planning", "11-18 10:30 Planning",
+		"11-23 11:00 Planning v2", "11-25 11:00 Planning v2", "11-30 11:00 Planning v2")
+
+	// Deleting from the 25th on, then the old series whole.
+	if err := k.remove(ctx, days["11-25"].ID, model.ScopeFollowing); err != nil {
+		t.Fatal(err)
+	}
+	if err := k.remove(ctx, days["11-02"].ID, model.ScopeAll); err != nil {
+		t.Fatal(err)
+	}
+	check("deleted", "11-23 11:00 Planning v2")
+
+	// A new repeating event; then a single one made repeating.
+	start := time.Date(2026, 11, 10, 9, 0, 0, 0, msk)
+	if _, err := k.save(ctx, model.CalEvent{CalendarID: calPath, Title: "Daily", Start: start, End: start.Add(time.Hour), Recurrence: "FREQ=DAILY;COUNT=2"}, "", model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	check("new", "11-10 09:00 Daily", "11-11 09:00 Daily", "11-23 11:00 Planning v2")
 }

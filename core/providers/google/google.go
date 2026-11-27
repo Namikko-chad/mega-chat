@@ -425,7 +425,8 @@ type session struct {
 	mu        sync.Mutex
 	self      model.Address
 	historyID string
-	calSeen   time.Time // calendar changes are looked for after this
+	calSeen   time.Time            // calendar changes are looked for after this
+	rules     map[string]ruleEntry // series rules by calendar + series id
 }
 
 func (p *Provider) Open(acct provider.Account, env provider.Env) (provider.Session, error) {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -30,6 +31,24 @@ type fakeGoogle struct {
 	sent     []string
 	created  []gEvent
 	history  string
+	patched  []patch  // calendar events
+	deleted  []string // calendar event ids
+}
+
+type patch struct {
+	id   string
+	body map[string]any
+}
+
+// The calendar's series "s" (Fridays at 10 in Moscow) and its occurrence
+// "e1" on 13 November.
+var gSeries = map[string]gEvent{
+	"s": {ID: "s", Summary: "Standup", Start: gTime{DateTime: "2026-11-06T10:00:00+03:00", TimeZone: "Europe/Moscow"},
+		End: gTime{DateTime: "2026-11-06T10:15:00+03:00", TimeZone: "Europe/Moscow"}, Recurrence: []string{"RRULE:FREQ=WEEKLY;BYDAY=FR", "EXDATE;TZID=Europe/Moscow:20261120T100000"}},
+	"e1": {ID: "e1", Summary: "Standup", Start: gTime{DateTime: "2026-11-13T10:00:00+03:00", TimeZone: "Europe/Moscow"},
+		End: gTime{DateTime: "2026-11-13T10:15:00+03:00", TimeZone: "Europe/Moscow"}, RecurringEventID: "s",
+		OriginalStartTime: &gTime{DateTime: "2026-11-13T10:00:00+03:00", TimeZone: "Europe/Moscow"}},
+	"single": {ID: "single", Summary: "Once", Start: gTime{DateTime: "2026-11-13T12:00:00+03:00"}, End: gTime{DateTime: "2026-11-13T13:00:00+03:00"}},
 }
 
 func b64(s string) string { return base64.RawURLEncoding.EncodeToString([]byte(s)) }
@@ -129,6 +148,22 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			{ID: "e2", Summary: "Trip", Start: gTime{Date: "2026-11-14"}, End: gTime{Date: "2026-11-16"},
 				Attendees: []gPerson{{Email: "me@gmail.com", ResponseStatus: "accepted", Self: true}}},
 		}})
+	case strings.Contains(p, "/events/"):
+		id := p[strings.LastIndex(p, "/")+1:]
+		switch r.Method {
+		case http.MethodGet:
+			js(gSeries[id])
+		case http.MethodPatch:
+			var b map[string]any
+			json.NewDecoder(r.Body).Decode(&b)
+			f.patched = append(f.patched, patch{id, b})
+			js(gSeries[id])
+		case http.MethodDelete:
+			f.deleted = append(f.deleted, id)
+			w.WriteHeader(http.StatusNoContent)
+		}
+	case strings.HasPrefix(p, "/calendar/v3/calendars/") && !strings.Contains(p, "/events"):
+		js(map[string]string{"timeZone": "Europe/Moscow"})
 	case strings.HasSuffix(p, "/events") && r.Method == http.MethodPost:
 		var g gEvent
 		json.NewDecoder(r.Body).Decode(&g)
@@ -338,7 +373,7 @@ func TestCalendar(t *testing.T) {
 		t.Fatalf("all-day %+v", e)
 	}
 	day := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
-	out, err := s.SaveEvent(ctx, model.CalEvent{CalendarID: "me@gmail.com", Title: "Off", Start: day, End: day.AddDate(0, 0, 1), AllDay: true})
+	out, err := s.SaveEvent(ctx, model.CalEvent{CalendarID: "me@gmail.com", Title: "Off", Start: day, End: day.AddDate(0, 0, 1), AllDay: true}, model.ScopeThis)
 	if err != nil || out.ID != "new" || !out.AllDay {
 		t.Fatalf("save %+v %v", out, err)
 	}
@@ -356,5 +391,74 @@ func TestRevoked(t *testing.T) {
 	err := sess.Run(context.Background(), &sinkRec{up: make(chan struct{})})
 	if !errors.Is(err, provider.ErrAuth) {
 		t.Fatalf("want ErrAuth, got %v", err)
+	}
+}
+
+func TestRecurringCalendar(t *testing.T) {
+	p, f := setup(t)
+	p.Poll = time.Hour
+	s, _, cancel := open(t, p)
+	defer cancel()
+	ctx := context.Background()
+	evs, err := s.Events(ctx, "me@gmail.com", time.Now(), time.Now().Add(time.Hour))
+	if err != nil || evs[0].Recurrence != "FREQ=WEEKLY;BYDAY=FR" || evs[1].Recurrence != "" {
+		t.Fatalf("rules %+v %v", evs, err)
+	}
+	msk, _ := time.LoadLocation("Europe/Moscow")
+	occ := model.CalEvent{CalendarID: "me@gmail.com", ID: "e1", Title: "Standup",
+		Start: time.Date(2026, 11, 13, 11, 0, 0, 0, msk), End: time.Date(2026, 11, 13, 11, 15, 0, 0, msk)}
+	last := func() patch {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		return f.patched[len(f.patched)-1]
+	}
+
+	// This occurrence: the occurrence itself.
+	if _, err := s.SaveEvent(ctx, occ, model.ScopeThis); err != nil || last().id != "e1" || last().body["recurrence"] != nil {
+		t.Fatalf("this: %+v %v", last(), err)
+	}
+	// The whole series, an hour later: the series from its own first day.
+	if _, err := s.SaveEvent(ctx, occ, model.ScopeAll); err != nil {
+		t.Fatal(err)
+	}
+	b := last()
+	start := b.body["start"].(map[string]any)
+	if b.id != "s" || start["dateTime"] != "2026-11-06T11:00:00+03:00" || start["timeZone"] != "Europe/Moscow" || b.body["recurrence"] != nil {
+		t.Fatalf("all: %+v", b)
+	}
+	// This and the following: the series ends, a new one starts.
+	occ.Title = "New standup"
+	if _, err := s.SaveEvent(ctx, occ, model.ScopeFollowing); err != nil {
+		t.Fatal(err)
+	}
+	if b := last(); b.id != "s" || fmt.Sprint(b.body["recurrence"]) != "[RRULE:FREQ=WEEKLY;BYDAY=FR;UNTIL=20261113T065959Z EXDATE;TZID=Europe/Moscow:20261120T100000]" {
+		t.Fatalf("following, old: %+v", b)
+	}
+	f.mu.Lock()
+	n := f.created[len(f.created)-1]
+	f.mu.Unlock()
+	if n.Summary != "New standup" || fmt.Sprint(n.Recurrence) != "[RRULE:FREQ=WEEKLY;BYDAY=FR]" || n.Start.TimeZone != "Europe/Moscow" {
+		t.Fatalf("following, new: %+v", n)
+	}
+	// A single event made repeating.
+	one := model.CalEvent{CalendarID: "me@gmail.com", ID: "single", Title: "Weekly now", Start: occ.Start, End: occ.End, Recurrence: "FREQ=WEEKLY"}
+	if _, err := s.SaveEvent(ctx, one, model.ScopeThis); err != nil || fmt.Sprint(last().body["recurrence"]) != "[RRULE:FREQ=WEEKLY]" || last().body["start"].(map[string]any)["timeZone"] != "Europe/Moscow" {
+		t.Fatalf("made repeating: %+v %v", last(), err)
+	}
+
+	// Deleting: the occurrence, from it on, the series.
+	if err := s.DeleteEvent(ctx, "me@gmail.com", "e1", model.ScopeThis); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteEvent(ctx, "me@gmail.com", "e1", model.ScopeFollowing); err != nil || !strings.Contains(fmt.Sprint(last().body["recurrence"]), "UNTIL=20261113T065959Z") {
+		t.Fatalf("delete following: %+v %v", last(), err)
+	}
+	if err := s.DeleteEvent(ctx, "me@gmail.com", "e1", model.ScopeAll); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !slices.Equal(f.deleted, []string{"e1", "s"}) {
+		t.Fatalf("deleted %v", f.deleted)
 	}
 }

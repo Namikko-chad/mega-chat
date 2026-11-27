@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+// The CloudSync Connector API, version 1: what CloudSync offers to other
+// applications ("connected apps", e.g. MegaChat). An app keeps a few small
+// records (its settings file, its vault) in CloudSync; CloudSync stores them
+// encrypted in every storage and gives every device the same value.
+//
+// This file is the contract. Apps copy it as is and generate their own
+// client; see docs/CONNECTOR.md for the transport (unix socket / localhost
+// on desktops, a bound service on Android), pairing and the merge rules.
+// Only fields and methods are ever added to v1; nothing is renamed or
+// renumbered.
+package cloudsync.connector.v1;
+
+option go_package = "cloudsync/core/connector/pb";
+
+service Connector {
+  // --- no credentials needed ---------------------------------------------
+
+  // Hello says what is there: API version, whether the vault is open and
+  // whether this caller is paired. Call it first and after every reconnect.
+  rpc Hello(HelloRequest) returns (HelloReply);
+  // RequestPairing asks the user (in CloudSync) to let this app keep its
+  // data there. Show the returned code: the user sees the same one.
+  rpc RequestPairing(PairingRequest) returns (PairingTicket);
+  // AwaitPairing waits (up to wait_seconds, at most 60) for the user's
+  // answer. The token comes back exactly once, with APPROVED.
+  rpc AwaitPairing(AwaitPairingRequest) returns (PairingResult);
+
+  // --- paired apps only (bearer token on desktops, the calling package on
+  // Android); every call works on the caller's own app id only -----------
+
+  // Get returns one record. A record nobody wrote has no versions.
+  rpc Get(GetRequest) returns (Item);
+  // List returns every record of the app, without data.
+  rpc List(ListRequest) returns (ListReply);
+  // Put writes a record. base is the revision the new value was made from
+  // (from Get, Put or List; "" for a record that does not exist yet). If
+  // the record has another revision now, Put fails with ABORTED: read it
+  // again, merge, retry.
+  rpc Put(PutRequest) returns (Item);
+  // Delete removes a record, with the same base rule as Put.
+  rpc Delete(DeleteRequest) returns (Item);
+  // AppKey returns a 32-byte key of this app, the same on every device of
+  // the vault and never changing. An app may seal its local copy with it
+  // instead of asking the user for a password of its own.
+  rpc AppKey(AppKeyRequest) returns (AppKeyReply);
+  // Watch streams changes of the app's records (from any device) and of
+  // the vault state. It sends nothing at the start: call Get / List after
+  // it is open.
+  rpc Watch(WatchRequest) returns (stream Change);
+  // Unpair forgets this app's pairing on this device (the data stays).
+  rpc Unpair(UnpairRequest) returns (UnpairReply);
+}
+
+enum VaultState {
+  VAULT_STATE_UNSPECIFIED = 0;
+  NO_VAULT = 1; // CloudSync is not set up on this device
+  LOCKED = 2;   // the user has to unlock CloudSync
+  // Unlocked, but no storage answers yet (or too few are configured):
+  // Get and List read this device's own copy, Put and Delete fail with
+  // UNAVAILABLE.
+  OFFLINE = 3;
+  READY = 4;
+}
+
+message HelloRequest {
+  string app_id = 1; // optional: fills HelloReply.paired for this app
+}
+
+message HelloReply {
+  uint32 api_version = 1; // 1
+  string core_version = 2;
+  VaultState state = 3;
+  // The caller is paired (desktops: the request carries a valid token;
+  // Android: the calling package was approved for app_id).
+  bool paired = 4;
+  string app_id = 5;     // the app id of the pairing, when paired
+  string vault_id = 6;   // changes when another vault is opened
+  string device_name = 7;
+}
+
+message PairingRequest {
+  // Stable id of the app, the same on every platform and device: the data
+  // namespace. ^[a-z0-9][a-z0-9._-]{1,63}$, e.g. "megachat".
+  string app_id = 1;
+  string app_name = 2;    // shown to the user, e.g. "MegaChat"
+  string description = 3; // shown to the user, e.g. "MegaChat 1.4 on linux"
+}
+
+message PairingTicket {
+  string ticket = 1;          // secret: only the requester knows it
+  string code = 2;            // 6 digits, shown by the app and by CloudSync
+  int64 expires_unix_ms = 3;  // the request is dropped then (5 minutes)
+}
+
+message AwaitPairingRequest {
+  string ticket = 1;
+  uint32 wait_seconds = 2; // 0 = answer at once; at most 60
+}
+
+enum PairingStatus {
+  PAIRING_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  APPROVED = 2;
+  DENIED = 3;
+  EXPIRED = 4; // timed out, already answered, or unknown ticket
+}
+
+message PairingResult {
+  PairingStatus status = 1;
+  // Desktops: the bearer token for every later call; returned once. Keep
+  // it on this device only (it is per device, never put it in the synced
+  // data). Android: empty, the package itself is the credential.
+  string token = 2;
+  string app_id = 3;
+}
+
+message Version {
+  string id = 1;          // id of the write that made it
+  bytes data = 2;         // as written by the app (empty in List)
+  int64 size = 3;
+  string device_name = 4; // the device that wrote it
+  int64 time_unix_ms = 5;
+}
+
+message Item {
+  string key = 1;
+  // Pass it as base to the next Put / Delete. Opaque; "" only for a key
+  // that was never written.
+  string revision = 2;
+  // The current value. Empty: the record does not exist (never written or
+  // deleted). More than one: devices wrote it concurrently (offline); the
+  // app merges them and Puts the result with this revision as base.
+  repeated Version versions = 3;
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message ListRequest {
+  string prefix = 1; // "" = all
+}
+
+message ListReply {
+  repeated Item items = 1; // only existing records; versions without data
+}
+
+message PutRequest {
+  // 1–200 bytes of [A-Za-z0-9._/-], e.g. "vault.mc", "settings/ui.json".
+  string key = 1;
+  bytes data = 2; // at most 256 KiB
+  string base = 3;
+}
+
+message DeleteRequest {
+  string key = 1;
+  string base = 2;
+}
+
+message AppKeyRequest {}
+
+message AppKeyReply {
+  bytes key = 1;    // 32 bytes
+  string key_id = 2; // short fingerprint, to tell keys apart
+}
+
+message WatchRequest {}
+
+message Change {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    RECORD = 1; // a record changed: key, revision (Get it)
+    STATE = 2;  // vault state changed: state (call Hello)
+    // The pairing was revoked in CloudSync: the stream ends after it.
+    UNPAIRED = 3;
+  }
+  Kind kind = 1;
+  string key = 2;
+  string revision = 3;
+  bool deleted = 4; // RECORD: no versions left
+  VaultState state = 5;
+}
+
+message UnpairRequest {}
+
+message UnpairReply {}
+
+// Android only: the bound service carries the messages above as bytes
+// (see docs/CONNECTOR.md). Every reply is wrapped in a CallReply.
+message CallReply {
+  int32 code = 1;      // a gRPC status code; 0 = OK
+  string message = 2;  // error text when code != 0
+  bytes payload = 3;   // the serialized reply message when code == 0
+}

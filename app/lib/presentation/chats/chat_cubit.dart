@@ -26,6 +26,7 @@ class ChatState extends Equatable {
     this.quote,
     this.editing,
     this.selected = const {},
+    this.online = const {},
     this.rev = 0,
   });
 
@@ -53,6 +54,10 @@ class ChatState extends Equatable {
   /// Messages picked to copy or forward together (the ids shown: an
   /// album's is its captioned part). Empty: not picking.
   final Set<String> selected;
+
+  /// Group chats: ids of the people the member list last reported online
+  /// (CAPABILITY_MENTIONS; refreshed while the chat is open).
+  final Set<String> online;
   final int rev;
 
   pb.Message? byId(String id) => messages.where((m) => m.id == id).firstOrNull;
@@ -69,6 +74,7 @@ class ChatState extends Equatable {
     String? quote,
     pb.Message? editing,
     Set<String>? selected,
+    Set<String>? online,
     bool clearError = false,
     bool clearReply = false,
     bool clearEdit = false,
@@ -84,6 +90,7 @@ class ChatState extends Equatable {
     quote: clearReply ? null : (replyTo != null ? quote : this.quote),
     editing: clearEdit ? null : editing ?? this.editing,
     selected: selected ?? this.selected,
+    online: online ?? this.online,
     rev: rev + 1,
   );
 
@@ -107,9 +114,31 @@ class ChatCubit extends Cubit<ChatState> {
       }
     });
     load();
+    final account = _messenger.state.accounts.where((a) => a.id == key.account).firstOrNull;
+    if (_messenger.state.chats[key]?.kind == pb.ChatKind.CHAT_KIND_GROUP && (account?.capabilities ?? const []).contains(pb.Capability.CAPABILITY_MENTIONS)) {
+      _loadPresence();
+      _presenceTimer = Timer.periodic(const Duration(minutes: 1), (_) => _loadPresence());
+    }
   }
 
   static const _page = 50;
+
+  /// Who of the group is online: the member list (a capped sample) carries
+  /// live presence. A failure keeps what was known.
+  Future<void> _loadPresence() async {
+    try {
+      final r = await _api.members(pb.MembersRequest(accountId: key.account, chatId: key.chat, limit: 50));
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          online: {
+            for (final u in r.users)
+              if (u.online) u.id,
+          },
+        ),
+      );
+    } catch (_) {}
+  }
 
   final CoreCubit _core;
   final MessengerCubit _messenger;
@@ -119,6 +148,7 @@ class ChatCubit extends Cubit<ChatState> {
   int _session = 0;
   Timer? _readTimer;
   Timer? _reloadTimer;
+  Timer? _presenceTimer;
   bool? _online; // the account's last known state
 
   // Read only while the user can see the chat (window in front, screen on),
@@ -374,6 +404,7 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> close() async {
     _readTimer?.cancel();
     _reloadTimer?.cancel();
+    _presenceTimer?.cancel();
     await _eventSub.cancel();
     await _coreSub.cancel();
     return super.close();
