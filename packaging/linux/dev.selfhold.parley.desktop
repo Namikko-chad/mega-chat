@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Parley
+GenericName=Messenger
+Comment=VK Teams, Slack, Telegram, mail and calendars in one window
+Exec=/usr/bin/parley
+Icon=dev.selfhold.parley
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+Keywords=chat;messenger;slack;telegram;mail;calendar;
+StartupWMClass=dev.selfhold.parley
+StartupNotify=true

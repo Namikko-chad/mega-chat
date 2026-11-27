@@ -168,6 +168,9 @@ Prerequisites:
 make build-linux                                             # builds/linux/parley: the app with the core in it
 make build-linux TG_APP_ID=123 TG_APP_HASH=abc               # with built-in Telegram app credentials
 make build-linux GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…   # with a built-in Google OAuth client
+make package-linux                                           # deb, rpm and Arch packages in builds/packages
+make package-linux PKG=archlinux                             # one format: deb, rpm or archlinux
+make icons                                                   # re-render the PNG icons from branding/*.svg
 make build-apk                                               # builds/android/*.apk (arm64, x86_64)
 make build                                                   # builds/parley: the debug CLI
 make run-demo                                                # the app with the Demo messenger, no real accounts

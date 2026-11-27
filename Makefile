@@ -1,4 +1,4 @@
-.PHONY: all test race vet build build-windows core-lib core-dll build-linux build-apk proto aar app-deps app-test app-run run-demo clean
+.PHONY: all test race vet build build-windows core-lib core-dll build-linux build-apk proto aar app-deps app-test app-run run-demo clean package-linux icons
 
 # Every build output lands in builds/ at the repo root.
 BIN := builds
@@ -102,11 +102,35 @@ app-test: app-deps
 	cd app && flutter analyze && $(CAP) env NODE_OPTIONS=--max-old-space-size=768 flutter test --concurrency=1
 
 # Desktop app: the core is linked into builds/linux/parley, one process.
+# A CMake cache made at another checkout path (the repo was moved or renamed)
+# breaks `flutter build linux`, so it is dropped first.
 build-linux: app-deps
+	@c=app/build/linux/x64/release/CMakeCache.txt; \
+	if [ -f "$$c" ] && ! grep -qxF "CMAKE_CACHEFILE_DIR:INTERNAL=$(CURDIR)/app/build/linux/x64/release" "$$c"; then \
+		echo "CMake cache from another checkout path: removing app/build/linux"; \
+		rm -rf app/build/linux; \
+	fi
 	cd app && PARLEY_BUILD_ID=$(BUILD_ID) flutter build linux --release $(DEFINES)
 	rm -rf $(BIN)/linux && mkdir -p $(BIN)/linux
 	cp -r app/build/linux/x64/release/bundle/. $(BIN)/linux/
 	@echo "app: $(BIN)/linux/parley"
+
+# Linux packages from the build-linux output, described in packaging/linux/nfpm.yaml.
+# PKG picks the formats (deb, rpm, archlinux; all three by default), e.g.
+#   make package-linux PKG=archlinux
+# Packages land in $(BIN)/packages/. nfpm runs through `go run` unless it is installed.
+PKG ?= deb rpm archlinux
+NFPM ?= $(or $(shell command -v nfpm 2>/dev/null),go run github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.49.0)
+
+package-linux: build-linux
+	mkdir -p $(BIN)/packages
+	@for p in $(PKG); do \
+		PKG_VERSION=$(VERSION) $(NFPM) package -f packaging/linux/nfpm.yaml -p $$p -t $(BIN)/packages/ || exit 1; \
+	done
+
+# Re-renders the committed PNG icons (app, tray, Android) from the SVGs in branding/.
+icons:
+	branding/render.sh
 
 # APKs only for arm64 (phones) and x86_64 (emulators): the Go core is built for these.
 build-apk: aar app-deps
